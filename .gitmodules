@@ -1,0 +1,3 @@
+[submodule "StoreListings"]
+	path = StoreListings
+	url = https://github.com/mjishnu/StoreListings
