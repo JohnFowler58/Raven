@@ -38,36 +38,32 @@ public class VirtualGridLayout : VirtualizingLayout
         nameof(MinItemWidth),
         typeof(double),
         typeof(VirtualGridLayout),
-        new PropertyMetadata(191.0, OnLayoutPropertyChanged)
+        new PropertyMetadata(191.0, OnMeasurePropertyChanged)
     );
-
     public static readonly DependencyProperty MinItemHeightProperty = DependencyProperty.Register(
         nameof(MinItemHeight),
         typeof(double),
         typeof(VirtualGridLayout),
-        new PropertyMetadata(224.0, OnLayoutPropertyChanged)
+        new PropertyMetadata(224.0, OnMeasurePropertyChanged)
     );
-
     public static readonly DependencyProperty MaxColumnsProperty = DependencyProperty.Register(
         nameof(MaxColumns),
         typeof(int),
         typeof(VirtualGridLayout),
-        new PropertyMetadata(int.MaxValue, OnLayoutPropertyChanged)
+        new PropertyMetadata(int.MaxValue, OnMeasurePropertyChanged)
     );
-
     public static readonly DependencyProperty MinColumnSpacingProperty =
         DependencyProperty.Register(
             nameof(MinColumnSpacing),
             typeof(double),
             typeof(VirtualGridLayout),
-            new PropertyMetadata(17.0, OnLayoutPropertyChanged)
+            new PropertyMetadata(17.0, OnMeasurePropertyChanged)
         );
-
     public static readonly DependencyProperty MinRowSpacingProperty = DependencyProperty.Register(
         nameof(MinRowSpacing),
         typeof(double),
         typeof(VirtualGridLayout),
-        new PropertyMetadata(32.0, OnLayoutPropertyChanged)
+        new PropertyMetadata(32.0, OnMeasurePropertyChanged)
     );
 
     public static readonly DependencyProperty ItemsJustificationProperty =
@@ -77,55 +73,75 @@ public class VirtualGridLayout : VirtualizingLayout
             typeof(VirtualGridLayout),
             new PropertyMetadata(
                 UniformGridLayoutItemsJustification.SpaceEvenly,
-                OnLayoutPropertyChanged
+                OnArrangePropertyChanged
             )
         );
-
     public static readonly DependencyProperty ItemsStretchProperty = DependencyProperty.Register(
         nameof(ItemsStretch),
         typeof(UniformGridLayoutItemsStretch),
         typeof(VirtualGridLayout),
-        new PropertyMetadata(UniformGridLayoutItemsStretch.Fill, OnLayoutPropertyChanged)
+        new PropertyMetadata(UniformGridLayoutItemsStretch.Fill, OnArrangePropertyChanged)
     );
     #endregion
 
-    #region Public Properties
+    #region Public Properties (with XML Documentation)
+    /// <summary>
+    /// Gets or sets the minimum width of an item. This is used to calculate the number of columns.
+    /// </summary>
     public double MinItemWidth
     {
         get => (double)GetValue(MinItemWidthProperty);
         set => SetValue(MinItemWidthProperty, value);
     }
 
+    /// <summary>
+    /// Gets or sets the height of an item. This defines the uniform height for all cells in the grid.
+    /// </summary>
     public double MinItemHeight
     {
         get => (double)GetValue(MinItemHeightProperty);
         set => SetValue(MinItemHeightProperty, value);
     }
 
+    /// <summary>
+    /// Gets or sets the maximum number of columns to display.
+    /// </summary>
     public int MaxColumns
     {
         get => (int)GetValue(MaxColumnsProperty);
         set => SetValue(MaxColumnsProperty, value);
     }
 
+    /// <summary>
+    /// Gets or sets the minimum spacing between items in the same row.
+    /// </summary>
     public double MinColumnSpacing
     {
         get => (double)GetValue(MinColumnSpacingProperty);
         set => SetValue(MinColumnSpacingProperty, value);
     }
 
+    /// <summary>
+    /// Gets or sets the spacing between rows.
+    /// </summary>
     public double MinRowSpacing
     {
         get => (double)GetValue(MinRowSpacingProperty);
         set => SetValue(MinRowSpacingProperty, value);
     }
 
+    /// <summary>
+    /// Gets or sets a value that indicates how items are aligned on the horizontal axis.
+    /// </summary>
     public UniformGridLayoutItemsJustification ItemsJustification
     {
         get => (UniformGridLayoutItemsJustification)GetValue(ItemsJustificationProperty);
         set => SetValue(ItemsJustificationProperty, value);
     }
 
+    /// <summary>
+    /// Gets or sets a value that indicates how items are sized to fill the available space within a cell.
+    /// </summary>
     public UniformGridLayoutItemsStretch ItemsStretch
     {
         get => (UniformGridLayoutItemsStretch)GetValue(ItemsStretchProperty);
@@ -134,36 +150,33 @@ public class VirtualGridLayout : VirtualizingLayout
     #endregion
 
     #region Private Fields
+    private double _cellWidth;
+    private double _cellHeight;
     private int _columns;
-    private double _itemWidth;
-    private double _itemHeight;
-    private double _effectiveColumnSpacing;
+
     private Size _lastAvailableSize;
     private bool _layoutInvalid = true;
     private int _lastItemCount = -1;
     private int _cachedRowCount;
-    private readonly Size _zeroSize = new(0, 0);
-    private const double FloatingPointEpsilon = 0.01;
-    private const int ExtraBufferItems = 1;
     private bool _significantSizeChange;
     private int _previousColumns;
+
+    private const double FloatingPointEpsilon = 0.01;
+    private const int ExtraBufferItems = 1;
     #endregion
 
     #region Overridden Methods
     protected override Size MeasureOverride(VirtualizingLayoutContext context, Size availableSize)
     {
-        int itemCount = context.ItemCount;
-        if (itemCount == 0)
+        if (context.ItemCount == 0)
         {
-            return _zeroSize;
+            _lastItemCount = 0;
+            return new Size(0, 0);
         }
 
         bool sizeChanged = !SizeEquals(_lastAvailableSize, availableSize);
-
-        // Calculate number of columns before updating layout
         int newColumns = CalculateColumnCount(availableSize.Width);
 
-        // Detect significant size changes (expanding from small to large view)
         _significantSizeChange =
             sizeChanged
             && (
@@ -174,26 +187,16 @@ public class VirtualGridLayout : VirtualizingLayout
         if (sizeChanged || _layoutInvalid)
         {
             _lastAvailableSize = availableSize;
-            CalculateLayout(availableSize);
+            CalculateLayoutParameters(availableSize);
             _layoutInvalid = false;
             _previousColumns = _columns;
         }
 
-        int rows;
-        if (itemCount != _lastItemCount || _significantSizeChange)
-        {
-            rows = CalculateRowCount(itemCount);
-            _cachedRowCount = rows;
-            _lastItemCount = itemCount;
-        }
-        else
-        {
-            rows = _cachedRowCount;
-        }
-
+        int rows = RecalculateRowCountIfNeeded(context.ItemCount);
         var realizationRect = context.RealizationRect;
         var visibleRange = GetVisibleRange(realizationRect, rows);
-        MeasureVisibleItems(context, visibleRange, itemCount);
+
+        MeasureVisibleItems(context, visibleRange, context.ItemCount);
 
         double totalHeight = CalculateTotalHeight(rows);
         return new Size(availableSize.Width, totalHeight);
@@ -201,44 +204,32 @@ public class VirtualGridLayout : VirtualizingLayout
 
     protected override Size ArrangeOverride(VirtualizingLayoutContext context, Size finalSize)
     {
-        int itemCount = context.ItemCount;
-        if (itemCount == 0)
-        {
+        if (context.ItemCount == 0)
             return finalSize;
-        }
 
-        bool sizeChanged = !SizeEquals(_lastAvailableSize, finalSize);
-        if (sizeChanged || _layoutInvalid)
+        if (!SizeEquals(_lastAvailableSize, finalSize) || _layoutInvalid)
         {
             _lastAvailableSize = finalSize;
-            CalculateLayout(finalSize);
+            CalculateLayoutParameters(finalSize);
             _layoutInvalid = false;
         }
 
-        int rows;
-        if (itemCount != _lastItemCount || _significantSizeChange)
-        {
-            rows = CalculateRowCount(itemCount);
-            _cachedRowCount = rows;
-            _lastItemCount = itemCount;
-
-            // Reset flag after processing
-            _significantSizeChange = false;
-        }
-        else
-        {
-            rows = _cachedRowCount;
-        }
+        int rows = RecalculateRowCountIfNeeded(context.ItemCount);
+        bool processAll = _significantSizeChange;
+        _significantSizeChange = false;
 
         var realizationRect = context.RealizationRect;
-        var visibleRange = GetVisibleRange(realizationRect, rows);
+        var visibleRange = GetVisibleRange(realizationRect, rows, processAll);
 
         for (int rowIndex = visibleRange.StartRow; rowIndex <= visibleRange.EndRow; rowIndex++)
         {
-            int itemsInRow = Math.Min(_columns, itemCount - rowIndex * _columns);
-            ArrangeRow(context, rowIndex, itemsInRow, finalSize.Width);
+            int baseIndex = rowIndex * _columns;
+            int itemsInRow = Math.Min(_columns, context.ItemCount - baseIndex);
+            if (itemsInRow > 0)
+            {
+                ArrangeRow(context, rowIndex, itemsInRow, finalSize.Width);
+            }
         }
-
         return finalSize;
     }
 
@@ -248,93 +239,77 @@ public class VirtualGridLayout : VirtualizingLayout
         NotifyCollectionChangedEventArgs args
     )
     {
-        base.OnItemsChangedCore(context, source, args);
-
         _lastItemCount = -1;
-
         switch (args.Action)
         {
-            case NotifyCollectionChangedAction.Add:
-            case NotifyCollectionChangedAction.Remove:
-            case NotifyCollectionChangedAction.Replace:
-            case NotifyCollectionChangedAction.Reset:
-                InvalidateMeasure();
-                InvalidateArrange();
-                break;
             case NotifyCollectionChangedAction.Move:
                 InvalidateArrange();
                 break;
+            default:
+                InvalidateMeasure();
+                break;
         }
+        base.OnItemsChangedCore(context, source, args);
     }
     #endregion
 
-    #region Private Methods
-    private void CalculateLayout(Size availableSize)
+    #region Layout Calculation
+    private int RecalculateRowCountIfNeeded(int itemCount)
+    {
+        if (itemCount != _lastItemCount || _significantSizeChange)
+        {
+            _cachedRowCount = CalculateRowCount(itemCount);
+            _lastItemCount = itemCount;
+        }
+        return _cachedRowCount;
+    }
+
+    private void CalculateLayoutParameters(Size availableSize)
     {
         _columns = CalculateColumnCount(availableSize.Width);
-        double totalColumnSpacing = (_columns - 1) * MinColumnSpacing;
-        _itemWidth = (availableSize.Width - totalColumnSpacing) / _columns;
-        _itemHeight = MinItemHeight;
-        _effectiveColumnSpacing = MinColumnSpacing;
+        _cellHeight = MinItemHeight;
+        double totalSpacing = (_columns > 1) ? (_columns - 1) * MinColumnSpacing : 0;
+        _cellWidth = (_columns > 0) ? (availableSize.Width - totalSpacing) / _columns : 0;
     }
 
     private int CalculateColumnCount(double availableWidth)
     {
-        if (availableWidth <= MinItemWidth)
-        {
+        if (double.IsInfinity(availableWidth))
+            return MaxColumns;
+        if (MinItemWidth + MinColumnSpacing <= 0)
             return 1;
-        }
 
-        int calculatedColumns = Math.Max(
-            1,
-            (int)((availableWidth + MinColumnSpacing) / (MinItemWidth + MinColumnSpacing))
+        int calculatedColumns = (int)(
+            (availableWidth + MinColumnSpacing) / (MinItemWidth + MinColumnSpacing)
         );
-        return Math.Min(calculatedColumns, MaxColumns);
+        return Math.Max(1, Math.Min(calculatedColumns, MaxColumns));
     }
 
-    private int CalculateRowCount(int itemCount)
+    private int CalculateRowCount(int itemCount) =>
+        (_columns > 0) ? (int)Math.Ceiling((double)itemCount / _columns) : 0;
+
+    private double CalculateTotalHeight(int rows) =>
+        (rows > 0) ? (rows * _cellHeight) + ((rows - 1) * MinRowSpacing) : 0;
+    #endregion
+
+    #region Virtualization and Arrangement
+    private RowRange GetVisibleRange(Rect realizationRect, int totalRows, bool processAll = false)
     {
-        if (itemCount <= 0 || _columns <= 0)
+        if (processAll || totalRows <= 0 || realizationRect.Height < 1)
         {
-            return 0;
+            return new RowRange(0, Math.Max(0, totalRows - 1));
         }
 
-        return (int)Math.Ceiling(itemCount / (double)_columns);
-    }
+        double rowPitch = _cellHeight + MinRowSpacing;
+        if (rowPitch <= 0)
+            return new RowRange(0, Math.Max(0, totalRows - 1));
 
-    private double CalculateTotalHeight(int rows)
-    {
-        if (rows <= 0)
-        {
-            return 0;
-        }
-
-        return (rows * _itemHeight) + ((rows - 1) * MinRowSpacing);
-    }
-
-    private RowRange GetVisibleRange(Rect realizationRect, int totalRows)
-    {
-        // When a significant size change occurs, or if the realization rect isn't valid,
-        // process all rows to ensure complete layout
-        if (
-            _significantSizeChange
-            || totalRows <= 0
-            || _itemHeight + MinRowSpacing <= 0
-            || realizationRect.IsEmpty
-            || realizationRect.Height < 1
-        )
-        {
-            return new RowRange(0, totalRows - 1);
-        }
-
-        double rowHeight = _itemHeight + MinRowSpacing;
-        int startRowIndex = Math.Max(0, (int)(realizationRect.Y / rowHeight) - ExtraBufferItems);
-        int endRowIndex = Math.Min(
+        int startRow = Math.Max(0, (int)(realizationRect.Y / rowPitch) - ExtraBufferItems);
+        int endRow = Math.Min(
             totalRows - 1,
-            (int)((realizationRect.Y + realizationRect.Height) / rowHeight) + ExtraBufferItems
+            (int)(realizationRect.Bottom / rowPitch) + ExtraBufferItems
         );
-
-        return new RowRange(startRowIndex, endRowIndex);
+        return new RowRange(startRow, endRow);
     }
 
     private void MeasureVisibleItems(
@@ -343,24 +318,22 @@ public class VirtualGridLayout : VirtualizingLayout
         int itemCount
     )
     {
-        var itemSize = new Size(_itemWidth, _itemHeight);
-
-        // More efficient than using Enumerable.Range
+        var itemSize = new Size(_cellWidth, _cellHeight);
         for (int rowIndex = visibleRange.StartRow; rowIndex <= visibleRange.EndRow; rowIndex++)
         {
             int baseIndex = rowIndex * _columns;
-            int remainingItems = itemCount - baseIndex;
+            int itemsInRow = Math.Min(_columns, itemCount - baseIndex);
 
-            if (remainingItems <= 0)
-            {
-                break;
-            }
+            if (itemsInRow <= 0)
+                continue;
 
-            int itemsInRow = Math.Min(_columns, remainingItems);
-            for (int columnIndex = 0; columnIndex < itemsInRow; columnIndex++)
+            for (int colIndex = 0; colIndex < itemsInRow; colIndex++)
             {
-                int itemIndex = baseIndex + columnIndex;
-                context.GetOrCreateElementAt(itemIndex).Measure(itemSize);
+                int itemIndex = baseIndex + colIndex;
+                if (itemIndex < itemCount)
+                {
+                    context.GetOrCreateElementAt(itemIndex).Measure(itemSize);
+                }
             }
         }
     }
@@ -372,119 +345,142 @@ public class VirtualGridLayout : VirtualizingLayout
         double availableWidth
     )
     {
-        if (itemsInRow <= 0)
-        {
-            return;
-        }
+        double cellPitch = _cellWidth + MinColumnSpacing;
+        double totalRowWidth = (itemsInRow * cellPitch) - MinColumnSpacing;
+        double freeSpace = Math.Max(0, availableWidth - totalRowWidth);
 
-        double totalItemWidth = itemsInRow * _itemWidth;
-        double totalSpacingWidth = (itemsInRow - 1) * _effectiveColumnSpacing;
-        double rowWidth = totalItemWidth + totalSpacingWidth;
-        double freeSpace = Math.Max(0, availableWidth - rowWidth);
-        double rowOffset = CalculateRowOffset(itemsInRow, freeSpace);
-        double yPosition = rowIndex * (_itemHeight + MinRowSpacing);
-        double spacing = DetermineSpacing(freeSpace);
-
+        (double rowOffset, double interItemSpacing) = CalculateRowMetrics(itemsInRow, freeSpace);
+        double yPosition = rowIndex * (_cellHeight + MinRowSpacing);
         int baseIndex = rowIndex * _columns;
-        bool isUniform = ItemsStretch == UniformGridLayoutItemsStretch.Uniform;
-        double aspectRatio = isUniform ? _itemWidth / _itemHeight : 0;
 
-        for (int columnIndex = 0; columnIndex < itemsInRow; columnIndex++)
+        for (int colIndex = 0; colIndex < itemsInRow; colIndex++)
         {
-            int itemIndex = baseIndex + columnIndex;
-            var container = context.GetOrCreateElementAt(itemIndex) as UIElement;
+            int itemIndex = baseIndex + colIndex;
+            var element = context.GetOrCreateElementAt(itemIndex);
 
-            if (container != null)
-            {
-                double xPosition = rowOffset + (columnIndex * (_itemWidth + spacing));
-                double width = _itemWidth;
-                double height = _itemHeight;
+            double cellX = rowOffset + colIndex * (_cellWidth + interItemSpacing);
+            var cellRect = new Rect(cellX, yPosition, _cellWidth, _cellHeight);
+            Rect finalRect = CalculateItemRect(cellRect);
 
-                if (isUniform)
-                {
-                    width = height * aspectRatio;
-                }
-
-                container.Arrange(new Rect(xPosition, yPosition, width, height));
-            }
+            element.Arrange(finalRect);
         }
     }
 
-    private double DetermineSpacing(double freeSpace)
+    private (double Offset, double Spacing) CalculateRowMetrics(int itemsInRow, double freeSpace)
     {
-        return IsDistributedJustification(ItemsJustification)
-            ? _effectiveColumnSpacing
-            : MinColumnSpacing;
-    }
-
-    private bool IsDistributedJustification(UniformGridLayoutItemsJustification justification)
-    {
-        return justification == UniformGridLayoutItemsJustification.SpaceBetween
-            || justification == UniformGridLayoutItemsJustification.SpaceAround
-            || justification == UniformGridLayoutItemsJustification.SpaceEvenly;
-    }
-
-    private double CalculateRowOffset(int itemsInRow, double freeSpace)
-    {
-        if (itemsInRow <= 0)
-        {
-            return 0;
-        }
-
+        double offset = 0;
+        double spacing = MinColumnSpacing;
         switch (ItemsJustification)
         {
             case UniformGridLayoutItemsJustification.Center:
-                return freeSpace / 2;
+                offset = freeSpace / 2;
+                break;
             case UniformGridLayoutItemsJustification.End:
-                return freeSpace;
+                offset = freeSpace;
+                break;
             case UniformGridLayoutItemsJustification.SpaceBetween:
                 if (itemsInRow > 1)
-                {
-                    _effectiveColumnSpacing = MinColumnSpacing + (freeSpace / (itemsInRow - 1));
-                }
-                return 0;
+                    spacing += freeSpace / (itemsInRow - 1);
+                break;
             case UniformGridLayoutItemsJustification.SpaceAround:
-                _effectiveColumnSpacing = MinColumnSpacing + (freeSpace / itemsInRow);
-                return _effectiveColumnSpacing / 2;
+                if (itemsInRow > 0)
+                {
+                    spacing += freeSpace / itemsInRow;
+                    offset = (spacing - MinColumnSpacing) / 2;
+                }
+                break;
             case UniformGridLayoutItemsJustification.SpaceEvenly:
-                double spaceCount = itemsInRow + 1;
-                double spacePerItem = freeSpace / spaceCount;
-                _effectiveColumnSpacing = MinColumnSpacing + spacePerItem;
-                return spacePerItem;
-            default:
-                return 0;
+                if (itemsInRow > 0)
+                {
+                    double evenSpace = freeSpace / (itemsInRow + 1);
+                    spacing += evenSpace;
+                    offset = evenSpace;
+                }
+                break;
         }
+        return (offset, spacing);
     }
 
-    private static bool SizeEquals(Size size1, Size size2)
+    private Rect CalculateItemRect(Rect cellRect)
     {
-        return Math.Abs(size1.Width - size2.Width) < FloatingPointEpsilon
-            && Math.Abs(size1.Height - size2.Height) < FloatingPointEpsilon;
-    }
+        if (ItemsStretch == UniformGridLayoutItemsStretch.Fill)
+            return cellRect;
 
-    private static void OnLayoutPropertyChanged(
+        double itemWidth = MinItemWidth;
+        double itemHeight = MinItemHeight;
+
+        if (ItemsStretch == UniformGridLayoutItemsStretch.Uniform)
+        {
+            if (MinItemHeight > 0)
+            {
+                double cellAspectRatio = cellRect.Width / cellRect.Height;
+                double itemAspectRatio = MinItemWidth / MinItemHeight;
+                if (cellAspectRatio > itemAspectRatio)
+                {
+                    itemHeight = cellRect.Height;
+                    itemWidth = itemHeight * itemAspectRatio;
+                }
+                else
+                {
+                    itemWidth = cellRect.Width;
+                    itemHeight = itemWidth / itemAspectRatio;
+                }
+            }
+        }
+        double x = cellRect.X + (cellRect.Width - itemWidth) / 2;
+        double y = cellRect.Y + (cellRect.Height - itemHeight) / 2;
+        return new Rect(x, y, itemWidth, itemHeight);
+    }
+    #endregion
+
+    #region Property Changed Handlers
+    /// <summary>
+    /// Handles changes to properties that affect the measurement of the layout (e.g., cell sizes, row/column counts).
+    /// </summary>
+    private static void OnMeasurePropertyChanged(
         DependencyObject d,
         DependencyPropertyChangedEventArgs e
     )
     {
-        var layout = (VirtualGridLayout)d;
-        layout._layoutInvalid = true;
-        layout._lastItemCount = -1;
-        layout._significantSizeChange = true;
-        layout.InvalidateMeasure();
-        layout.InvalidateArrange();
+        if (d is VirtualGridLayout layout)
+        {
+            layout._layoutInvalid = true;
+            layout._lastItemCount = -1;
+            layout._significantSizeChange = true;
+            layout.InvalidateMeasure();
+        }
+    }
+
+    /// <summary>
+    /// Handles changes to properties that only affect the arrangement of items within their existing cells.
+    /// </summary>
+    private static void OnArrangePropertyChanged(
+        DependencyObject d,
+        DependencyPropertyChangedEventArgs e
+    )
+    {
+        if (d is VirtualGridLayout layout)
+        {
+            layout.InvalidateArrange();
+        }
     }
     #endregion
+
+    #region Helpers
+    private static bool SizeEquals(Size s1, Size s2) =>
+        Math.Abs(s1.Width - s2.Width) < FloatingPointEpsilon
+        && Math.Abs(s1.Height - s2.Height) < FloatingPointEpsilon;
 
     private readonly struct RowRange
     {
         public int StartRow { get; }
         public int EndRow { get; }
 
-        public RowRange(int startRow, int endRow)
+        public RowRange(int start, int end)
         {
-            StartRow = startRow;
-            EndRow = endRow;
+            StartRow = start;
+            EndRow = end;
         }
     }
+    #endregion
 }

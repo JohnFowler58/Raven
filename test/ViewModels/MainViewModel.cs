@@ -10,7 +10,7 @@ public partial class MainViewModel : ObservableRecipient, INavigationAware, ICar
 {
     public int F1Index = 0;
     public int F2Index = 0;
-    public MediaTypeRecommendation MediaType = MediaTypeRecommendation.All;
+    public MediaTypeRecommendation MediaType = MediaTypeRecommendation.Apps;
     public Category Category = Category.TopFree;
 
     [ObservableProperty]
@@ -53,7 +53,7 @@ public partial class MainViewModel : ObservableRecipient, INavigationAware, ICar
         }
     }
 
-    public readonly List<string> ItemSourceFilter1 = ["All departments", "Apps", "Games"];
+    public readonly List<string> ItemSourceFilter1 = ["Apps", "Games"];
 
     public readonly List<string> ItemSourceFilter2 =
     [
@@ -67,9 +67,8 @@ public partial class MainViewModel : ObservableRecipient, INavigationAware, ICar
 
     private static readonly Dictionary<int, MediaTypeRecommendation> MediaTypePairs = new()
     {
-        { 0, MediaTypeRecommendation.All },
-        { 1, MediaTypeRecommendation.Apps },
-        { 2, MediaTypeRecommendation.Games },
+        { 0, MediaTypeRecommendation.Apps },
+        { 1, MediaTypeRecommendation.Games },
     };
 
     private static readonly Dictionary<int, Category> CategoryTypePairs = new()
