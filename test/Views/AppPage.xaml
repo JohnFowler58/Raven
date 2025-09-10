@@ -1,338 +1,330 @@
-﻿
-<Page
-    x:Class="test.Views.AppPage"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d">
-    <Page.Resources>
-        <Style x:Key="TransparentButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderBrush" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-        </Style>
-    </Page.Resources>
-
-    <ScrollViewer>
-        <Grid>
-            <StackPanel
-                x:Name="LoadingOverlay"
+﻿<Page
+  x:Class="test.Views.AppPage"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+>
+  <Page.Resources>
+    <Style x:Key="TransparentButtonStyle" TargetType="Button">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+  </Page.Resources>
+  <ScrollViewer>
+    <Grid>
+      <StackPanel
+        x:Name="LoadingOverlay"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center"
+        Opacity="0.9"
+      >
+        <ProgressRing Width="50" Height="50" Background="LightGray" IsActive="True" />
+        <TextBlock
+          Margin="0,12,0,0"
+          Style="{StaticResource BodyTextBlockStyle}"
+          Text="Loading..."
+        />
+      </StackPanel>
+      <StackPanel
+        x:Name="DisplayItem"
+        Margin="{StaticResource NavigationViewPageContentMargin}"
+        Padding="16"
+      >
+        <StackPanel Margin="0" Orientation="Vertical">
+          <!--  App Details Section  -->
+          <StackPanel VerticalAlignment="Top" Orientation="Horizontal">
+            <!--  App Icon  -->
+            <Border Width="80" Height="80" Margin="0,0,12,0" CornerRadius="10">
+              <Image Source="{x:Bind AppData.Logo.Url, Mode=OneWay}" Stretch="Fill" />
+            </Border>
+            <StackPanel>
+              <!--  App Name and Publisher  -->
+              <TextBlock
+                FontSize="26"
+                Style="{ThemeResource TitleTextBlockStyle}"
+                Text="{x:Bind AppData.Title, Mode=OneWay}"
+              />
+              <TextBlock
+                FontSize="14"
+                Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                Text="{x:Bind AppData.PublisherName, Mode=OneWay}"
+              />
+              <!--  Rating and Category  -->
+              <StackPanel
+                Margin="0,12,0,0"
+                Orientation="Horizontal"
+                Visibility="{x:Bind AppData.RatingCount, Converter={StaticResource HideElementConverter}, Mode=OneWay}"
+              >
+                <TextBlock
+                  Margin="4,0"
+                  FontSize="14"
+                  Text="{x:Bind AppData.Rating, Mode=OneWay, Converter={StaticResource OneDecimalPlaceConverter}}"
+                />
+                <FontIcon
+                  FontSize="12"
+                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                  Glyph=""
+                />
+                <TextBlock
+                  Margin="8,0"
+                  FontSize="14"
+                  Foreground="{ThemeResource DividerStrokeColorDefaultBrush}"
+                  Text="|"
+                />
+                <TextBlock FontSize="14" Text="{x:Bind AppData.RatingCount, Mode=OneWay}" />
+              </StackPanel>
+            </StackPanel>
+          </StackPanel>
+          <!--  Short Description  -->
+          <Grid VerticalAlignment="Top">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="3*" />
+              <ColumnDefinition Width="1*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock
+              Grid.Column="0"
+              Margin="0,24"
+              HorizontalAlignment="Left"
+              FontSize="14"
+              Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+              MaxLines="2"
+              Text="{x:Bind AppData.Description, Mode=OneWay}"
+              TextTrimming="CharacterEllipsis"
+              TextWrapping="Wrap"
+            />
+          </Grid>
+        </StackPanel>
+        <!--  Install button Section  -->
+        <Grid Margin="6,0,0,0" VerticalAlignment="Center" ColumnSpacing="8">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <Button
+            x:Name="InstallButton"
+            Grid.ColumnSpan="2"
+            Height="40"
+            HorizontalAlignment="Stretch"
+            Background="{ThemeResource AccentFillColorDefaultBrush}"
+            Click="InstallButton_Click"
+            Content="Install"
+            FontSize="16"
+            Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+            Visibility="Visible"
+          />
+          <!--  Progress Bar Section  -->
+          <StackPanel Grid.Column="0" Spacing="4">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <TextBlock
+                x:Name="StatusText"
+                Grid.Column="0"
+                HorizontalAlignment="Left"
+                Style="{ThemeResource CaptionTextBlockStyle}"
+                Text="Downloading..."
+              />
+              <TextBlock
+                x:Name="DetailsText"
+                Grid.Column="1"
+                HorizontalAlignment="Right"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Style="{ThemeResource CaptionTextBlockStyle}"
+                Text="15% • 25.5 / 170 MB"
+              />
+            </Grid>
+            <ProgressBar
+              VerticalAlignment="Center"
+              IsIndeterminate="False"
+              ShowError="False"
+              ShowPaused="False"
+              Visibility="Visible"
+              Value="15"
+            />
+          </StackPanel>
+          <Button
+            Grid.Column="1"
+            VerticalAlignment="Center"
+            Style="{StaticResource TransparentButtonStyle}"
+          >
+            <FontIcon Glyph="" />
+          </Button>
+        </Grid>
+        <!--  Screenshots Section  -->
+        <StackPanel
+          Margin="0,36,0,0"
+          Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+          BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+          BorderThickness="1"
+          CornerRadius="10"
+        >
+          <TextBlock
+            Margin="24,12"
+            FontSize="18"
+            Style="{ThemeResource SubtitleTextBlockStyle}"
+            Text="Screenshots"
+          />
+          <!--  Divider  -->
+          <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+          <Grid>
+            <!--  Left Arrow Button - Fixed with correct Glyph and ZIndex  -->
+            <Button
+              x:Name="LeftArrowButton"
+              Width="40"
+              Height="40"
+              Margin="8,0,0,0"
+              HorizontalAlignment="Left"
+              VerticalAlignment="Center"
+              Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+              BorderThickness="1"
+              Canvas.ZIndex="10"
+              Click="LeftArrowButton_Click"
+              CornerRadius="26"
+            >
+              <FontIcon
+                Margin="0,0,1,0"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
-                Opacity="0.9">
-                <ProgressRing
-                    Width="50"
-                    Height="50"
-                    Background="LightGray"
-                    IsActive="True" />
-                <TextBlock
-                    Margin="0,12,0,0"
-                    Style="{StaticResource BodyTextBlockStyle}"
-                    Text="Loading..." />
-            </StackPanel>
-
-            <StackPanel
-                x:Name="DisplayItem"
-                Margin="{StaticResource NavigationViewPageContentMargin}"
-                Padding="16">
-
-                <StackPanel Margin="0" Orientation="Vertical">
-                    <!--  App Details Section  -->
-                    <StackPanel VerticalAlignment="Top" Orientation="Horizontal">
-                        <!--  App Icon  -->
-                        <Border
-                            Width="80"
-                            Height="80"
-                            Margin="0,0,12,0"
-                            CornerRadius="10">
-                            <Image Source="{x:Bind AppData.Logo.Url, Mode=OneWay}" Stretch="Fill" />
-                        </Border>
-                        <StackPanel>
-                            <!--  App Name and Publisher  -->
-                            <TextBlock
-                                FontSize="26"
-                                Style="{ThemeResource TitleTextBlockStyle}"
-                                Text="{x:Bind AppData.Title, Mode=OneWay}" />
-                            <TextBlock
-                                FontSize="14"
-                                Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
-                                Text="{x:Bind AppData.PublisherName, Mode=OneWay}" />
-
-                            <!--  Rating and Category  -->
-                            <StackPanel
-                                Margin="0,12,0,0"
-                                Orientation="Horizontal"
-                                Visibility="{x:Bind AppData.RatingCount, Converter={StaticResource HideElementConverter}, Mode=OneWay}">
-                                <TextBlock
-                                    Margin="4,0"
-                                    FontSize="14"
-                                    Text="{x:Bind AppData.Rating, Mode=OneWay, Converter={StaticResource OneDecimalPlaceConverter}}" />
-                                <FontIcon
-                                    FontSize="12"
-                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                    Glyph="&#xE735;" />
-                                <TextBlock
-                                    Margin="8,0"
-                                    FontSize="14"
-                                    Foreground="{ThemeResource DividerStrokeColorDefaultBrush}"
-                                    Text="|" />
-                                <TextBlock FontSize="14" Text="{x:Bind AppData.RatingCount, Mode=OneWay}" />
-                            </StackPanel>
-                        </StackPanel>
-                    </StackPanel>
-                    <!--  Short Description  -->
-                    <Grid VerticalAlignment="Top">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="3*" />
-                            <ColumnDefinition Width="1*" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock
-                            Grid.Column="0"
-                            Margin="0,24"
-                            HorizontalAlignment="Left"
-                            FontSize="14"
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            MaxLines="2"
-                            Text="{x:Bind AppData.Description, Mode=OneWay}"
-                            TextTrimming="CharacterEllipsis"
-                            TextWrapping="Wrap" />
-                    </Grid>
-
-                </StackPanel>
-
-                <!--  Install button/Progress Bar Section  -->
-                <Grid
-                    Margin="6,0,0,0"
-                    VerticalAlignment="Center"
-                    ColumnSpacing="8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <Button
-                        x:Name="InstallButton"
-                        Grid.ColumnSpan="2"
-                        Height="40"
-                        HorizontalAlignment="Stretch"
-                        Background="{ThemeResource AccentFillColorDefaultBrush}"
-                        Content="Install"
-                        FontSize="16"
-                        Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
-                        Visibility="Collapsed" />
-
-
-                    <StackPanel Grid.Column="0" Spacing="4">
-
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-
-                            <TextBlock
-                                x:Name="StatusText"
-                                Grid.Column="0"
-                                HorizontalAlignment="Left"
-                                Style="{ThemeResource CaptionTextBlockStyle}"
-                                Text="Downloading..." />
-
-                            <TextBlock
-                                x:Name="DetailsText"
-                                Grid.Column="1"
-                                HorizontalAlignment="Right"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                Style="{ThemeResource CaptionTextBlockStyle}"
-                                Text="15% • 25.5 / 170 MB" />
-                        </Grid>
-
-                        <ProgressBar
-                            VerticalAlignment="Center"
-                            IsIndeterminate="False"
-                            ShowError="False"
-                            ShowPaused="False"
-                            Visibility="Visible"
-                            Value="15" />
-
-                    </StackPanel>
-                    <Button
-                        Grid.Column="1"
-                        VerticalAlignment="Center"
-                        Style="{StaticResource TransparentButtonStyle}">
-                        <FontIcon Glyph="&#xE711;" />
-                    </Button>
-                </Grid>
-
-                <!--  Screenshots Section  -->
-                <StackPanel
-                    Margin="0,36,0,0"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    CornerRadius="10">
-                    <TextBlock
-                        Margin="24,12"
-                        FontSize="18"
-                        Style="{ThemeResource SubtitleTextBlockStyle}"
-                        Text="Screenshots" />
-                    <!--  Divider  -->
-                    <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
-                    <Grid>
-                        <!--  Left Arrow Button - Fixed with correct Glyph and ZIndex  -->
-                        <Button
-                            x:Name="LeftArrowButton"
-                            Width="40"
-                            Height="40"
-                            Margin="8,0,0,0"
-                            HorizontalAlignment="Left"
-                            VerticalAlignment="Center"
-                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="1"
-                            Canvas.ZIndex="10"
-                            Click="LeftArrowButton_Click"
-                            CornerRadius="26">
-                            <FontIcon
-                                Margin="0,0,1,0"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                FontSize="15"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                Glyph="&#xE96F;" />
-
-                        </Button>
-
-                        <!--  ScrollViewer for ItemsRepeater - Added PointerWheelChanged handler to prevent wheel scrolling  -->
-                        <ScrollViewer
-                            x:Name="ScreenshotsScrollViewer"
-                            Padding="24"
-                            HorizontalScrollBarVisibility="Hidden"
-                            HorizontalScrollMode="Disabled"
-                            VerticalScrollBarVisibility="Disabled"
-                            VerticalScrollMode="Disabled">
-                            <ItemsRepeater ItemsSource="{x:Bind AppData.Screenshots, Mode=OneWay}">
-                                <ItemsRepeater.Layout>
-                                    <StackLayout Orientation="Horizontal" Spacing="24" />
-                                </ItemsRepeater.Layout>
-                                <ItemsRepeater.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border CornerRadius="10">
-                                            <Image
-                                                Width="630"
-                                                Height="350"
-                                                Source="{Binding Url}"
-                                                Stretch="Fill" />
-                                        </Border>
-                                    </DataTemplate>
-
-
-
-                                </ItemsRepeater.ItemTemplate>
-                            </ItemsRepeater>
-                        </ScrollViewer>
-
-                        <!--  Right Arrow Button - Fixed with correct Glyph  -->
-                        <Button
-                            x:Name="RightArrowButton"
-                            Width="40"
-                            Height="40"
-                            Margin="0,0,8,0"
-                            HorizontalAlignment="Right"
-                            VerticalAlignment="Center"
-                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="1"
-                            Canvas.ZIndex="10"
-                            Click="RightArrowButton_Click"
-                            CornerRadius="26">
-                            <FontIcon
-                                Margin="1,0,0,0"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                FontSize="15"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                Glyph="&#xE970;" />
-                        </Button>
-                    </Grid>
-
-                </StackPanel>
-                <!--  Full Description Section  -->
-                <StackPanel
-                    Margin="0,8"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    CornerRadius="10">
-                    <TextBlock
-                        Margin="24,12"
-                        FontSize="18"
-                        Style="{ThemeResource SubtitleTextBlockStyle}"
-                        Text="Description" />
-                    <!--  Divider  -->
-                    <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
-
-                    <TextBlock
-                        Margin="24,24"
-                        FontSize="14"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                        Text="{x:Bind AppData.Description, Mode=OneWay}"
-                        TextWrapping="Wrap" />
-                </StackPanel>
-                <!--  More Details Section  -->
-                <StackPanel
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    CornerRadius="10">
-                    <TextBlock
-                        Margin="24,12"
-                        FontSize="18"
-                        Style="{ThemeResource SubtitleTextBlockStyle}"
-                        Text="More Details" />
-                    <!--  Divider  -->
-                    <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
-                    <Grid Margin="24,24">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="150" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-
-                        <!--  App Size  -->
-                        <TextBlock
-                            Grid.Row="0"
-                            Grid.Column="0"
-                            Margin="0,5"
-                            Style="{ThemeResource BodyStrongTextBlockStyle}"
-                            Text="App Size:" />
-                        <TextBlock
-                            Grid.Row="0"
-                            Grid.Column="1"
-                            Margin="0,5"
-                            Text="{x:Bind AppData.Size, Mode=OneWay}" />
-
-                        <!--  Last Updated  -->
-                        <TextBlock
-                            Grid.Row="2"
-                            Grid.Column="0"
-                            Margin="0,5"
-                            Style="{ThemeResource BodyStrongTextBlockStyle}"
-                            Text="Last Updated:" />
-                        <TextBlock
-                            Grid.Row="2"
-                            Grid.Column="1"
-                            Margin="0,5"
-                            Text="{x:Bind AppData.LastUpdated, Mode=OneWay}" />
-                    </Grid>
-                </StackPanel>
-
-            </StackPanel>
-        </Grid>
-    </ScrollViewer>
+                FontSize="15"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Glyph=""
+              />
+            </Button>
+            <!--  ScrollViewer for ItemsRepeater - Added PointerWheelChanged handler to prevent wheel scrolling  -->
+            <ScrollViewer
+              x:Name="ScreenshotsScrollViewer"
+              Padding="24"
+              HorizontalScrollBarVisibility="Hidden"
+              HorizontalScrollMode="Disabled"
+              VerticalScrollBarVisibility="Disabled"
+              VerticalScrollMode="Disabled"
+            >
+              <ItemsRepeater ItemsSource="{x:Bind AppData.Screenshots, Mode=OneWay}">
+                <ItemsRepeater.Layout>
+                  <StackLayout Orientation="Horizontal" Spacing="24" />
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                  <DataTemplate>
+                    <Border CornerRadius="10">
+                      <Image Width="630" Height="350" Source="{Binding Url}" Stretch="Fill" />
+                    </Border>
+                  </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+              </ItemsRepeater>
+            </ScrollViewer>
+            <!--  Right Arrow Button - Fixed with correct Glyph  -->
+            <Button
+              x:Name="RightArrowButton"
+              Width="40"
+              Height="40"
+              Margin="0,0,8,0"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Center"
+              Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+              BorderThickness="1"
+              Canvas.ZIndex="10"
+              Click="RightArrowButton_Click"
+              CornerRadius="26"
+            >
+              <FontIcon
+                Margin="1,0,0,0"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                FontSize="15"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Glyph=""
+              />
+            </Button>
+          </Grid>
+        </StackPanel>
+        <!--  Full Description Section  -->
+        <StackPanel
+          Margin="0,8"
+          Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+          BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+          BorderThickness="1"
+          CornerRadius="10"
+        >
+          <TextBlock
+            Margin="24,12"
+            FontSize="18"
+            Style="{ThemeResource SubtitleTextBlockStyle}"
+            Text="Description"
+          />
+          <!--  Divider  -->
+          <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+          <TextBlock
+            Margin="24,24"
+            FontSize="14"
+            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+            Text="{x:Bind AppData.Description, Mode=OneWay}"
+            TextWrapping="Wrap"
+          />
+        </StackPanel>
+        <!--  More Details Section  -->
+        <StackPanel
+          Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+          BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+          BorderThickness="1"
+          CornerRadius="10"
+        >
+          <TextBlock
+            Margin="24,12"
+            FontSize="18"
+            Style="{ThemeResource SubtitleTextBlockStyle}"
+            Text="More Details"
+          />
+          <!--  Divider  -->
+          <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+          <Grid Margin="24,24">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="150" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <!--  App Size  -->
+            <TextBlock
+              Grid.Row="0"
+              Grid.Column="0"
+              Margin="0,5"
+              Style="{ThemeResource BodyStrongTextBlockStyle}"
+              Text="App Size:"
+            />
+            <TextBlock
+              Grid.Row="0"
+              Grid.Column="1"
+              Margin="0,5"
+              Text="{x:Bind AppData.Size, Mode=OneWay}"
+            />
+            <!--  Last Updated  -->
+            <TextBlock
+              Grid.Row="2"
+              Grid.Column="0"
+              Margin="0,5"
+              Style="{ThemeResource BodyStrongTextBlockStyle}"
+              Text="Last Updated:"
+            />
+            <TextBlock
+              Grid.Row="2"
+              Grid.Column="1"
+              Margin="0,5"
+              Text="{x:Bind AppData.LastUpdated, Mode=OneWay}"
+            />
+          </Grid>
+        </StackPanel>
+      </StackPanel>
+    </Grid>
+  </ScrollViewer>
 </Page>

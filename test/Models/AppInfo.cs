@@ -9,6 +9,7 @@ public partial class AppInfo : INotifyPropertyChanged
 {
     public AppInfo()
     {
+        _productID = string.Empty;
         _logo = null;
         _screenshots = [];
         _lastUpdated = null;
@@ -21,6 +22,7 @@ public partial class AppInfo : INotifyPropertyChanged
     }
 
     public void SetValues(
+        string productID,
         Image logo,
         List<Image> screenshots,
         string? lastUpdated,
@@ -32,6 +34,7 @@ public partial class AppInfo : INotifyPropertyChanged
         long? size
     )
     {
+        ProductID = productID;
         Logo = logo;
         Screenshots = screenshots;
         LastUpdated = lastUpdated;
@@ -41,6 +44,20 @@ public partial class AppInfo : INotifyPropertyChanged
         Rating = rating;
         RatingCount = FormatRatingCount(ratingCount);
         Size = FormatSize(size);
+    }
+
+    private string _productID;
+    public string ProductID
+    {
+        get => _productID;
+        set
+        {
+            if (_productID != value)
+            {
+                _productID = value;
+                OnPropertyChanged();
+            }
+        }
     }
 
     private Image? _logo;

@@ -1,8 +1,9 @@
-﻿using Microsoft.UI.Xaml;
+﻿using System.Diagnostics;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using StoreListings.Library;
+using test.Helpers;
 using test.Models;
 using test.ViewModels;
 
@@ -11,14 +12,13 @@ namespace test.Views;
 public sealed partial class AppPage : Page
 {
     public AppViewModel ViewModel { get; }
+    public AppInfo AppData { get; set; } = new();
 
     public AppPage()
     {
         ViewModel = App.GetService<AppViewModel>();
         InitializeComponent();
     }
-
-    public AppInfo AppData { get; set; } = new();
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
@@ -35,8 +35,9 @@ public sealed partial class AppPage : Page
         {
             DisplayItem.Visibility = Visibility.Collapsed;
             LoadingOverlay.Visibility = Visibility.Visible;
-
+            // add product id to app data
             AppData.SetValues(
+                ProductInfo.ProductId,
                 ProductInfo.Logo,
                 ProductInfo.Screenshots,
                 ProductInfo.RevisionId,
@@ -69,5 +70,14 @@ public sealed partial class AppPage : Page
             null,
             null
         );
+    }
+
+    private async void InstallButton_Click(object sender, RoutedEventArgs e)
+    {
+        Debug.WriteLine("button clicked");
+        Debug.WriteLine(AppData.ProductID);
+        var urls = await GetDownloadUrl.fetch(AppData.ProductID);
+        Debug.WriteLine(urls);
+        Console.WriteLine(urls.Dependencies);
     }
 }

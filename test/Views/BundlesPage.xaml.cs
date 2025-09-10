@@ -48,6 +48,7 @@ public sealed partial class BundlesPage : Page
         var success = true;
 
         AppData.SetValues(
+            productInfo.ProductId,
             productInfo.Logo,
             productInfo.Screenshots,
             productInfo.RevisionId,
