@@ -131,7 +131,7 @@
                 Grid.Column="0"
                 HorizontalAlignment="Left"
                 Style="{ThemeResource CaptionTextBlockStyle}"
-                Text="Downloading..."
+                Text="{x:Bind UpdateService.StatusText, Mode=OneWay}"
               />
               <TextBlock
                 x:Name="DetailsText"
@@ -139,22 +139,26 @@
                 HorizontalAlignment="Right"
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                 Style="{ThemeResource CaptionTextBlockStyle}"
-                Text="15% • 25.5 / 170 MB"
+                Text="{x:Bind UpdateService.DetailsText, Mode=OneWay}"
               />
             </Grid>
             <ProgressBar
               x:Name="ProgressBar"
               VerticalAlignment="Center"
               IsIndeterminate="False"
+              Maximum="100"
+              Minimum="0"
               ShowError="False"
               ShowPaused="False"
               Visibility="Visible"
-              Value="15"
+              Value="{x:Bind UpdateService.Progress, Mode=OneWay}"
             />
           </StackPanel>
           <Button
+            x:Name="StopButton"
             Grid.Column="1"
             VerticalAlignment="Center"
+            Click="StopButton_Click"
             Style="{StaticResource TransparentButtonStyle}"
           >
             <FontIcon Glyph="" />

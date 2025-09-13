@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Navigation;
 using StoreListings.Library;
 using test.Helpers;
 using test.Models;
+using test.Services;
 using test.ViewModels;
 
 namespace test.Views;
@@ -14,10 +15,14 @@ public sealed partial class AppPage : Page
     public AppViewModel ViewModel { get; }
     public AppInfo AppData { get; set; } = new();
 
+    public UIUpdateService UpdateService { get; }
+    private CancellationTokenSource? _cts;
+
     public AppPage()
     {
         ViewModel = App.GetService<AppViewModel>();
         InitializeComponent();
+        UpdateService = new UIUpdateService(this.DispatcherQueue);
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -74,18 +79,43 @@ public sealed partial class AppPage : Page
 
     private async void InstallButton_Click(object sender, RoutedEventArgs e)
     {
-        Debug.WriteLine("button clicked");
-        Debug.WriteLine(AppData.ProductID);
-        InstallButton.Visibility = Visibility.Collapsed;
-        ProgressSection.Visibility = Visibility.Visible;
-        var urls = await GetDownloadUrl.fetch(AppData.ProductID);
-        Debug.WriteLine(urls);
-        Debug.WriteLine(urls.Dependencies.Count);
-        foreach (var dep in urls.Dependencies)
+        try
         {
-            Debug.WriteLine(dep);
-            Debug.WriteLine(dep.Dependencies.Count);
+            InstallButton.Visibility = Visibility.Collapsed;
+            ProgressSection.Visibility = Visibility.Visible;
+
+            UpdateService.StartStatusAnimation("Fetching download URLs");
+            var urls = await GetDownloadUrl.fetch(AppData.ProductID);
+            Debug.WriteLine(urls);
+
+            UpdateService.StartStatusAnimation("Preparing download...");
+
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _cts = new CancellationTokenSource();
+            StopButton.IsEnabled = true;
+            var reporter = UpdateService.GetReporter();
+            await DownloadHelper.StartDownloadAsync(urls, _cts.Token, UpdateService);
         }
-        // add downloader and system.automation for installation
+        catch (OperationCanceledException)
+        {
+            UpdateService.SetStatus("Operation canceled.");
+            UpdateService.SetDetails("The operation was canceled by the user.");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+            UpdateService.SetStatus("Failed to install.");
+            UpdateService.SetDetails("Please check logs and retry.");
+            ProgressSection.Visibility = Visibility.Collapsed;
+            InstallButton.Visibility = Visibility.Visible;
+        }
+    }
+
+    private void StopButton_Click(object sender, RoutedEventArgs e)
+    {
+        _cts?.Cancel(); // Signal cancellation
+        _cts?.Dispose(); // Then dispose
+        StopButton.IsEnabled = false;
     }
 }
