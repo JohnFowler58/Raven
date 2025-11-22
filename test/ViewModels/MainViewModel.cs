@@ -59,10 +59,9 @@ public partial class MainViewModel : ObservableRecipient, INavigationAware, ICar
     [
         "Top Free",
         "Top Paid",
-        "Best Rated",
-        "New & Trending",
+        "Top Trending",
+        "Specials",
         "Best Selling",
-        "Most Popular",
     ];
 
     private static readonly Dictionary<int, MediaTypeRecommendation> MediaTypePairs = new()
@@ -75,10 +74,9 @@ public partial class MainViewModel : ObservableRecipient, INavigationAware, ICar
     {
         { 0, Category.TopFree },
         { 1, Category.TopPaid },
-        { 2, Category.BestRated },
-        { 3, Category.NewAndRising },
+        { 2, Category.TopTrending },
+        { 3, Category.Deal },
         { 4, Category.TopGrossing },
-        { 5, Category.Mostpopular },
     };
 
     public MainViewModel() { }

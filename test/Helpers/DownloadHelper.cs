@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+﻿using System.Diagnostics;
 using Downloader;
 using test.Models;
 using test.Services;
@@ -16,7 +16,77 @@ public sealed class DownloadHelper
         const int THROTTLE_MS = 500;
         var reporter = updateService.GetReporter();
 
-        // Flatten dependency graph (dependencies first), skip duplicate URLs
+        // Per-file progress tracking state
+        int lastWholePercent = -1;
+        long lastReportTicks = 0;
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        var config = new DownloadConfiguration
+        {
+            ChunkCount = 4, // Reduced from 8 - some servers throttle too many connections
+            ParallelDownload = true,
+            Timeout = 30000, // 60 seconds - longer timeout to prevent premature chunk failures
+            ParallelCount = 2, // Reduced to 2 for better server compatibility
+            BufferBlockSize = 8192, // 8KB buffer - standard size for better compatibility
+            MaximumBytesPerSecond = 0, // No speed limit
+            MinimumSizeOfChunking = 1024, // 1KB minimum - create chunks only for larger files
+            ReserveStorageSpaceBeforeStartingDownload = true, // Pre-allocate disk space
+        };
+
+        var svc = new DownloadService(config);
+
+        // Bridge external cancellation into the download service
+        using var cancellationRegistration = token.Register(() =>
+        {
+            try
+            {
+                updateService.StartStatusAnimation("Cancelling");
+                svc.CancelAsync();
+            }
+            catch
+            {
+                // ignore
+            }
+        });
+
+        // Only handle progress here; reset state per file in the loop below
+        svc.DownloadProgressChanged += (s, e) =>
+        {
+            int whole = (int)e.ProgressPercentage;
+            long now = stopwatch.ElapsedMilliseconds;
+
+            // Only emit when progress moves forward and throttle the UI updates
+            if (whole > lastWholePercent)
+            {
+                if (now - lastReportTicks < THROTTLE_MS && whole != 100)
+                    return;
+                lastWholePercent = whole;
+                lastReportTicks = now;
+
+                double receivedMB = e.ReceivedBytesSize / (1024.0 * 1024.0);
+                double totalMB = e.TotalBytesToReceive / (1024.0 * 1024.0);
+                // Instrumentation: show instantaneous speed and active chunk count if available
+                double mbPerSec = e.BytesPerSecondSpeed / (1024.0 * 1024.0);
+                int activeChunks = e.ActiveChunks;
+
+                reporter.Report(
+                    new UIUpdate(
+                        Progress: e.ProgressPercentage,
+                        Details: $"{whole}% • {receivedMB:F1} / {totalMB:F0} MB"
+                    )
+                );
+            }
+        };
+
+        // Track per-file cancellation via completion event (some libs don't throw on cancel)
+        bool currentFileCancelled = false;
+        svc.DownloadFileCompleted += (s, e) =>
+        {
+            if (e.Cancelled)
+                currentFileCancelled = true;
+        };
+
+        // Flatten dependencies (dependencies first), skipping duplicates by URL
         var flattened = new List<FileEntry>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         void Visit(FileEntry node)
@@ -26,268 +96,100 @@ public sealed class DownloadHelper
                 foreach (var dep in node.Dependencies)
                     Visit(dep);
             }
+
             if (seen.Add(node.Url))
                 flattened.Add(node);
         }
+
         Visit(entry);
 
-        if (flattened.Count == 0)
-        {
-            reporter.Report(
-                new UIUpdate(
-                    Status: "No files to download.",
-                    Progress: 100,
-                    Details: "Nothing to do."
-                )
-            );
-            return;
-        }
-
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-        // Aggregated state
-        var perFileProgress = new ConcurrentDictionary<string, (long received, long total)>();
-        long lastReportTicks = 0;
-        double lastPercentReported = -1;
+        // Batch header: show total count and start a single continuous animation
         int totalFiles = flattened.Count;
-        int completedFiles = 0;
-        int failedFiles = 0;
-        int canceledFiles = 0;
-        int prevfailed = -1;
-        var animationEnabled = false;
+        updateService.StartStatusAnimation(
+            $"Downloading {totalFiles} file{(totalFiles == 1 ? string.Empty : "s")}"
+        );
+        reporter.Report(new UIUpdate(Progress: 0, Details: "Initializing..."));
 
-        object aggLock = new();
+        bool cancelled = false;
+        bool hadError = false;
 
-        void EmitProgressIfNeeded()
+        for (int i = 0; i < flattened.Count; i++)
         {
-            long now = stopwatch.ElapsedMilliseconds;
-            if (now - lastReportTicks < THROTTLE_MS)
-                return;
-
-            // Aggregate
-            long aggReceived = 0;
-            long aggTotal = 0;
-            foreach (var v in perFileProgress.Values)
+            if (token.IsCancellationRequested)
             {
-                aggReceived += v.received;
-                // Some servers may not provide total (-1 or 0). Only add positive totals.
-                if (v.total > 0)
-                    aggTotal += v.total;
+                cancelled = true;
+                break;
             }
 
-            double percent = 0;
-            if (aggTotal > 0)
-                percent = (double)aggReceived / aggTotal * 100.0;
-            else
-            {
-                // Fallback: average of known percentages
-                var known = perFileProgress.Values.Where(v => v.total > 0).ToList();
-                if (known.Count > 0)
-                    percent = known.Average(v => (double)v.received / v.total * 100.0);
-            }
+            updateService.StartStatusAnimation(
+                $"Downloading ({i + 1}/{totalFiles}) file{(totalFiles == 1 ? string.Empty : "s")}"
+            );
 
-            // Avoid spamming identical percent
-            if (Math.Floor(percent) == Math.Floor(lastPercentReported))
-            {
-                if (percent < 100)
-                    return;
-            }
+            var file = flattened[i];
 
-            lastPercentReported = percent;
-            lastReportTicks = now;
+            string destinationPath = Path.Combine(
+                AppContext.BaseDirectory,
+                "downloads",
+                Path.GetFileName(file.FileName)
+            );
 
-            double receivedMB = aggReceived / (1024.0 * 1024.0);
-            double totalMB = aggTotal > 0 ? aggTotal / (1024.0 * 1024.0) : 0;
-
-            string details;
-            if (aggTotal > 0)
-                details =
-                    $"{percent:F0}% • {receivedMB:F1} / {totalMB:F1} MB • {completedFiles}/{totalFiles} files";
-            else
-                details =
-                    $"{percent:F0}% • {receivedMB:F1} MB received • {completedFiles}/{totalFiles} files";
-
-            if (failedFiles > 0)
-            {
-                if (failedFiles != prevfailed)
-                {
-                    updateService.StartStatusAnimation($"Downloading ({failedFiles} failed)");
-                    prevfailed = failedFiles;
-                }
-            }
-            else
-            {
-                if (!animationEnabled)
-                {
-                    updateService.StartStatusAnimation($"Downloading {totalFiles} file(s)");
-                    animationEnabled = true;
-                }
-            }
-            reporter.Report(new UIUpdate(Progress: percent, Details: details));
-        }
-
-        var config = new DownloadConfiguration
-        {
-            // Each file itself can be chunked; multiple files run in parallel (one service per file)
-            ChunkCount = 8,
-            ParallelDownload = true,
-            Timeout = 100000,
-        };
-
-        string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-
-        // Create tasks
-        var downloadTasks = new List<Task>();
-
-        foreach (var file in flattened)
-        {
-            token.ThrowIfCancellationRequested();
-
-            string destinationPath = Path.Combine(desktop, file.FileName);
+            Debug.WriteLine(destinationPath);
             var destinationDir = Path.GetDirectoryName(destinationPath);
             if (!string.IsNullOrEmpty(destinationDir) && !Directory.Exists(destinationDir))
                 Directory.CreateDirectory(destinationDir);
 
-            var svc = new DownloadService(config);
+            // Reset per-file progress tracking before starting each file
+            lastWholePercent = -1;
+            lastReportTicks = 0;
+            stopwatch.Restart();
+            currentFileCancelled = false;
+            reporter.Report(new UIUpdate(Progress: 0));
 
-            // Capture for closure
-            string url = file.Url;
-            string fileName = file.FileName;
-
-            svc.DownloadStarted += (_, e) =>
+            try
             {
-                lock (aggLock)
-                {
-                    // Initialize with unknown total until first progress
-                    perFileProgress[url] = (0, e.TotalBytesToReceive);
-                    EmitProgressIfNeeded();
-                }
-            };
+                await svc.DownloadFileTaskAsync(file.Url, destinationPath, token);
 
-            svc.DownloadProgressChanged += (_, e) =>
-            {
-                if (token.IsCancellationRequested)
+                // If cancellation was requested during the download, stop the batch
+                if (token.IsCancellationRequested || currentFileCancelled)
                 {
-                    updateService.StartStatusAnimation("Cancelling");
-                }
-
-                lock (aggLock)
-                {
-                    perFileProgress[url] = (e.ReceivedBytesSize, e.TotalBytesToReceive);
-                    EmitProgressIfNeeded();
-                }
-            };
-
-            svc.DownloadFileCompleted += (_, e) =>
-            {
-                lock (aggLock)
-                {
-                    if (e.Cancelled)
-                    {
-                        canceledFiles++;
-                    }
-                    else if (e.Error != null)
-                    {
-                        failedFiles++;
-                    }
-                    else
-                    {
-                        completedFiles++;
-                        // Ensure final progress for this file registers as full
-                        if (perFileProgress.TryGetValue(url, out var cur))
-                        {
-                            long total = cur.total > 0 ? cur.total : cur.received;
-                            perFileProgress[url] = (total, total);
-                        }
-                    }
-
-                    EmitProgressIfNeeded();
-                }
-            };
-
-            async Task RunAsync()
-            {
-                try
-                {
-                    await svc.DownloadFileTaskAsync(url, destinationPath, token);
-                }
-                catch (OperationCanceledException)
-                {
-                    // Count as canceled, handled in completed event (or here if not raised)
-                    lock (aggLock)
-                    {
-                        if (!perFileProgress.ContainsKey(url))
-                            perFileProgress[url] = (0, 0);
-                        canceledFiles++;
-                        EmitProgressIfNeeded();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    lock (aggLock)
-                    {
-                        failedFiles++;
-                        reporter.Report(
-                            new UIUpdate(
-                                Status: $"Error downloading {fileName}",
-                                Details: ex.Message
-                            )
-                        );
-                        EmitProgressIfNeeded();
-                    }
+                    cancelled = true;
+                    break;
                 }
             }
-
-            downloadTasks.Add(RunAsync());
-        }
-
-        try
-        {
-            await Task.WhenAll(downloadTasks);
-        }
-        catch (OperationCanceledException)
-        {
-            // Aggregated cancellation
-        }
-
-        // Final UI state
-        lock (aggLock)
-        {
-            updateService.StopStatusAnimation();
-
-            bool wasCancelled =
-                token.IsCancellationRequested
-                || canceledFiles > 0 && completedFiles + failedFiles + canceledFiles == totalFiles;
-
-            if (wasCancelled)
+            catch (OperationCanceledException)
             {
+                cancelled = true;
+                break;
+            }
+            catch (Exception ex)
+            {
+                hadError = true;
                 reporter.Report(
                     new UIUpdate(
-                        Status: "Download canceled.",
-                        Details: $"{completedFiles} completed, {failedFiles} failed, {canceledFiles} canceled."
+                        Status: $"Error: {ex.Message}",
+                        Details: "Check network or disk space."
                     )
                 );
+                break;
             }
-            else if (failedFiles > 0)
-            {
-                reporter.Report(
-                    new UIUpdate(
-                        Status: "Completed with errors.",
-                        Progress: 100,
-                        Details: $"{completedFiles} succeeded, {failedFiles} failed."
-                    )
-                );
-            }
-            else
-            {
-                reporter.Report(
-                    new UIUpdate(
-                        Status: "All downloads completed successfully!",
-                        Progress: 100,
-                        Details: $"{completedFiles} file(s) downloaded."
-                    )
-                );
-            }
+        }
+
+        // End of batch: finalize UI
+        updateService.StopStatusAnimation();
+
+        if (cancelled)
+        {
+            reporter.Report(new UIUpdate(Status: "Download canceled.", Details: "User canceled."));
+        }
+        else if (!hadError)
+        {
+            reporter.Report(
+                new UIUpdate(
+                    Status: "All downloads completed successfully!",
+                    Progress: 100,
+                    Details: "Files saved."
+                )
+            );
         }
     }
 }
