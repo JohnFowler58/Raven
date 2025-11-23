@@ -232,17 +232,7 @@ public static class GetDownloadUrl
                     return null;
 
                 var url = unpackagedResult.Value.InstallerUrl;
-                string fileName;
-                try
-                {
-                    fileName = Path.GetFileName(new Uri(url).AbsolutePath);
-                    if (string.IsNullOrEmpty(fileName))
-                        fileName = "installer";
-                }
-                catch
-                {
-                    fileName = "installer";
-                }
+                var fileName = unpackagedResult.Value.FileName;
 
                 return new FileEntry(
                     FileName: fileName,
