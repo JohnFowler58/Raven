@@ -295,6 +295,11 @@ public sealed partial class ShellPage : Page
         }
         return combined;
     }
+
+    private void InstallationsButton_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.NavigationService.NavigateTo(typeof(InstallationsViewModel).FullName!);
+    }
 }
 
 public partial class SuggestionTemplateSelector : DataTemplateSelector

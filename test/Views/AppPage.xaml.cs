@@ -241,7 +241,7 @@ public sealed partial class AppPage : Page
             }
 
             downloadManager.AddDownload(_currentProductInfo);
-            
+
             // Bind to the new download item
             var downloadItem = downloadManager.GetDownload(productId);
             if (downloadItem != null)
@@ -252,7 +252,7 @@ public sealed partial class AppPage : Page
 
             UpdateService.StartStatusAnimation("Fetching download URLs");
             StatusText.Text = "Fetching download URLs...";
-            
+
             var urls = await GetDownloadUrl.fetch(productId);
 
             if (urls == null)
@@ -260,7 +260,10 @@ public sealed partial class AppPage : Page
                 downloadManager.UpdateDownloadStatus(productId, DownloadStatus.Failed);
                 UnbindFromDownloadItem();
                 SetInstallButtonState(content: "Retry", enabled: true, showProgress: false);
-                await ShowErrorDialogAsync("App not supported", "This app isn't supported. Try a different app or check again later");
+                await ShowErrorDialogAsync(
+                    "App not supported",
+                    "This app isn't supported. Try a different app or check again later"
+                );
                 return;
             }
 
@@ -277,17 +280,50 @@ public sealed partial class AppPage : Page
 
             downloadManager.UnregisterCancellationToken(productId);
 
-            if (!_cts.Token.IsCancellationRequested)
-            {
-                downloadManager.UpdateDownloadStatus(productId, DownloadStatus.Completed);
-                UnbindFromDownloadItem();
-                SetInstallButtonState(content: "Installed", enabled: false, showProgress: false);
-            }
-            else
+            if (_cts.Token.IsCancellationRequested)
             {
                 UnbindFromDownloadItem();
                 SetInstallButtonState(content: "Retry", enabled: true, showProgress: false);
+                return;
             }
+
+            downloadManager.UpdateDownloadStatus(productId, DownloadStatus.Completed);
+
+            // Attempt to install the downloaded package (AppX/MSIX)
+            var installed = false;
+            var latestPackage = downloadManager
+                .GetDownload(productId)
+                ?.DownloadedFilePaths
+                ?.LastOrDefault(p =>
+                    p.EndsWith(".msix", StringComparison.OrdinalIgnoreCase)
+                    || p.EndsWith(".appx", StringComparison.OrdinalIgnoreCase)
+                    || p.EndsWith(".msixbundle", StringComparison.OrdinalIgnoreCase)
+                    || p.EndsWith(".appxbundle", StringComparison.OrdinalIgnoreCase)
+                );
+
+            if (!string.IsNullOrWhiteSpace(latestPackage))
+            {
+                StatusText.Text = "Installing...";
+
+                var progress = new Progress<AppPackageInstaller.InstallProgress>(p =>
+                {
+                    ProgressBar.Value = Math.Clamp(p.Percent, 0, 100);
+                    if (!string.IsNullOrWhiteSpace(p.State))
+                    {
+                        StatusText.Text = p.State;
+                    }
+                });
+
+                await AppPackageInstaller.InstallAsync(latestPackage, progress, _cts.Token);
+                installed = true;
+            }
+
+            UnbindFromDownloadItem();
+            SetInstallButtonState(
+                content: installed ? "Installed" : "Downloaded",
+                enabled: false,
+                showProgress: false
+            );
         }
         catch (OperationCanceledException)
         {

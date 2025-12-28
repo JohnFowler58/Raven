@@ -28,9 +28,9 @@
     </Style>
   </Page.Resources>
   <ScrollViewer>
-    <StackPanel Margin="{StaticResource NavigationViewPageContentMargin}" Padding="16" Spacing="12">
+    <StackPanel Margin="{StaticResource NavigationViewPageContentMargin}" Spacing="12">
       <!--  Header (scrolls with content)  -->
-      <Grid>
+      <Grid Margin="0,24">
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*" />
           <ColumnDefinition Width="Auto" />

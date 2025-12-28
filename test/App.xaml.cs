@@ -89,6 +89,9 @@ public partial class App : Application
                     services.AddTransient<DownloadsPage>();
                     services.AddSingleton<DownloadsViewModel>();
 
+                    services.AddTransient<InstallationsPage>();
+                    services.AddSingleton<InstallationsViewModel>();
+
                     // Configuration
                     services.Configure<LocalSettingsOptions>(
                         context.Configuration.GetSection(nameof(LocalSettingsOptions))
