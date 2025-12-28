@@ -20,14 +20,10 @@ public static class AppPackageInstaller
 
         progress?.Report(new InstallProgress(0, "Starting", "Install"));
 
-        // Industry standard for MSIX/AppX installation from a desktop app is the Windows Deployment API.
-        // This avoids PowerShell/module compatibility issues and provides reliable progress.
         var packageUri = new Uri(packagePath);
 
         var packageManager = new PackageManager();
 
-        // AddPackageAsync doesn't accept CancellationToken directly; best-effort cancellation is supported
-        // by checking the token and throwing between progress events.
         var deploymentOperation = packageManager.AddPackageAsync(
             packageUri,
             null,
@@ -43,7 +39,6 @@ public static class AppPackageInstaller
             progress?.Report(new InstallProgress(percent, p.state.ToString(), "Install"));
         };
 
-        // Await completion
         var result = await deploymentOperation.AsTask(cancellationToken);
 
         if (result.ErrorText is { Length: > 0 })

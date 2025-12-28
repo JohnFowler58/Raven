@@ -1,8 +1,6 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using test.Helpers;
 using test.Services;
 using Windows.Storage;
 using Windows.Storage.Pickers;
@@ -161,6 +159,7 @@ public sealed partial class InstallationsPage : Page
     private async Task PerformInstallAsync(string path)
     {
         InstallButton.IsEnabled = false;
+        DropZoneButton.IsEnabled = false; // disable drag box during install
         ProgressPanel.Visibility = Visibility.Visible;
         InstallProgressBar.Value = 0;
         ProgressPercentText.Text = "0%";
@@ -187,17 +186,8 @@ public sealed partial class InstallationsPage : Page
         catch (COMException cex)
         {
             UpdateService.StopStatusAnimation();
-            const int ERROR_PACKAGES_IN_USE = unchecked((int)0x80073D02);
-            if (cex.HResult == ERROR_PACKAGES_IN_USE)
-            {
-                await ShowPackagesInUseDialogAsync(path);
-                return; // dialog will handle retry flow
-            }
-            else
-            {
-                errorMessage = GetFriendlyMsixError(cex.HResult, cex.Message);
-                ProgressStatusText.Text = "Error";
-            }
+            errorMessage = GetFriendlyMsixError(cex.HResult, cex.Message);
+            ProgressStatusText.Text = "Error";
         }
         catch (UnauthorizedAccessException ua)
         {
@@ -219,51 +209,31 @@ public sealed partial class InstallationsPage : Page
             ProgressPanel.Visibility = Visibility.Collapsed;
             InstallProgressBar.Value = 0;
             ProgressPercentText.Text = string.Empty;
+            DropZoneButton.IsEnabled = true; // re-enable drag box
 
             if (succeeded)
             {
                 // Show tick and keep disabled until next selection
                 InstallButton.Content = new SymbolIcon { Symbol = Symbol.Accept };
                 InstallButton.IsEnabled = false;
-                // Clear text, but do NOT reset button content
+                // Clear text after success
                 SelectedFileText.Text = string.Empty;
                 ClearButton.Visibility = Visibility.Collapsed;
             }
-            else if (!string.IsNullOrWhiteSpace(errorMessage))
+            else
             {
                 // Show cross icon for failure until next selection
                 InstallButton.Content = new SymbolIcon { Symbol = Symbol.Cancel };
                 InstallButton.IsEnabled = false;
+                // Clear text after failure too
+                SelectedFileText.Text = string.Empty;
+                ClearButton.Visibility = Visibility.Collapsed;
 
-                await ShowErrorDialogAsync("Installation failed", errorMessage);
+                if (!string.IsNullOrWhiteSpace(errorMessage))
+                {
+                    await ShowErrorDialogAsync("Installation failed", errorMessage);
+                }
             }
-        }
-    }
-
-    private async Task ShowPackagesInUseDialogAsync(string path)
-    {
-        var dialog = new ContentDialog
-        {
-            Title = "App is running",
-            Content = "Another app using this package is running. Close it and retry?",
-            PrimaryButtonText = "Retry & Kill",
-            CloseButtonText = "OK",
-            XamlRoot = this.Content.XamlRoot,
-        };
-        var result = await dialog.ShowAsync();
-        if (result == ContentDialogResult.Primary)
-        {
-            // try elevated close
-            var elevatedClosed = await InstallHelper.TryCloseBlockingProcessesElevatedAsync(path);
-            if (!elevatedClosed)
-            {
-                await ShowErrorDialogAsync(
-                    "Retry failed",
-                    "Could not close running apps (elevation canceled or failed). Try running the app as administrator and retry."
-                );
-            }
-            // retry regardless (apps might have closed)
-            await PerformInstallAsync(path);
         }
     }
 
@@ -282,7 +252,6 @@ public sealed partial class InstallationsPage : Page
     private static string GetFriendlyMsixError(int hresult, string message)
     {
         // Common MSIX/AppX deployment HRESULTs
-        const int ERROR_PACKAGES_IN_USE = unchecked((int)0x80073D02); // Close apps using package
         const int ERROR_INSTALL_CONFLICTING_PACKAGE = unchecked((int)0x80073D06); // Same or higher version installed
         const int ERROR_DEPLOYMENT_IN_PROGRESS = unchecked((int)0x80073D01); // Another install in progress
         const int ERROR_INVALID_PACKAGE = unchecked((int)0x80073CF3);
@@ -291,7 +260,6 @@ public sealed partial class InstallationsPage : Page
 
         return hresult switch
         {
-            ERROR_PACKAGES_IN_USE => "Close apps that are using this package and try again.",
             ERROR_INSTALL_CONFLICTING_PACKAGE =>
                 "A newer or the same version is already installed.",
             ERROR_DEPLOYMENT_IN_PROGRESS =>
