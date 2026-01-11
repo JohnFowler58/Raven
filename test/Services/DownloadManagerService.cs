@@ -135,6 +135,15 @@ public class DownloadManagerService
         }
     }
 
+    public void UpdateDownloadStatusText(string productId, string? statusTextOverride)
+    {
+        var item = GetDownload(productId);
+        if (item != null)
+        {
+            RunOnUIThread(() => item.StatusTextOverride = statusTextOverride);
+        }
+    }
+
     public void UpdateDownloadStatus(string productId, DownloadStatus status)
     {
         var item = GetDownload(productId);
@@ -148,10 +157,15 @@ public class DownloadManagerService
                 {
                     item.CompletedAt = DateTime.Now;
                     item.Progress = 100;
+                    item.StatusTextOverride = null;
                     lock (_lock)
                     {
                         DownloadedProductIds.Add(productId);
                     }
+                }
+                else if (status is DownloadStatus.Cancelled or DownloadStatus.Failed)
+                {
+                    item.StatusTextOverride = null;
                 }
             });
             SaveDownloads();

@@ -70,6 +70,8 @@ public sealed class UIUpdateService : INotifyPropertyChanged
     public void Update(UIUpdate update) =>
         EnqueueUI(() =>
         {
+            // Avoid jank: when the animation is running, don't frequently overwrite StatusText
+            // unless a new explicit Status payload is provided.
             if (update.Status is not null)
                 StatusText = update.Status;
             if (update.Progress is double p)
@@ -99,25 +101,41 @@ public sealed class UIUpdateService : INotifyPropertyChanged
     private int _animDots = 0;
     private string _animBase = string.Empty;
 
+    public bool IsStatusAnimationRunning => _animTimer is not null;
+
     public void StartStatusAnimation(string baseText, int intervalMs = 500)
+    {
+        EnqueueUI(() =>
+        {
+            _animBase = baseText;
+
+            if (_animTimer is null)
+            {
+                _animDots = 0;
+                _animTimer = _dispatcher.CreateTimer();
+                _animTimer.Interval = TimeSpan.FromMilliseconds(intervalMs);
+                _animTimer.Tick += AnimationTick;
+                _animTimer.Start();
+            }
+
+            // Immediately reflect the base text without resetting dots
+            StatusText = _animBase + (_animDots == 0 ? string.Empty : new string('.', _animDots));
+        });
+    }
+
+    public void UpdateAnimatedStatusBase(string baseText)
     {
         EnqueueUI(() =>
         {
             if (_animTimer is null)
             {
-                _animTimer = _dispatcher.CreateTimer();
-                _animTimer.Interval = TimeSpan.FromMilliseconds(intervalMs);
-                _animTimer.Tick += AnimationTick;
-                _animBase = baseText;
-                StatusText = _animBase;
-                _animTimer.Start();
+                StatusText = baseText;
+                return;
             }
-            else
-            {
-                _animDots = 0;
-                _animBase = baseText;
-                StatusText = _animBase;
-            }
+
+            _animBase = baseText;
+            // Immediately update while keeping current dots.
+            StatusText = _animBase + (_animDots == 0 ? string.Empty : new string('.', _animDots));
         });
     }
 
@@ -130,9 +148,10 @@ public sealed class UIUpdateService : INotifyPropertyChanged
                 _animTimer.Stop();
                 _animTimer.Tick -= AnimationTick;
                 _animTimer = null;
-                _animDots = 0;
-                _animBase = string.Empty;
             }
+
+            _animDots = 0;
+            _animBase = string.Empty;
         });
     }
 

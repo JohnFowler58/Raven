@@ -180,7 +180,12 @@ public sealed partial class AppPage : Page
                     ProgressBar.Value = item.Progress;
                     break;
                 case nameof(DownloadItem.StatusText):
-                    StatusText.Text = item.StatusText;
+                    // Only update StatusText if the animation is NOT running.
+                    // While animation runs, UIUpdateService controls the status line.
+                    if (!UpdateService.IsStatusAnimationRunning)
+                    {
+                        StatusText.Text = item.StatusText;
+                    }
                     break;
                 case nameof(DownloadItem.Status):
                     if (item.Status == DownloadStatus.Completed)
@@ -301,13 +306,44 @@ public sealed partial class AppPage : Page
                 BindToDownloadItem(downloadItem);
             }
 
-            UpdateService.StartStatusAnimation("Fetching download URLs");
-            StatusText.Text = "Fetching download URLs...";
+            // Always use a fresh CTS per attempt
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _cts = new CancellationTokenSource();
+            StopButton.IsEnabled = true;
 
-            var urls = await GetDownloadUrl.fetch(productId);
+            downloadManager.RegisterCancellationToken(productId, _cts);
+
+            // Clear any leftover details from previous attempts
+            UpdateService.SetDetails(string.Empty);
+            UpdateService.SetProgress(0);
+
+            UpdateService.StartStatusAnimation("Fetching download URLs");
+
+            FileEntry? urls;
+            try
+            {
+                // Ensure the fetch respects cancellation too
+                urls = await GetDownloadUrl.fetch(productId, _cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                UpdateService.StopStatusAnimation();
+                HandleDownloadError(productId, "Operation canceled.", DownloadStatus.Cancelled);
+                return;
+            }
 
             if (urls == null)
             {
+                // If user cancelled while we were fetching, don't show 'app not supported'
+                if (_cts.Token.IsCancellationRequested)
+                {
+                    UpdateService.StopStatusAnimation();
+                    HandleDownloadError(productId, "Operation canceled.", DownloadStatus.Cancelled);
+                    return;
+                }
+
+                UpdateService.StopStatusAnimation();
                 downloadManager.UpdateDownloadStatus(productId, DownloadStatus.Failed);
                 UnbindFromDownloadItem();
                 SetInstallButtonState(content: "Retry", enabled: true, showProgress: false);
@@ -318,14 +354,8 @@ public sealed partial class AppPage : Page
                 return;
             }
 
-            StatusText.Text = "Preparing download...";
-
-            _cts?.Cancel();
-            _cts?.Dispose();
-            _cts = new CancellationTokenSource();
-            StopButton.IsEnabled = true;
-
-            downloadManager.RegisterCancellationToken(productId, _cts);
+            // DownloadHelper manages animation internally; stop current animation first
+            UpdateService.StopStatusAnimation();
 
             await DownloadHelper.StartDownloadAsync(urls, productId, _cts.Token, UpdateService);
 
@@ -357,15 +387,13 @@ public sealed partial class AppPage : Page
                 return;
             }
 
+            // Start installing - fresh animation with no leftover status
+            UpdateService.StopStatusAnimation();
             UpdateService.StartStatusAnimation("Installing");
-            StatusText.Text = "Installing...";
 
             var progress = new Progress<AppPackageInstaller.InstallProgress>(p =>
             {
                 ProgressBar.Value = Math.Clamp(p.Percent, 0, 100);
-                // Keep the animation text stable; surface state when present.
-                if (!string.IsNullOrWhiteSpace(p.State))
-                    StatusText.Text = p.State;
             });
 
             try
@@ -379,6 +407,7 @@ public sealed partial class AppPage : Page
             }
             catch (COMException cex)
             {
+                UpdateService.StopStatusAnimation();
                 HandleDownloadError(productId, "Failed to install.", DownloadStatus.Failed);
                 await InstallHelper.ShowInstallationErrorDialogAsync(
                     this.Content.XamlRoot,
@@ -389,6 +418,7 @@ public sealed partial class AppPage : Page
             }
             catch (UnauthorizedAccessException ua)
             {
+                UpdateService.StopStatusAnimation();
                 HandleDownloadError(productId, "Failed to install.", DownloadStatus.Failed);
                 await InstallHelper.ShowInstallationErrorDialogAsync(
                     this.Content.XamlRoot,
@@ -408,11 +438,13 @@ public sealed partial class AppPage : Page
         }
         catch (OperationCanceledException)
         {
+            UpdateService.StopStatusAnimation();
             HandleDownloadError(productId, "Operation canceled.", DownloadStatus.Cancelled);
         }
         catch (Exception ex)
         {
             Debug.WriteLine(ex);
+            UpdateService.StopStatusAnimation();
             HandleDownloadError(productId, "Failed to install.", DownloadStatus.Failed);
         }
     }
@@ -428,8 +460,11 @@ public sealed partial class AppPage : Page
 
     private void StopButton_Click(object sender, RoutedEventArgs e)
     {
+        // Show cancelling animation on the main status line
+        UpdateService.StartStatusAnimation("Cancelling");
+
         _cts?.Cancel();
-        _cts?.Dispose();
+        // Don't dispose here; let the running workflow unwind first.
         StopButton.IsEnabled = false;
     }
 }

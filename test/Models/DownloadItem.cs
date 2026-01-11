@@ -98,11 +98,31 @@ public partial class DownloadItem : INotifyPropertyChanged
     [JsonIgnore]
     public StoreEdgeFDProduct? ProductInfo { get; set; }
 
+    private string? _statusTextOverride;
+
+    [JsonIgnore]
+    public string? StatusTextOverride
+    {
+        get => _statusTextOverride;
+        set
+        {
+            if (_statusTextOverride != value)
+            {
+                _statusTextOverride = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(StatusText));
+            }
+        }
+    }
+
     [JsonIgnore]
     public string StatusText => Status switch
     {
         DownloadStatus.Pending => "Pending",
-        DownloadStatus.Downloading => $"Downloading... {Progress:F0}%",
+        DownloadStatus.Downloading =>
+            !string.IsNullOrWhiteSpace(StatusTextOverride)
+                ? StatusTextOverride
+                : $"Downloading... {Progress:F0}%",
         DownloadStatus.Completed => "Completed",
         DownloadStatus.Failed => "Failed",
         DownloadStatus.Cancelled => "Cancelled",
