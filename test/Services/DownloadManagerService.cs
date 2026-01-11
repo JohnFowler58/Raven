@@ -286,20 +286,74 @@ public class DownloadManagerService
 
     private static void DeleteDownloadedFiles(DownloadItem item)
     {
-        foreach (var filePath in item.DownloadedFilePaths)
+        // Prefer deleting the whole app folder under `<base>\\downloads\\<AppFolderName>`.
+        // This matches how downloads are laid out in `DownloadHelper`.
+        try
         {
-            try
+            var baseDownloadsDir = Path.Combine(AppContext.BaseDirectory, "downloads");
+
+            // Find the deepest directory that still lives under the downloads root.
+            string? appDir = null;
+            foreach (var filePath in item.DownloadedFilePaths)
             {
-                if (File.Exists(filePath))
+                if (string.IsNullOrWhiteSpace(filePath))
+                    continue;
+
+                var dir = Path.GetDirectoryName(filePath);
+                if (string.IsNullOrWhiteSpace(dir))
+                    continue;
+
+                // e.g. `<base>\\downloads\\AppName` or `<base>\\downloads\\AppName\\Dependencies`
+                var parent = Directory.GetParent(dir);
+                if (parent != null && parent.FullName.Equals(baseDownloadsDir, StringComparison.OrdinalIgnoreCase))
                 {
-                    File.Delete(filePath);
-                    Debug.WriteLine($"Deleted file: {filePath}");
+                    appDir = dir;
+                    break;
+                }
+
+                // If we were in `...\\AppName\\Dependencies`, parent is `...\\AppName`.
+                var grandParent = parent?.Parent;
+                if (grandParent != null && grandParent.FullName.Equals(baseDownloadsDir, StringComparison.OrdinalIgnoreCase))
+                {
+                    appDir = parent!.FullName;
+                    break;
                 }
             }
-            catch (Exception ex)
+
+            // Fallback: delete individual files if the folder can't be determined.
+            if (string.IsNullOrWhiteSpace(appDir) || !Directory.Exists(appDir))
             {
-                Debug.WriteLine($"Error deleting file {filePath}: {ex.Message}");
+                foreach (var filePath in item.DownloadedFilePaths)
+                {
+                    try
+                    {
+                        if (File.Exists(filePath))
+                        {
+                            File.Delete(filePath);
+                            Debug.WriteLine($"Deleted file: {filePath}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Error deleting file {filePath}: {ex.Message}");
+                    }
+                }
+
+                return;
             }
+
+            Directory.Delete(appDir, recursive: true);
+            Debug.WriteLine($"Deleted app folder: {appDir}");
+
+            // If `downloads` becomes empty, remove it as well.
+            if (Directory.Exists(baseDownloadsDir) && !Directory.EnumerateFileSystemEntries(baseDownloadsDir).Any())
+            {
+                Directory.Delete(baseDownloadsDir, recursive: false);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error deleting app folder/files for {item.ProductId}: {ex.Message}");
         }
     }
 }
