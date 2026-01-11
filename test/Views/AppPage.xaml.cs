@@ -380,19 +380,20 @@ public sealed partial class AppPage : Page
             catch (COMException cex)
             {
                 HandleDownloadError(productId, "Failed to install.", DownloadStatus.Failed);
-                await ShowErrorDialogAsync(
+                await InstallHelper.ShowInstallationErrorDialogAsync(
+                    this.Content.XamlRoot,
                     "Installation failed",
-                    InstallHelper.GetFriendlyMsixError(cex.HResult, cex.Message)
+                    cex
                 );
                 return;
             }
             catch (UnauthorizedAccessException ua)
             {
                 HandleDownloadError(productId, "Failed to install.", DownloadStatus.Failed);
-                await ShowErrorDialogAsync(
+                await InstallHelper.ShowInstallationErrorDialogAsync(
+                    this.Content.XamlRoot,
                     "Installation failed",
-                    "Failed: Access denied. Try running as administrator or ensure sideloading policy allows app packages. "
-                        + ua.Message
+                    ua
                 );
                 return;
             }

@@ -4,13 +4,46 @@ using Microsoft.UI.Xaml.Controls;
 using test.Helpers;
 using test.Services;
 using Windows.Storage;
-using Windows.Storage.Pickers;
 using WinRT.Interop;
 
 namespace test.Views;
 
 public sealed partial class InstallationsPage : Page
 {
+    [DllImport("comdlg32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool GetOpenFileName(ref OPENFILENAME ofn);
+
+    [DllImport("comdlg32.dll")]
+    private static extern uint CommDlgExtendedError();
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct OPENFILENAME
+    {
+        public int lStructSize;
+        public IntPtr hwndOwner;
+        public IntPtr hInstance;
+        public IntPtr lpstrFilter;
+        public IntPtr lpstrCustomFilter;
+        public int nMaxCustFilter;
+        public int nFilterIndex;
+        public IntPtr lpstrFile;
+        public int nMaxFile;
+        public IntPtr lpstrFileTitle;
+        public int nMaxFileTitle;
+        public IntPtr lpstrInitialDir;
+        public IntPtr lpstrTitle;
+        public int Flags;
+        public short nFileOffset;
+        public short nFileExtension;
+        public IntPtr lpstrDefExt;
+        public IntPtr lCustData;
+        public IntPtr lpfnHook;
+        public IntPtr lpTemplateName;
+        public IntPtr pvReserved;
+        public int dwReserved;
+        public int FlagsEx;
+    }
+
     private string? _selectedPath;
     public UIUpdateService UpdateService { get; }
 
@@ -101,21 +134,75 @@ public sealed partial class InstallationsPage : Page
         UpdateService.StopStatusAnimation();
     }
 
-    private async void DropZoneButton_Click(object sender, RoutedEventArgs e)
+    private void DropZoneButton_Click(object sender, RoutedEventArgs e)
     {
-        var picker = new FileOpenPicker();
-        picker.FileTypeFilter.Add(".appx");
-        picker.FileTypeFilter.Add(".msix");
-        picker.FileTypeFilter.Add(".appxbundle");
-        picker.FileTypeFilter.Add(".msixbundle");
+        const int bufferChars = 4096;
 
-        var hwnd = WindowNative.GetWindowHandle(App.MainWindow);
-        InitializeWithWindow.Initialize(picker, hwnd);
+        // Filter must be pairs: display\0pattern\0 ... \0\0
+        var filter =
+            "App packages (*.msix;*.appx;*.msixbundle;*.appxbundle)\0*.msix;*.appx;*.msixbundle;*.appxbundle\0All files (*.*)\0*.*\0\0";
 
-        StorageFile? file = await picker.PickSingleFileAsync();
-        if (file != null)
+        IntPtr filterPtr = IntPtr.Zero;
+        IntPtr filePtr = IntPtr.Zero;
+        IntPtr titlePtr = IntPtr.Zero;
+
+        try
         {
-            SetSelectedFile(file.Path);
+            filterPtr = Marshal.StringToHGlobalUni(filter);
+            titlePtr = Marshal.StringToHGlobalUni("Select an app package");
+
+            // Allocate buffer for selected file path
+            filePtr = Marshal.AllocHGlobal(bufferChars * sizeof(char));
+            for (var i = 0; i < bufferChars; i++)
+                Marshal.WriteInt16(filePtr, i * sizeof(char), 0);
+
+            const int OFN_EXPLORER = 0x00080000;
+            const int OFN_FILEMUSTEXIST = 0x00001000;
+            const int OFN_PATHMUSTEXIST = 0x00000800;
+            const int OFN_NOCHANGEDIR = 0x00000008;
+
+            var ofn = new OPENFILENAME
+            {
+                lStructSize = Marshal.SizeOf<OPENFILENAME>(),
+                hwndOwner = WindowNative.GetWindowHandle(App.MainWindow),
+                lpstrFilter = filterPtr,
+                lpstrFile = filePtr,
+                nMaxFile = bufferChars,
+                lpstrTitle = titlePtr,
+                Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR,
+            };
+
+            if (GetOpenFileName(ref ofn))
+            {
+                var selected = Marshal.PtrToStringUni(ofn.lpstrFile);
+                if (!string.IsNullOrWhiteSpace(selected))
+                    SetSelectedFile(selected);
+
+                return;
+            }
+
+            var err = CommDlgExtendedError();
+            if (err != 0)
+            {
+                _ = InstallHelper.ShowDialogAsync(
+                    this.Content.XamlRoot,
+                    "File picker error",
+                    $"GetOpenFileName failed. CommDlgExtendedError=0x{err:X}"
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            _ = InstallHelper.ShowDialogAsync(this.Content.XamlRoot, "File picker error", ex.Message);
+        }
+        finally
+        {
+            if (filterPtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(filterPtr);
+            if (titlePtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(titlePtr);
+            if (filePtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(filePtr);
         }
     }
 
@@ -175,7 +262,7 @@ public sealed partial class InstallationsPage : Page
         });
 
         var succeeded = false;
-        string? errorMessage = null;
+        Exception? installException = null;
         try
         {
             await AppPackageInstaller.InstallAsync(path, dependencyPackagePaths: null, progress);
@@ -184,24 +271,16 @@ public sealed partial class InstallationsPage : Page
             ProgressPercentText.Text = "100%";
             succeeded = true;
         }
-        catch (COMException cex)
+        catch (Exception ex) when (ex is COMException or UnauthorizedAccessException)
         {
             UpdateService.StopStatusAnimation();
-            errorMessage = InstallHelper.GetFriendlyMsixError(cex.HResult, cex.Message);
-            ProgressStatusText.Text = "Error";
-        }
-        catch (UnauthorizedAccessException ua)
-        {
-            UpdateService.StopStatusAnimation();
-            errorMessage =
-                "Failed: Access denied. Try running as administrator or ensure sideloading policy allows app packages. "
-                + ua.Message;
+            installException = ex;
             ProgressStatusText.Text = "Error";
         }
         catch (Exception ex)
         {
             UpdateService.StopStatusAnimation();
-            errorMessage = $"Failed: {ex.Message}";
+            installException = ex;
             ProgressStatusText.Text = "Error";
         }
         finally
@@ -230,23 +309,15 @@ public sealed partial class InstallationsPage : Page
                 SelectedFileText.Text = string.Empty;
                 ClearButton.Visibility = Visibility.Collapsed;
 
-                if (!string.IsNullOrWhiteSpace(errorMessage))
+                if (installException != null)
                 {
-                    await ShowErrorDialogAsync("Installation failed", errorMessage);
+                    await InstallHelper.ShowInstallationErrorDialogAsync(
+                        this.Content.XamlRoot,
+                        "Installation failed",
+                        installException
+                    );
                 }
             }
         }
-    }
-
-    private async Task ShowErrorDialogAsync(string title, string content)
-    {
-        var dialog = new ContentDialog
-        {
-            Title = title,
-            Content = content,
-            CloseButtonText = "OK",
-            XamlRoot = this.Content.XamlRoot,
-        };
-        await dialog.ShowAsync();
     }
 }
