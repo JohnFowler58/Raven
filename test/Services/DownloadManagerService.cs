@@ -23,6 +23,9 @@ public class DownloadManagerService
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _cancellationTokens =
         new();
 
+    // Track cancellation requests even when CTS isn't registered yet.
+    private readonly ConcurrentDictionary<string, bool> _cancellationRequested = new();
+
     public ObservableCollection<DownloadItem> Downloads { get; } = [];
     public HashSet<string> DownloadedProductIds { get; private set; } = [];
 
@@ -81,16 +84,35 @@ public class DownloadManagerService
 
     public void RegisterCancellationToken(string productId, CancellationTokenSource cts)
     {
+        // If user already requested cancellation from elsewhere (e.g., DownloadsPage)
+        // before the CTS existed on AppPage, cancel immediately.
+        if (_cancellationRequested.TryRemove(productId, out var wasRequested) && wasRequested)
+        {
+            try
+            {
+                cts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // ignore
+            }
+        }
+
         _cancellationTokens[productId] = cts;
     }
 
     public void UnregisterCancellationToken(string productId)
     {
         _cancellationTokens.TryRemove(productId, out _);
+        _cancellationRequested.TryRemove(productId, out _);
     }
 
     public void CancelDownload(string productId)
     {
+        // Always remember the request so phases that haven't registered CTS yet
+        // (URL fetch, install) still get cancelled.
+        _cancellationRequested[productId] = true;
+
         if (_cancellationTokens.TryGetValue(productId, out var cts))
         {
             try
@@ -102,7 +124,25 @@ public class DownloadManagerService
                 // Token already disposed
             }
         }
+
         UpdateDownloadStatus(productId, DownloadStatus.Cancelled);
+    }
+
+    public bool IsCancellationRequested(string productId)
+    {
+        if (_cancellationTokens.TryGetValue(productId, out var cts))
+        {
+            try
+            {
+                return cts.IsCancellationRequested;
+            }
+            catch (ObjectDisposedException)
+            {
+                return true;
+            }
+        }
+
+        return _cancellationRequested.TryGetValue(productId, out var requested) && requested;
     }
 
     public DownloadItem? GetDownload(string productId)
@@ -120,6 +160,19 @@ public class DownloadManagerService
         {
             // Update on UI thread to ensure PropertyChanged works correctly
             RunOnUIThread(() => item.Progress = progress);
+        }
+    }
+
+    public void UpdateDownloadBytes(string productId, long? receivedBytes, long? totalBytes)
+    {
+        var item = GetDownload(productId);
+        if (item != null)
+        {
+            RunOnUIThread(() =>
+            {
+                item.ReceivedBytes = receivedBytes;
+                item.TotalBytes = totalBytes;
+            });
         }
     }
 
@@ -189,6 +242,7 @@ public class DownloadManagerService
                 && (
                     item.Status == DownloadStatus.Downloading
                     || item.Status == DownloadStatus.Pending
+                    || item.Status == DownloadStatus.Installing
                 );
         }
     }

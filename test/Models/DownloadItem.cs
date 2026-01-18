@@ -178,18 +178,79 @@ public partial class DownloadItem : INotifyPropertyChanged
     public string StatusText =>
         Status switch
         {
-            DownloadStatus.Pending => "Pending",
+            DownloadStatus.Pending => !string.IsNullOrWhiteSpace(StatusTextOverride)
+                ? StatusTextOverride
+                : "Pending",
             DownloadStatus.Downloading => !string.IsNullOrWhiteSpace(StatusTextOverride)
                 ? StatusTextOverride
-                : $"Downloading... {Progress:F0}%",
+                : "Downloading",
             DownloadStatus.Installing => !string.IsNullOrWhiteSpace(StatusTextOverride)
                 ? StatusTextOverride
-                : $"Installing... {Progress:F0}%",
+                : "Installing",
             DownloadStatus.Completed => "Completed",
             DownloadStatus.Failed => "Failed",
             DownloadStatus.Cancelled => "Cancelled",
             _ => "Unknown",
         };
+
+    private long? _receivedBytes;
+    [JsonIgnore]
+    public long? ReceivedBytes
+    {
+        get => _receivedBytes;
+        set
+        {
+            if (_receivedBytes != value)
+            {
+                _receivedBytes = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ProgressDetailsText));
+            }
+        }
+    }
+
+    private long? _totalBytes;
+    [JsonIgnore]
+    public long? TotalBytes
+    {
+        get => _totalBytes;
+        set
+        {
+            if (_totalBytes != value)
+            {
+                _totalBytes = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ProgressDetailsText));
+            }
+        }
+    }
+
+    [JsonIgnore]
+    public string ProgressDetailsText
+    {
+        get
+        {
+            if (TotalBytes is null or <= 0 || ReceivedBytes is null or < 0)
+                return string.Empty;
+
+            return $" • {FormatBytes((long)ReceivedBytes)} / {FormatBytes((long)TotalBytes)}";
+        }
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        const double KB = 1024.0;
+        const double MB = KB * 1024.0;
+        const double GB = MB * 1024.0;
+
+        if (bytes >= GB)
+            return $"{bytes / GB:0.#} GB";
+        if (bytes >= MB)
+            return $"{bytes / MB:0.#} MB";
+        if (bytes >= KB)
+            return $"{bytes / KB:0.#} KB";
+        return $"{bytes} B";
+    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

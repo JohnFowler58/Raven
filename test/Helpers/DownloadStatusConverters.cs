@@ -10,8 +10,8 @@ public class DownloadStatusToVisibilityConverter : IValueConverter
     {
         if (value is DownloadStatus status)
         {
-            // Show progress bar only for downloading/pending states
-            return status == DownloadStatus.Downloading || status == DownloadStatus.Pending
+            // Show progress UI for active states
+            return status is DownloadStatus.Downloading or DownloadStatus.Pending or DownloadStatus.Installing
                 ? Visibility.Visible
                 : Visibility.Collapsed;
         }
@@ -22,6 +22,22 @@ public class DownloadStatusToVisibilityConverter : IValueConverter
     {
         throw new NotImplementedException();
     }
+}
+
+public sealed class DownloadingOnlyStatusToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        if (value is DownloadStatus status)
+        {
+            return status == DownloadStatus.Downloading ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        return Visibility.Collapsed;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language) =>
+        throw new NotImplementedException();
 }
 
 public class CompletedStatusToVisibilityConverter : IValueConverter
@@ -42,7 +58,7 @@ public class CompletedStatusToVisibilityConverter : IValueConverter
 }
 
 /// <summary>
-/// Shows the menu button for non-downloading states (Completed, Failed, Cancelled)
+/// Shows the menu button for non-active states (Completed, Failed, Cancelled)
 /// </summary>
 public class NotDownloadingStatusToVisibilityConverter : IValueConverter
 {
@@ -50,9 +66,9 @@ public class NotDownloadingStatusToVisibilityConverter : IValueConverter
     {
         if (value is DownloadStatus status)
         {
-            return status != DownloadStatus.Downloading && status != DownloadStatus.Pending
-                ? Visibility.Visible
-                : Visibility.Collapsed;
+            return status is DownloadStatus.Downloading or DownloadStatus.Pending or DownloadStatus.Installing
+                ? Visibility.Collapsed
+                : Visibility.Visible;
         }
         return Visibility.Collapsed;
     }
@@ -61,4 +77,37 @@ public class NotDownloadingStatusToVisibilityConverter : IValueConverter
     {
         throw new NotImplementedException();
     }
+}
+
+public sealed class InstallingStatusToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        if (value is DownloadStatus status)
+        {
+            return status == DownloadStatus.Installing ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        return Visibility.Collapsed;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language) =>
+        throw new NotImplementedException();
+}
+
+public sealed class DownloadDetailsStatusToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        if (value is DownloadStatus status)
+        {
+            // Right-side details are only for the actual download transfer phase.
+            return status == DownloadStatus.Downloading ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        return Visibility.Collapsed;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language) =>
+        throw new NotImplementedException();
 }

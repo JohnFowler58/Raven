@@ -14,6 +14,8 @@ public sealed class UIUpdateService : INotifyPropertyChanged
 {
     private readonly DispatcherQueue _dispatcher;
 
+    public DispatcherQueue DispatcherQueue => _dispatcher;
+
     public UIUpdateService(DispatcherQueue dispatcher) =>
         _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
 

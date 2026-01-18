@@ -151,6 +151,18 @@ public sealed partial class AppPage : Page
         ProgressBar.Value = item.Progress;
         StatusText.Text = item.StatusText;
 
+        // Keep UpdateService in sync so XAML-bound right-side details/progress show correctly.
+        UpdateService.SetProgress(item.Progress);
+
+        // During install, show only percent on the right; during download show percent+size (when available).
+        var details = item.Status switch
+        {
+            DownloadStatus.Downloading => $"{(int)Math.Round(item.Progress)}%{item.ProgressDetailsText}",
+            DownloadStatus.Installing => $"{(int)Math.Round(item.Progress)}%",
+            _ => string.Empty,
+        };
+        UpdateService.SetDetails(details);
+
         // Subscribe to property changes
         item.PropertyChanged += OnDownloadItemPropertyChanged;
     }
@@ -178,7 +190,25 @@ public sealed partial class AppPage : Page
             {
                 case nameof(DownloadItem.Progress):
                     ProgressBar.Value = item.Progress;
+                    UpdateService.SetProgress(item.Progress);
+
+                    // Keep details string in sync with progress
+                    UpdateService.SetDetails(item.Status switch
+                    {
+                        DownloadStatus.Downloading => $"{(int)Math.Round(item.Progress)}%{item.ProgressDetailsText}",
+                        DownloadStatus.Installing => $"{(int)Math.Round(item.Progress)}%",
+                        _ => string.Empty,
+                    });
                     break;
+
+                case nameof(DownloadItem.ProgressDetailsText):
+                    // Bytes changed: update right-side details for download phase.
+                    if (item.Status == DownloadStatus.Downloading)
+                    {
+                        UpdateService.SetDetails($"{(int)Math.Round(item.Progress)}%{item.ProgressDetailsText}");
+                    }
+                    break;
+
                 case nameof(DownloadItem.StatusText):
                     // Only update StatusText if the animation is NOT running.
                     // While animation runs, UIUpdateService controls the status line.
@@ -187,7 +217,18 @@ public sealed partial class AppPage : Page
                         StatusText.Text = item.StatusText;
                     }
                     break;
+
                 case nameof(DownloadItem.Status):
+                    // Clear details when switching phases; DownloadHelper will drive AppPage details during active ops.
+                    if (item.Status == DownloadStatus.Installing)
+                    {
+                        UpdateService.SetDetails($"{(int)Math.Round(item.Progress)}%");
+                    }
+                    else if (item.Status != DownloadStatus.Downloading)
+                    {
+                        UpdateService.SetDetails(string.Empty);
+                    }
+
                     if (item.Status == DownloadStatus.Completed)
                     {
                         UnbindFromDownloadItem();
@@ -314,11 +355,30 @@ public sealed partial class AppPage : Page
 
             downloadManager.RegisterCancellationToken(productId, _cts);
 
+            // If cancellation was requested from the Downloads page before we got here,
+            // stop early.
+            if (downloadManager.IsCancellationRequested(productId) || _cts.Token.IsCancellationRequested)
+            {
+                HandleDownloadError(productId, "Operation canceled.", DownloadStatus.Cancelled);
+                return;
+            }
+
             // Clear any leftover details from previous attempts
             UpdateService.SetDetails(string.Empty);
             UpdateService.SetProgress(0);
 
+            // Show fetch phase on both AppPage and DownloadsPage
             UpdateService.StartStatusAnimation("Fetching download URLs");
+            downloadManager.UpdateDownloadStatus(productId, DownloadStatus.Pending);
+            downloadManager.UpdateDownloadProgress(productId, 0);
+            downloadManager.UpdateDownloadStatusText(productId, "Fetching download URLs");
+
+            // Smooth dots animation in Downloads list during fetch.
+            var fetchAnimator = new test.Helpers.DownloadItemStatusAnimator(UpdateService.DispatcherQueue);
+            if (downloadItem != null)
+            {
+                fetchAnimator.Start(downloadItem, "Fetching download URLs");
+            }
 
             FileEntry? urls;
             try
@@ -329,21 +389,33 @@ public sealed partial class AppPage : Page
             catch (OperationCanceledException)
             {
                 UpdateService.StopStatusAnimation();
+                if (downloadItem != null)
+                {
+                    fetchAnimator.Stop(downloadItem);
+                }
+                HandleDownloadError(productId, "Operation canceled.", DownloadStatus.Cancelled);
+                return;
+            }
+
+            // If cancelled during fetch without throwing (e.g. external cancellation request)
+            if (downloadManager.IsCancellationRequested(productId) || _cts.Token.IsCancellationRequested)
+            {
+                UpdateService.StopStatusAnimation();
+                if (downloadItem != null)
+                {
+                    fetchAnimator.Stop(downloadItem);
+                }
                 HandleDownloadError(productId, "Operation canceled.", DownloadStatus.Cancelled);
                 return;
             }
 
             if (urls == null)
             {
-                // If user cancelled while we were fetching, don't show 'app not supported'
-                if (_cts.Token.IsCancellationRequested)
-                {
-                    UpdateService.StopStatusAnimation();
-                    HandleDownloadError(productId, "Operation canceled.", DownloadStatus.Cancelled);
-                    return;
-                }
-
                 UpdateService.StopStatusAnimation();
+                if (downloadItem != null)
+                {
+                    fetchAnimator.Stop(downloadItem);
+                }
                 downloadManager.UpdateDownloadStatus(productId, DownloadStatus.Failed);
                 UnbindFromDownloadItem();
                 SetInstallButtonState(content: "Retry", enabled: true, showProgress: false);
@@ -356,12 +428,16 @@ public sealed partial class AppPage : Page
 
             // DownloadHelper manages animation internally; stop current animation first
             UpdateService.StopStatusAnimation();
+            if (downloadItem != null)
+            {
+                fetchAnimator.Stop(downloadItem);
+            }
 
             await DownloadHelper.StartDownloadAsync(urls, productId, _cts.Token, UpdateService);
 
             downloadManager.UnregisterCancellationToken(productId);
 
-            if (_cts.Token.IsCancellationRequested)
+            if (downloadManager.IsCancellationRequested(productId) || _cts.Token.IsCancellationRequested)
             {
                 UnbindFromDownloadItem();
                 SetInstallButtonState(content: "Retry", enabled: true, showProgress: false);
@@ -404,6 +480,12 @@ public sealed partial class AppPage : Page
                     progress,
                     _cts.Token
                 );
+            }
+            catch (OperationCanceledException)
+            {
+                UpdateService.StopStatusAnimation();
+                HandleDownloadError(productId, "Operation canceled.", DownloadStatus.Cancelled);
+                return;
             }
             catch (COMException cex)
             {
@@ -460,11 +542,17 @@ public sealed partial class AppPage : Page
 
     private void StopButton_Click(object sender, RoutedEventArgs e)
     {
+        if (_currentProductInfo == null)
+            return;
+
+        var productId = _currentProductInfo.ProductId;
+
         // Show cancelling animation on the main status line
         UpdateService.StartStatusAnimation("Cancelling");
 
-        _cts?.Cancel();
-        // Don't dispose here; let the running workflow unwind first.
+        // Cancel via manager so it works consistently across pages/phases.
+        DownloadManagerService.Instance.CancelDownload(productId);
+
         StopButton.IsEnabled = false;
     }
 }

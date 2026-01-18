@@ -15,8 +15,11 @@
             <helper:OneDecimalPlaceConverter x:Key="OneDecimalPlaceConverter" />
             <helper:ProgressToPercentTextConverter x:Key="ProgressToPercentTextConverter" />
             <helper:DownloadStatusToVisibilityConverter x:Key="DownloadStatusToVisibilityConverter" />
+            <helper:DownloadingOnlyStatusToVisibilityConverter x:Key="DownloadingOnlyStatusToVisibilityConverter" />
+            <helper:DownloadDetailsStatusToVisibilityConverter x:Key="DownloadDetailsStatusToVisibilityConverter" />
             <helper:CompletedStatusToVisibilityConverter x:Key="CompletedStatusToVisibilityConverter" />
             <helper:NotDownloadingStatusToVisibilityConverter x:Key="NotDownloadingStatusToVisibilityConverter" />
+            <helper:InstallingStatusToVisibilityConverter x:Key="InstallingStatusToVisibilityConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

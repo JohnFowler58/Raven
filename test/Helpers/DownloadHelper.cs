@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Net;
 using Downloader;
+using Microsoft.UI.Dispatching;
 using test.Models;
 using test.Services;
 
@@ -59,6 +60,18 @@ public sealed class DownloadHelper
         }
 
         var downloadItem = downloadManager.GetDownload(productId);
+        if (downloadItem is null)
+        {
+            return;
+        }
+
+        // Ensure the Downloads list is in the correct phase.
+        // AppPage sets Status=Pending during URL fetch; once we start transferring bytes we must be Downloading.
+        downloadManager.UpdateDownloadStatus(productId, test.Models.DownloadStatus.Downloading);
+        downloadManager.UpdateDownloadStatusText(productId, null);
+
+        var animator = new DownloadItemStatusAnimator(updateService.DispatcherQueue);
+
         var appFolderName = SanitizeFolderName(downloadItem?.Title);
         if (string.IsNullOrWhiteSpace(appFolderName))
             appFolderName = productId;
@@ -98,9 +111,9 @@ public sealed class DownloadHelper
             $"Downloading ({currentFileIndex}/{totalFiles}) {FilesLabel()}"
         );
 
-        // Also make DownloadItem.StatusText stable
-        downloadManager.UpdateDownloadStatusText(
-            productId,
+        // Animated dots in the Downloads list (same timer technique as UIUpdateService)
+        animator.Start(
+            downloadItem,
             $"Downloading ({currentFileIndex}/{totalFiles}) {FilesLabel()}"
         );
 
@@ -120,8 +133,8 @@ public sealed class DownloadHelper
             updateService.UpdateAnimatedStatusBase(
                 $"Downloading ({currentFileIndex}/{totalFiles}) {FilesLabel()}"
             );
-            downloadManager.UpdateDownloadStatusText(
-                productId,
+            animator.UpdateBase(
+                downloadItem,
                 $"Downloading ({currentFileIndex}/{totalFiles}) {FilesLabel()}"
             );
 
@@ -217,13 +230,19 @@ public sealed class DownloadHelper
                     // mark progress (bytes or percent)
                     Interlocked.Exchange(ref lastProgressTicks, now);
 
-                    if (whole > lastWholePercent)
+                    // Always update byte counts so the list can show size / total even when percent throttles
+                    try
                     {
-                        if (now - lastReportTicks < THROTTLE_MS && whole != 100)
-                            return;
-                        lastWholePercent = whole;
-                        lastReportTicks = now;
+                        downloadManager.UpdateDownloadBytes(productId, e.ReceivedBytesSize, e.TotalBytesToReceive);
+                    }
+                    catch
+                    {
+                        // ignore (UI-only enhancement)
+                    }
 
+                    // Keep AppPage right-side details in sync (throttled)
+                    if (now - lastReportTicks >= THROTTLE_MS || whole == 100)
+                    {
                         double receivedMB = e.ReceivedBytesSize / (1024.0 * 1024.0);
                         double totalMB = e.TotalBytesToReceive / (1024.0 * 1024.0);
 
@@ -233,6 +252,14 @@ public sealed class DownloadHelper
                                 Details: $"{whole}% • {receivedMB:F1} / {totalMB:F0} MB"
                             )
                         );
+                    }
+
+                    if (whole > lastWholePercent)
+                    {
+                        if (now - lastReportTicks < THROTTLE_MS && whole != 100)
+                            return;
+                        lastWholePercent = whole;
+                        lastReportTicks = now;
 
                         downloadManager.UpdateDownloadProgress(productId, e.ProgressPercentage);
                     }
@@ -331,6 +358,7 @@ public sealed class DownloadHelper
 
         // End of batch: finalize UI
         updateService.StopStatusAnimation();
+        animator.Stop(downloadItem);
 
         // Clear details so next phase (install) starts clean
         reporter.Report(new UIUpdate(Details: string.Empty));
@@ -338,11 +366,23 @@ public sealed class DownloadHelper
         if (cancelled)
         {
             downloadManager.UpdateDownloadStatusText(productId, "Download canceled.");
+            try
+            {
+                downloadManager.UpdateDownloadBytes(productId, null, null);
+            }
+            catch { }
             return;
         }
 
         if (hadError)
+        {
+            try
+            {
+                downloadManager.UpdateDownloadBytes(productId, null, null);
+            }
+            catch { }
             return;
+        }
 
         reporter.Report(new UIUpdate(Progress: 100, Details: string.Empty));
 
@@ -350,7 +390,15 @@ public sealed class DownloadHelper
         downloadManager.UpdateDownloadStatus(productId, test.Models.DownloadStatus.Installing);
         downloadManager.UpdateDownloadProgress(productId, 0);
         downloadManager.UpdateDownloadStatusText(productId, "Installing");
+        try
+        {
+            downloadManager.UpdateDownloadBytes(productId, null, null);
+        }
+        catch { }
         updateService.StartStatusAnimation("Installing");
+
+        // Animated dots in the Downloads list during install as well.
+        animator.Start(downloadItem, "Installing");
 
         var mainPackagePath = downloadItem?.DownloadedFilePaths.FirstOrDefault(p =>
             !string.IsNullOrWhiteSpace(p)
@@ -388,12 +436,8 @@ public sealed class DownloadHelper
                 var percent = Math.Clamp(p.Percent, 0, 100);
                 downloadManager.UpdateDownloadProgress(productId, percent);
 
-                var state = string.IsNullOrWhiteSpace(p.State) ? "" : $" • {p.State}";
-                var activity = string.IsNullOrWhiteSpace(p.Activity) ? "Installing" : p.Activity;
-                downloadManager.UpdateDownloadStatusText(
-                    productId,
-                    $"{activity}... {percent}%{state}"
-                );
+                // Keep the Downloads list status simple during install.
+                downloadManager.UpdateDownloadStatusText(productId, "Installing");
             });
 
             await AppPackageInstaller.InstallAsync(
