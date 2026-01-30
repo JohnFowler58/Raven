@@ -88,24 +88,30 @@ public partial class DownloadItem : INotifyPropertyChanged
         }
     }
 
+
     private double _progress;
     public double Progress
     {
         get => _progress;
         set
         {
-            if (Math.Abs(_progress - value) > double.Epsilon)
+            // Only fire PropertyChanged when the visible percentage changes (1% increments)
+            // This reduces UI updates from potentially thousands per second to ~100 max
+            int oldPercent = (int)_progress;
+            int newPercent = (int)value;
+            _progress = value;
+            
+            if (oldPercent != newPercent)
             {
-                _progress = value;
                 OnPropertyChanged();
-                // Also notify StatusText since it depends on Progress when downloading/installing
-                if (_status is DownloadStatus.Downloading or DownloadStatus.Installing)
-                {
-                    OnPropertyChanged(nameof(StatusText));
-                }
             }
         }
     }
+
+    /// <summary>
+    /// Update progress without firing PropertyChanged. Use when nobody is observing.
+    /// </summary>
+    public void SetProgressSilent(double value) => _progress = value;
 
     private DateTime _startedAt = DateTime.Now;
     public DateTime StartedAt
@@ -203,8 +209,8 @@ public partial class DownloadItem : INotifyPropertyChanged
             if (_receivedBytes != value)
             {
                 _receivedBytes = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(ProgressDetailsText));
+                // Don't fire PropertyChanged for bytes - it's too frequent.
+                // ProgressDetailsText is computed on-demand when needed.
             }
         }
     }
@@ -219,8 +225,7 @@ public partial class DownloadItem : INotifyPropertyChanged
             if (_totalBytes != value)
             {
                 _totalBytes = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(ProgressDetailsText));
+                // Don't fire PropertyChanged for bytes - it's too frequent.
             }
         }
     }
@@ -236,6 +241,29 @@ public partial class DownloadItem : INotifyPropertyChanged
             return $" • {FormatBytes((long)ReceivedBytes)} / {FormatBytes((long)TotalBytes)}";
         }
     }
+
+    // Stores the full details text (e.g., "45% • 500 MB / 1.2 GB") for display.
+    // Updated by DownloadHelper; survives page navigation.
+    private string _displayDetailsText = string.Empty;
+
+    [JsonIgnore]
+    public string DisplayDetailsText
+    {
+        get => _displayDetailsText;
+        set
+        {
+            if (_displayDetailsText != value)
+            {
+                _displayDetailsText = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Update display details text without firing PropertyChanged. Use when nobody is observing.
+    /// </summary>
+    public void SetDisplayDetailsTextSilent(string value) => _displayDetailsText = value;
 
     private static string FormatBytes(long bytes)
     {

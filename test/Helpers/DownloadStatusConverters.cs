@@ -111,3 +111,31 @@ public sealed class DownloadDetailsStatusToVisibilityConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, string language) =>
         throw new NotImplementedException();
 }
+
+/// <summary>
+/// Converts DownloadStatus enum to display text.
+/// Used in DownloadsPage to avoid binding to StatusText which changes frequently due to animation.
+/// </summary>
+public sealed class DownloadStatusToTextConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        if (value is DownloadStatus status)
+        {
+            return status switch
+            {
+                DownloadStatus.Pending => "Pending...",
+                DownloadStatus.Downloading => "Downloading...",
+                DownloadStatus.Installing => "Installing...",
+                DownloadStatus.Completed => "Completed",
+                DownloadStatus.Failed => "Failed",
+                DownloadStatus.Cancelled => "Cancelled",
+                _ => "Unknown"
+            };
+        }
+        return "Unknown";
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language) =>
+        throw new NotImplementedException();
+}

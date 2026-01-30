@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Net;
 using Downloader;
-using Microsoft.UI.Dispatching;
 using test.Models;
 using test.Services;
 
@@ -9,6 +8,24 @@ namespace test.Helpers;
 
 public sealed class DownloadHelper
 {
+    private static string FormatBytes(long bytes)
+    {
+        const double KB = 1024d;
+        const double MB = KB * 1024d;
+        const double GB = MB * 1024d;
+        const double TB = GB * 1024d;
+
+        if (bytes >= TB)
+            return $"{bytes / TB:0.#} TB";
+        if (bytes >= GB)
+            return $"{bytes / GB:0.#} GB";
+        if (bytes >= MB)
+            return $"{bytes / MB:0.#} MB";
+        if (bytes >= KB)
+            return $"{bytes / KB:0.#} KB";
+        return $"{bytes} B";
+    }
+
     public static async Task StartDownloadAsync(
         FileEntry entry,
         string productId,
@@ -16,25 +33,24 @@ public sealed class DownloadHelper
         UIUpdateService updateService
     )
     {
-        const int THROTTLE_MS = 500;
         const int MAX_RETRIES_PER_FILE = 5;
         const int NO_PROGRESS_TIMEOUT_MS = 60_000;
         const int MAX_BACKOFF_MS = 30_000;
         const int PERSIST_THROTTLE_MS = 2_000;
-        const int BYTES_UI_THROTTLE_MS = 250;
+        
+        // Simple throttle: update UI at most every 250ms
+        const int UI_THROTTLE_MS = 250;
 
-        var reporter = updateService.GetReporter();
         var downloadManager = DownloadManagerService.Instance;
 
         // Clear any leftover details from previous attempts
-        reporter.Report(new UIUpdate(Progress: 0, Details: string.Empty));
+        downloadManager.UpdateDownloadDetailsText(productId, string.Empty);
 
         // Per-file progress tracking state
         int lastWholePercent = -1;
-        long lastReportTicks = 0;
+        long lastUIUpdateMs = 0;
         long lastProgressTicks = 0;
-        long lastBytesUiTicks = 0;
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        long startTicks = Environment.TickCount64;
 
         var config = new DownloadConfiguration
         {
@@ -42,19 +58,21 @@ public sealed class DownloadHelper
             // Pre-allocating multi-GB files can look like a hang due to long disk writes.
             ReserveStorageSpaceBeforeStartingDownload = false,
 
-            // Speed: enable parallel chunked download, but keep it conservative
-            // to avoid disk thrash/memory pressure on very large files.
-            ParallelDownload = true,
-            ChunkCount = 4,
-            ParallelCount = 2,
+            // CRITICAL for large files: Disable parallel chunking.
+            // With ParallelDownload=true, the library holds chunk data in memory before merging.
+            // For a 2GB file with 2 chunks, that's 2x1GB buffers causing severe memory pressure.
+            // Sequential download uses much less memory and avoids the merge step entirely.
+            ParallelDownload = false,
+            ChunkCount = 1,
+            ParallelCount = 1,
 
             Timeout = 30000,
 
-            // Larger buffer improves throughput and reduces event overhead on large transfers.
-            BufferBlockSize = 1024 * 1024,
+            // Smaller buffer reduces memory footprint per download.
+            // 64KB is a good balance between throughput and memory usage.
+            BufferBlockSize = 64 * 1024,
 
             MaximumBytesPerSecond = 0,
-            MinimumSizeOfChunking = 1024,
         };
 
         static string SanitizeFolderName(string? name)
@@ -84,7 +102,7 @@ public sealed class DownloadHelper
 
         var animator = new DownloadItemStatusAnimator(updateService.DispatcherQueue);
 
-        var appFolderName = SanitizeFolderName(downloadItem?.Title);
+        var appFolderName = SanitizeFolderName(downloadItem.Title);
         if (string.IsNullOrWhiteSpace(appFolderName))
             appFolderName = productId;
 
@@ -118,12 +136,12 @@ public sealed class DownloadHelper
 
         var mainUrl = entry.Url;
 
-        // Single continuous animation for the page status
+        // Single continuous animation for the page status (AppPage only)
         updateService.StartStatusAnimation(
             $"Downloading ({currentFileIndex}/{totalFiles}) {FilesLabel()}"
         );
 
-        // Animated dots in the Downloads list (same timer technique as UIUpdateService)
+        // Animated dots in the Downloads list
         animator.Start(
             downloadItem,
             $"Downloading ({currentFileIndex}/{totalFiles}) {FilesLabel()}"
@@ -177,21 +195,22 @@ public sealed class DownloadHelper
 
                 // Reset per-file progress tracking before starting each attempt
                 lastWholePercent = -1;
-                lastReportTicks = 0;
-                stopwatch.Restart();
+                lastUIUpdateMs = 0;
+                startTicks = Environment.TickCount64;
                 lastProgressTicks = 0;
 
-                reporter.Report(
-                    new UIUpdate(
-                        Progress: 0,
-                        Details: attempt == 1
-                            ? string.Empty
-                            : $"Retry {attempt}/{MAX_RETRIES_PER_FILE}"
-                    )
-                );
+                // Show retry status if not first attempt
+                if (attempt > 1)
+                {
+                    downloadManager.UpdateDownloadDetailsText(
+                        productId,
+                        $"Retry {attempt}/{MAX_RETRIES_PER_FILE}"
+                    );
+                }
 
                 // Create a fresh DownloadService for each attempt to avoid state leakage
                 using var svc = new DownloadService(config);
+
 
                 bool currentFileCancelled = false;
 
@@ -213,12 +232,14 @@ public sealed class DownloadHelper
                     {
                         try
                         {
-                            var elapsed = stopwatch.ElapsedMilliseconds;
+                            var now = Environment.TickCount64;
+                            var elapsed = now - startTicks;
                             var last = Interlocked.Read(ref lastProgressTicks);
                             if (elapsed - last >= NO_PROGRESS_TIMEOUT_MS)
                             {
-                                reporter.Report(
-                                    new UIUpdate(Details: "No progress detected. Restarting...")
+                                downloadManager.UpdateDownloadDetailsText(
+                                    productId,
+                                    "No progress detected. Restarting..."
                                 );
                                 attemptCts.Cancel();
                                 svc.CancelAsync();
@@ -246,62 +267,56 @@ public sealed class DownloadHelper
                     }
                 }
 
+                // Cache item reference
+                var cachedItem = downloadItem!;
+
                 svc.DownloadProgressChanged += (s, e) =>
                 {
-                    int whole = (int)e.ProgressPercentage;
-                    long now = stopwatch.ElapsedMilliseconds;
-
-                    // mark progress (bytes or percent)
-                    Interlocked.Exchange(ref lastProgressTicks, now);
-
-                    // Throttle byte/total updates; these can fire very frequently and spam the UI.
-                    if (now - lastBytesUiTicks >= BYTES_UI_THROTTLE_MS || whole == 100)
-                    {
-                        lastBytesUiTicks = now;
-                        try
-                        {
-                            downloadManager.UpdateDownloadBytes(
-                                productId,
-                                e.ReceivedBytesSize,
-                                e.TotalBytesToReceive
-                            );
-                        }
-                        catch
-                        {
-                            // ignore (UI-only enhancement)
-                        }
-                    }
-
-                    // Keep AppPage right-side details in sync (throttled)
-                    if (now - lastReportTicks >= THROTTLE_MS || whole == 100)
-                    {
-                        double receivedMB = e.ReceivedBytesSize / (1024.0 * 1024.0);
-                        double totalMB = e.TotalBytesToReceive / (1024.0 * 1024.0);
-
-                        reporter.Report(
-                            new UIUpdate(
-                                Progress: e.ProgressPercentage,
-                                Details: $"{whole}% • {receivedMB:F1} / {totalMB:F0} MB"
-                            )
-                        );
-                    }
-
-                    // Throttle progress updates to the downloads list/UI.
-                    // Updating on every percent (or more frequently) can saturate the UI thread.
-                    if (now - lastReportTicks < THROTTLE_MS && whole != 100)
+                    long tickNow = Environment.TickCount64;
+                    
+                    // Simple throttle: don't update more than every 250ms (except for 100%)
+                    int wholePercent = (int)Math.Clamp(e.ProgressPercentage, 0, 100);
+                    bool isComplete = wholePercent == 100;
+                    
+                    if (!isComplete && tickNow - Volatile.Read(ref lastUIUpdateMs) < UI_THROTTLE_MS)
                         return;
+                    
+                    // We remove the strict 'wholePercent == lastWholePercent' check here so that
+                    // we can update byte counts and text even if the percentage hasn't changed.
+                    // This ensures the UI doesn't look "stuck" on large files where % is slow to move.
+                    
+                    lastWholePercent = wholePercent;
+                    Volatile.Write(ref lastUIUpdateMs, tickNow);
+                    Interlocked.Exchange(ref lastProgressTicks, tickNow - startTicks);
 
-                    if (whole > lastWholePercent || whole == 100)
+                    var receivedText = FormatBytes(e.ReceivedBytesSize);
+                    var totalText = FormatBytes(e.TotalBytesToReceive);
+                    var detailsString = $"{wholePercent}% • {receivedText} / {totalText}";
+
+                    // Skip UI updates if nobody is watching (saves CPU when on other pages)
+                    // Still update backing fields so values are ready when user navigates back
+                    if (!downloadManager.IsAnyoneObserving)
                     {
-                        lastWholePercent = whole;
-                        lastReportTicks = now;
-
-                        downloadManager.UpdateDownloadProgress(productId, e.ProgressPercentage);
-
-                        // Persist occasionally so a crash doesn't lose too much progress,
-                        // without paying the cost on every update.
-                        PersistMilestoneIfDue(now);
+                        cachedItem.SetProgressSilent(wholePercent);
+                        cachedItem.ReceivedBytes = e.ReceivedBytesSize;
+                        cachedItem.TotalBytes = e.TotalBytesToReceive;
+                        cachedItem.SetDisplayDetailsTextSilent(detailsString);
+                        
+                        PersistMilestoneIfDue(tickNow - startTicks, force: isComplete);
+                        return;
                     }
+
+                    // Update on UI thread - only when someone is watching
+                    downloadManager.RunOnUIThread(() =>
+                    {
+                        cachedItem.Progress = wholePercent;
+                        cachedItem.ReceivedBytes = e.ReceivedBytesSize;
+                        cachedItem.TotalBytes = e.TotalBytesToReceive;
+                        cachedItem.DisplayDetailsText = detailsString;
+                    });
+
+                    // Persist occasionally
+                    PersistMilestoneIfDue(tickNow - startTicks, force: isComplete);
                 };
 
                 svc.DownloadFileCompleted += (s, e) =>
@@ -331,18 +346,18 @@ public sealed class DownloadHelper
                     if (attempt < MAX_RETRIES_PER_FILE)
                     {
                         var delayMs = GetRetryDelayMs(null, attempt, MAX_BACKOFF_MS);
-                        reporter.Report(
-                            new UIUpdate(
-                                Details: $"Restarting... retrying in {delayMs / 1000.0:F1}s..."
-                            )
+                        downloadManager.UpdateDownloadDetailsText(
+                            productId,
+                            $"Restarting... retrying in {delayMs / 1000.0:F1}s..."
                         );
                         await Task.Delay(delayMs, token).ConfigureAwait(false);
                         continue;
                     }
 
                     hadError = true;
-                    reporter.Report(
-                        new UIUpdate(Status: "Error: Download stalled and exhausted retries.")
+                    downloadManager.UpdateDownloadStatusText(
+                        productId,
+                        "Error: Download stalled and exhausted retries."
                     );
                     break;
                 }
@@ -354,31 +369,28 @@ public sealed class DownloadHelper
                 catch (WebException ex) when (attempt < MAX_RETRIES_PER_FILE)
                 {
                     var delayMs = GetRetryDelayMs(ex, attempt, MAX_BACKOFF_MS);
-                    reporter.Report(
-                        new UIUpdate(
-                            Details: $"Temporary network/server issue. Retrying in {delayMs / 1000.0:F1}s..."
-                        )
+                    downloadManager.UpdateDownloadDetailsText(
+                        productId,
+                        $"Temporary network/server issue. Retrying in {delayMs / 1000.0:F1}s..."
                     );
                     await Task.Delay(delayMs, token).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (attempt < MAX_RETRIES_PER_FILE)
                 {
                     var delayMs = GetRetryDelayMs(null, attempt, MAX_BACKOFF_MS);
-                    reporter.Report(
-                        new UIUpdate(
-                            Details: $"Error: {ex.Message}. Retrying in {delayMs / 1000.0:F1}s..."
-                        )
+                    downloadManager.UpdateDownloadDetailsText(
+                        productId,
+                        $"Error: {ex.Message}. Retrying in {delayMs / 1000.0:F1}s..."
                     );
                     await Task.Delay(delayMs, token).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
                     hadError = true;
-                    reporter.Report(
-                        new UIUpdate(
-                            Status: $"Error: {ex.Message}",
-                            Details: "Check network or disk space."
-                        )
+                    downloadManager.UpdateDownloadStatusText(productId, $"Error: {ex.Message}");
+                    downloadManager.UpdateDownloadDetailsText(
+                        productId,
+                        "Check network or disk space."
                     );
                     break;
                 }
@@ -390,7 +402,10 @@ public sealed class DownloadHelper
             if (!downloaded)
             {
                 hadError = true;
-                reporter.Report(new UIUpdate(Status: "Error: Download failed after retries."));
+                downloadManager.UpdateDownloadStatusText(
+                    productId,
+                    "Error: Download failed after retries."
+                );
                 break;
             }
         }
@@ -400,7 +415,7 @@ public sealed class DownloadHelper
         animator.Stop(downloadItem);
 
         // Clear details so next phase (install) starts clean
-        reporter.Report(new UIUpdate(Details: string.Empty));
+        downloadManager.UpdateDownloadDetailsText(productId, string.Empty);
 
         if (cancelled)
         {
@@ -423,7 +438,9 @@ public sealed class DownloadHelper
             return;
         }
 
-        reporter.Report(new UIUpdate(Progress: 100, Details: string.Empty));
+        // Mark download phase complete
+        downloadManager.UpdateDownloadProgress(productId, 100);
+        downloadManager.UpdateDownloadDetailsText(productId, string.Empty);
 
         // Persist the final download state.
         downloadManager.SaveDownloadsThrottled(force: true);
@@ -439,10 +456,10 @@ public sealed class DownloadHelper
         catch { }
         updateService.StartStatusAnimation("Installing");
 
-        // Animated dots in the Downloads list during install as well.
+        // Animated dots in the Downloads list during install
         animator.Start(downloadItem, "Installing");
 
-        var mainPackagePath = downloadItem?.DownloadedFilePaths.FirstOrDefault(p =>
+        var mainPackagePath = downloadItem.DownloadedFilePaths.FirstOrDefault(p =>
             !string.IsNullOrWhiteSpace(p)
             && string.Equals(
                 Path.GetFileName(p),
@@ -473,13 +490,26 @@ public sealed class DownloadHelper
 
         try
         {
+            // Throttle install progress updates similar to download progress
+            int lastInstallPercent = -1;
+            long lastInstallProgressMs = 0;
+            const int INSTALL_PROGRESS_THROTTLE_MS = 100;
+
             var installProgress = new Progress<AppPackageInstaller.InstallProgress>(p =>
             {
-                var percent = Math.Clamp(p.Percent, 0, 100);
-                downloadManager.UpdateDownloadProgress(productId, percent);
+                var percent = (int)Math.Clamp(p.Percent, 0, 100);
 
-                // Keep the Downloads list status simple during install.
-                downloadManager.UpdateDownloadStatusText(productId, "Installing");
+                // Throttle updates unless we hit 100%
+                var now = Environment.TickCount64;
+                if (percent != 100 && percent == lastInstallPercent)
+                    return;
+                if (percent != 100 && now - lastInstallProgressMs < INSTALL_PROGRESS_THROTTLE_MS)
+                    return;
+
+                lastInstallPercent = percent;
+                lastInstallProgressMs = now;
+
+                downloadManager.UpdateDownloadProgress(productId, percent);
             });
 
             await AppPackageInstaller.InstallAsync(
@@ -489,18 +519,21 @@ public sealed class DownloadHelper
                 cancellationToken: token
             );
 
+            animator.Stop(downloadItem);
             updateService.StopStatusAnimation();
             downloadManager.UpdateDownloadStatusText(productId, null);
             downloadManager.UpdateDownloadStatus(productId, test.Models.DownloadStatus.Completed);
         }
         catch (OperationCanceledException)
         {
+            animator.Stop(downloadItem);
             updateService.StopStatusAnimation();
             downloadManager.UpdateDownloadStatusText(productId, "Install canceled.");
             downloadManager.UpdateDownloadStatus(productId, test.Models.DownloadStatus.Cancelled);
         }
         catch (Exception ex)
         {
+            animator.Stop(downloadItem);
             updateService.StopStatusAnimation();
             downloadManager.UpdateDownloadStatusText(productId, $"Install failed: {ex.Message}");
             downloadManager.UpdateDownloadStatus(productId, test.Models.DownloadStatus.Failed);

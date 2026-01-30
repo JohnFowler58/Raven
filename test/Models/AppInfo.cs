@@ -228,14 +228,19 @@ public partial class AppInfo : INotifyPropertyChanged
         if (val.HasValue)
         {
             var sizeInBytes = val.Value;
-            if (sizeInBytes >= 1_000_000_000_000)
-                return (sizeInBytes / 1_000_000_000_000D).ToString("0.#") + " TB";
-            if (sizeInBytes >= 1_000_000_000)
-                return (sizeInBytes / 1_000_000_000D).ToString("0.#") + " GB";
-            if (sizeInBytes >= 1_000_000)
-                return (sizeInBytes / 1_000_000D).ToString("0.#") + " MB";
-            if (sizeInBytes >= 1_000)
-                return (sizeInBytes / 1_000D).ToString("0.#") + " KB";
+            const long KB = 1024L;
+            const long MB = KB * 1024L;
+            const long GB = MB * 1024L;
+            const long TB = GB * 1024L;
+
+            if (sizeInBytes >= TB)
+                return (sizeInBytes / (double)TB).ToString("0.#") + " TB";
+            if (sizeInBytes >= GB)
+                return (sizeInBytes / (double)GB).ToString("0.#") + " GB";
+            if (sizeInBytes >= MB)
+                return (sizeInBytes / (double)MB).ToString("0.#") + " MB";
+            if (sizeInBytes >= KB)
+                return (sizeInBytes / (double)KB).ToString("0.#") + " KB";
             return sizeInBytes + " B";
         }
         return null;

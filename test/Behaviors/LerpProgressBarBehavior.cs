@@ -37,6 +37,7 @@ public static class LerpProgressBarBehavior
         state = new State(bar);
         bar.SetValue(StateProperty, state);
 
+        // Clean up when unloaded - this is the key to stopping timers when page navigates away
         bar.Unloaded += (_, __) => state.Dispose();
         return state;
     }
@@ -46,57 +47,90 @@ public static class LerpProgressBarBehavior
         if (d is not ProgressBar bar)
             return;
 
+        // Skip if not loaded - no point animating invisible elements
+        if (!bar.IsLoaded)
+            return;
+
         var state = GetOrCreateState(bar);
-        state.Target = (double)e.NewValue;
-        state.EnsureStarted();
+        state.SetTarget((double)e.NewValue);
     }
 
     private sealed class State : IDisposable
     {
         private readonly ProgressBar _bar;
         private DispatcherQueueTimer? _timer;
+        private Windows.Foundation.TypedEventHandler<DispatcherQueueTimer, object>? _tickHandler;
         private double _displayed;
+        private double _target;
         private long _lastTickMs;
-
-        public double Target { get; set; }
 
         public State(ProgressBar bar)
         {
             _bar = bar;
             _displayed = bar.Value;
-            Target = bar.Value;
+            _target = bar.Value;
         }
 
-        public void EnsureStarted()
+        public void SetTarget(double value)
+        {
+            _target = value;
+            
+            // If very close to target, snap directly without animation
+            if (Math.Abs(_target - _displayed) < 0.5)
+            {
+                _displayed = _target;
+                _bar.Value = _displayed;
+                return;
+            }
+
+            // Start timer if needed
+            EnsureStarted();
+        }
+
+        private void EnsureStarted()
         {
             if (_timer != null)
                 return;
 
             _lastTickMs = Environment.TickCount64;
-            _timer = DispatcherQueue.GetForCurrentThread().CreateTimer();
-            _timer.Interval = TimeSpan.FromMilliseconds(16);
-            _timer.Tick += (_, __) => Tick();
+            
+            var dispatcher = DispatcherQueue.GetForCurrentThread();
+            if (dispatcher == null)
+                return;
+                
+            _timer = dispatcher.CreateTimer();
+            _timer.Interval = TimeSpan.FromMilliseconds(33); // ~30fps
+            _tickHandler = (_, __) => Tick();
+            _timer.Tick += _tickHandler;
             _timer.Start();
         }
 
         private void Tick()
         {
+            // Safety check - stop if bar was unloaded
+            if (!_bar.IsLoaded)
+            {
+                DisposeTimer();
+                return;
+            }
+            
             var now = Environment.TickCount64;
             var dt = Math.Clamp((now - _lastTickMs) / 1000.0, 0, 0.1);
             _lastTickMs = now;
 
-            const double speed = 12.0;
+            const double speed = 15.0;
             var alpha = 1.0 - Math.Exp(-speed * dt);
 
-            _displayed = _displayed + ((Target - _displayed) * alpha);
+            _displayed += (_target - _displayed) * alpha;
 
-            if (Math.Abs(Target - _displayed) < 0.05)
-                _displayed = Target;
+            // Snap when close
+            if (Math.Abs(_target - _displayed) < 0.1)
+                _displayed = _target;
 
             _bar.Value = _displayed;
 
-            // Stop after settling to reduce UI work.
-            if (Math.Abs(Target - _displayed) < 0.001)
+            // Stop when settled
+            if (Math.Abs(_target - _displayed) < 0.001)
             {
                 DisposeTimer();
             }
@@ -104,10 +138,15 @@ public static class LerpProgressBarBehavior
 
         private void DisposeTimer()
         {
-            if (_timer is null)
+            if (_timer == null)
                 return;
 
             _timer.Stop();
+            if (_tickHandler != null)
+            {
+                _timer.Tick -= _tickHandler;
+                _tickHandler = null;
+            }
             _timer = null;
         }
 

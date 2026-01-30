@@ -4,6 +4,9 @@ using test.Models;
 
 namespace test.Helpers;
 
+/// <summary>
+/// Animates the status text (e.g., "Downloading...") for download items.
+/// </summary>
 public sealed class DownloadItemStatusAnimator
 {
     private readonly DispatcherQueue _dispatcher;
@@ -12,12 +15,14 @@ public sealed class DownloadItemStatusAnimator
     private readonly ConcurrentDictionary<string, int> _dots = new();
     private readonly ConcurrentDictionary<string, string> _baseText = new();
 
+    private const int INTERVAL_MS = 500;
+
     public DownloadItemStatusAnimator(DispatcherQueue dispatcher)
     {
         _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
     }
 
-    public void Start(DownloadItem item, string baseText, int intervalMs = 500)
+    public void Start(DownloadItem item, string baseText, int intervalMs = INTERVAL_MS)
     {
         if (item is null) throw new ArgumentNullException(nameof(item));
 
@@ -31,13 +36,10 @@ public sealed class DownloadItemStatusAnimator
                 var t = _dispatcher.CreateTimer();
                 t.Interval = TimeSpan.FromMilliseconds(intervalMs);
                 t.Tick += (_, __) => Tick(item);
-                t.Start();
                 return t;
             });
 
-            // Ensure timer interval is current
-            timer.Interval = TimeSpan.FromMilliseconds(intervalMs);
-
+            timer.Start();
             UpdateItem(item);
         }
 
@@ -51,24 +53,21 @@ public sealed class DownloadItemStatusAnimator
 
         void UpdateCore()
         {
-            if (!_timers.ContainsKey(item.ProductId))
-            {
-                // If not animating, just set stable text.
-                item.StatusTextOverride = baseText;
-                return;
-            }
-
             _baseText[item.ProductId] = baseText;
-            UpdateItem(item);
+            
+            if (_timers.ContainsKey(item.ProductId))
+            {
+                UpdateItem(item);
+            }
         }
 
         if (_dispatcher.HasThreadAccess) UpdateCore();
         else _dispatcher.TryEnqueue(UpdateCore);
     }
 
-    public void Stop(DownloadItem item)
+    public void Stop(DownloadItem? item)
     {
-        if (item is null) throw new ArgumentNullException(nameof(item));
+        if (item is null) return;
 
         void StopCore()
         {
@@ -100,7 +99,6 @@ public sealed class DownloadItemStatusAnimator
         var baseText = _baseText.TryGetValue(item.ProductId, out var b) ? b : "";
         var dots = _dots.TryGetValue(item.ProductId, out var d) ? d : 0;
 
-        // Keep total string width stable to avoid layout shimmer.
         var tail = dots switch
         {
             1 => ".  ",

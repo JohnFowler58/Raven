@@ -5,7 +5,6 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:models="using:test.Models"
-  xmlns:behaviors="using:test.Behaviors"
   mc:Ignorable="d"
 >
   <Page.Resources>
@@ -129,11 +128,9 @@
                         HorizontalAlignment="Right"
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                         Style="{ThemeResource CaptionTextBlockStyle}"
+                        Text="{Binding DisplayDetailsText, Mode=OneWay}"
                         Visibility="{Binding Status, Converter={StaticResource DownloadDetailsStatusToVisibilityConverter}, Mode=OneWay}"
-                      >
-                        <Run Text="{Binding Progress, Mode=OneWay, Converter={StaticResource ProgressToPercentTextConverter}}" />
-                        <Run Text="{Binding ProgressDetailsText, Mode=OneWay}" />
-                      </TextBlock>
+                      />
                       <!--  Installing: show only percent  -->
                       <TextBlock
                         Grid.Column="1"
@@ -147,7 +144,7 @@
                     </Grid>
                     <ProgressBar
                       Maximum="100"
-                      behaviors:LerpProgressBarBehavior.TargetValue="{Binding Progress, Mode=OneWay}"
+                      Value="{Binding Progress, Mode=OneWay}"
                     />
                   </StackPanel>
                 </Grid>

@@ -20,6 +20,7 @@
             <helper:CompletedStatusToVisibilityConverter x:Key="CompletedStatusToVisibilityConverter" />
             <helper:NotDownloadingStatusToVisibilityConverter x:Key="NotDownloadingStatusToVisibilityConverter" />
             <helper:InstallingStatusToVisibilityConverter x:Key="InstallingStatusToVisibilityConverter" />
+            <helper:DownloadStatusToTextConverter x:Key="DownloadStatusToTextConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

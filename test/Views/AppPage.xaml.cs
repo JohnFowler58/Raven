@@ -22,14 +22,6 @@ public sealed partial class AppPage : Page
     private StoreEdgeFDProduct? _currentProductInfo;
     private DownloadItem? _activeDownloadItem;
 
-    private DispatcherQueueTimer? _progressLerpTimer;
-    private double _progressTarget;
-    private double _progressDisplayed;
-    private long _lastLerpTickMs;
-
-    // Keep a stable delegate so we can unsubscribe correctly.
-    private Windows.Foundation.TypedEventHandler<DispatcherQueueTimer, object>? _progressLerpTick;
-
     private static readonly string[] InstallableExtensions =
     [
         ".msix",
@@ -44,6 +36,7 @@ public sealed partial class AppPage : Page
         InitializeComponent();
         UpdateService = new UIUpdateService(this.DispatcherQueue);
     }
+
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
@@ -156,28 +149,19 @@ public sealed partial class AppPage : Page
 
     private void BindToDownloadItem(DownloadItem item)
     {
-        // Set initial values
-        _progressDisplayed = item.Progress;
-        _progressTarget = item.Progress;
-        ProgressBar.Value = _progressDisplayed;
-        StatusText.Text = item.StatusText;
+        // Mark that we're observing downloads
+        DownloadManagerService.Instance.BeginObserving();
 
-        EnsureProgressLerpTimer();
-
-        // Keep UpdateService in sync so XAML-bound right-side details/progress show correctly.
+        // Set initial values directly - same approach as Downloads page
         UpdateService.SetProgress(item.Progress);
+        StatusText.Text = item.StatusText;
+        DetailsText.Text = item.DisplayDetailsText;
 
-        // During install, show only percent on the right; during download show percent+size (when available).
-        var details = item.Status switch
-        {
-            DownloadStatus.Downloading => $"{(int)Math.Round(item.Progress)}%{item.ProgressDetailsText}",
-            DownloadStatus.Installing => $"{(int)Math.Round(item.Progress)}%",
-            _ => string.Empty,
-        };
-        UpdateService.SetDetails(details);
-
-        // Subscribe to property changes
+        // Subscribe to property changes for download item
         item.PropertyChanged += OnDownloadItemPropertyChanged;
+
+        // Subscribe to UIUpdateService for status animation
+        UpdateService.PropertyChanged += OnUpdateServicePropertyChanged;
     }
 
     private void UnbindFromDownloadItem()
@@ -186,64 +170,25 @@ public sealed partial class AppPage : Page
         {
             _activeDownloadItem.PropertyChanged -= OnDownloadItemPropertyChanged;
             _activeDownloadItem = null;
+            
+            // Stop observing
+            DownloadManagerService.Instance.EndObserving();
         }
 
-        StopProgressLerpTimer();
+        // Unsubscribe from UIUpdateService
+        UpdateService.PropertyChanged -= OnUpdateServicePropertyChanged;
     }
 
-    private void EnsureProgressLerpTimer()
+    private void OnUpdateServicePropertyChanged(
+        object? sender,
+        System.ComponentModel.PropertyChangedEventArgs e
+    )
     {
-        if (_progressLerpTimer != null)
-            return;
-
-        _lastLerpTickMs = Environment.TickCount64;
-
-        _progressLerpTimer = DispatcherQueue.CreateTimer();
-        _progressLerpTimer.Interval = TimeSpan.FromMilliseconds(16); // ~60fps
-
-        _progressLerpTick = (_, __) =>
+        if (e.PropertyName == nameof(UIUpdateService.StatusText))
         {
-            var now = Environment.TickCount64;
-            var dt = Math.Clamp((now - _lastLerpTickMs) / 1000.0, 0, 0.1);
-            _lastLerpTickMs = now;
-
-            // Ease towards target. Higher speed => snappier.
-            const double speed = 12.0;
-            var alpha = 1.0 - Math.Exp(-speed * dt);
-
-            _progressDisplayed = _progressDisplayed + ((_progressTarget - _progressDisplayed) * alpha);
-
-            // Snap when very close to avoid endless tiny updates.
-            if (Math.Abs(_progressTarget - _progressDisplayed) < 0.05)
-                _progressDisplayed = _progressTarget;
-
-            ProgressBar.Value = _progressDisplayed;
-
-            // Stop ticking when settled and no active download.
-            if (_activeDownloadItem == null && Math.Abs(_progressTarget - _progressDisplayed) < 0.001)
-            {
-                StopProgressLerpTimer();
-            }
-        };
-
-        _progressLerpTimer.Tick += _progressLerpTick;
-        _progressLerpTimer.Start();
-    }
-
-    private void StopProgressLerpTimer()
-    {
-        if (_progressLerpTimer is null)
-            return;
-
-        _progressLerpTimer.Stop();
-
-        if (_progressLerpTick is not null)
-        {
-            _progressLerpTimer.Tick -= _progressLerpTick;
-            _progressLerpTick = null;
+            // Update the StatusText TextBlock when UIUpdateService.StatusText changes (for animation)
+            StatusText.Text = UpdateService.StatusText;
         }
-
-        _progressLerpTimer = null;
     }
 
     private void OnDownloadItemPropertyChanged(
@@ -254,76 +199,71 @@ public sealed partial class AppPage : Page
         if (sender is not DownloadItem item)
             return;
 
-        DispatcherQueue.TryEnqueue(() =>
+        // Ensure we're on UI thread
+        var dispatcherQueue = DispatcherQueue;
+        if (dispatcherQueue == null || dispatcherQueue.HasThreadAccess)
         {
-            switch (e.PropertyName)
-            {
-                case nameof(DownloadItem.Progress):
-                    // Set target; timer does smooth display.
-                    _progressTarget = item.Progress;
-                    EnsureProgressLerpTimer();
+            HandleDownloadItemPropertyChange(item, e.PropertyName);
+            return;
+        }
 
-                    UpdateService.SetProgress(item.Progress);
+        dispatcherQueue.TryEnqueue(() => HandleDownloadItemPropertyChange(item, e.PropertyName));
+    }
 
-                    // Keep details string in sync with progress
-                    UpdateService.SetDetails(item.Status switch
-                    {
-                        DownloadStatus.Downloading => $"{(int)Math.Round(item.Progress)}%{item.ProgressDetailsText}",
-                        DownloadStatus.Installing => $"{(int)Math.Round(item.Progress)}%",
-                        _ => string.Empty,
-                    });
-                    break;
+    private void HandleDownloadItemPropertyChange(DownloadItem item, string? propertyName)
+    {
+        switch (propertyName)
+        {
+            case nameof(DownloadItem.Progress):
+                // Keep progress in sync with the bound UpdateService.
+                UpdateService.SetProgress(item.Progress);
+                break;
 
-                case nameof(DownloadItem.ProgressDetailsText):
-                    // Bytes changed: update right-side details for download phase.
-                    if (item.Status == DownloadStatus.Downloading)
-                    {
-                        UpdateService.SetDetails($"{(int)Math.Round(item.Progress)}%{item.ProgressDetailsText}");
-                    }
-                    break;
+            case nameof(DownloadItem.DisplayDetailsText):
+                DetailsText.Text = item.DisplayDetailsText;
+                break;
 
-                case nameof(DownloadItem.StatusText):
-                    // Only update StatusText if the animation is NOT running.
-                    // While animation runs, UIUpdateService controls the status line.
-                    if (!UpdateService.IsStatusAnimationRunning)
-                    {
-                        StatusText.Text = item.StatusText;
-                    }
-                    break;
+            case nameof(DownloadItem.StatusText):
+                // Only update StatusText if the animation is NOT running.
+                if (!UpdateService.IsStatusAnimationRunning)
+                {
+                    StatusText.Text = item.StatusText;
+                }
+                break;
 
-                case nameof(DownloadItem.Status):
-                    // Clear details when switching phases; DownloadHelper will drive AppPage details during active ops.
-                    if (item.Status == DownloadStatus.Installing)
-                    {
-                        UpdateService.SetDetails($"{(int)Math.Round(item.Progress)}%");
-                    }
-                    else if (item.Status != DownloadStatus.Downloading)
-                    {
-                        UpdateService.SetDetails(string.Empty);
-                    }
+            case nameof(DownloadItem.Status):
+                // Clear details when switching phases
+                if (item.Status == DownloadStatus.Installing)
+                {
+                    DetailsText.Text = $"{(int)Math.Round(item.Progress)}%";
+                }
+                else if (item.Status != DownloadStatus.Downloading)
+                {
+                    DetailsText.Text = string.Empty;
+                }
 
-                    if (item.Status == DownloadStatus.Completed)
-                    {
-                        UnbindFromDownloadItem();
-                        SetInstallButtonState(
-                            content: "Installed",
-                            enabled: false,
-                            showProgress: false
-                        );
-                    }
-                    else if (item.Status is DownloadStatus.Cancelled or DownloadStatus.Failed)
-                    {
-                        UnbindFromDownloadItem();
-                        SetInstallButtonState(content: "Retry", enabled: true, showProgress: false);
-                    }
-                    break;
-            }
-        });
+                if (item.Status == DownloadStatus.Completed)
+                {
+                    UnbindFromDownloadItem();
+                    SetInstallButtonState(
+                        content: "Installed",
+                        enabled: false,
+                        showProgress: false
+                    );
+                }
+                else if (item.Status is DownloadStatus.Cancelled or DownloadStatus.Failed)
+                {
+                    UnbindFromDownloadItem();
+                    SetInstallButtonState(content: "Retry", enabled: true, showProgress: false);
+                }
+                break;
+        }
     }
 
     protected override void OnNavigatedFrom(NavigationEventArgs e)
     {
         base.OnNavigatedFrom(e);
+        UpdateService.StopStatusAnimation();
         UnbindFromDownloadItem();
     }
 
@@ -430,7 +370,10 @@ public sealed partial class AppPage : Page
 
             // If cancellation was requested from the Downloads page before we got here,
             // stop early.
-            if (downloadManager.IsCancellationRequested(productId) || _cts.Token.IsCancellationRequested)
+            if (
+                downloadManager.IsCancellationRequested(productId)
+                || _cts.Token.IsCancellationRequested
+            )
             {
                 HandleDownloadError(productId, "Operation canceled.", DownloadStatus.Cancelled);
                 return;
@@ -447,7 +390,9 @@ public sealed partial class AppPage : Page
             downloadManager.UpdateDownloadStatusText(productId, "Fetching download URLs");
 
             // Smooth dots animation in Downloads list during fetch.
-            var fetchAnimator = new test.Helpers.DownloadItemStatusAnimator(UpdateService.DispatcherQueue);
+            var fetchAnimator = new test.Helpers.DownloadItemStatusAnimator(
+                UpdateService.DispatcherQueue
+            );
             if (downloadItem != null)
             {
                 fetchAnimator.Start(downloadItem, "Fetching download URLs");
@@ -471,7 +416,10 @@ public sealed partial class AppPage : Page
             }
 
             // If cancelled during fetch without throwing (e.g. external cancellation request)
-            if (downloadManager.IsCancellationRequested(productId) || _cts.Token.IsCancellationRequested)
+            if (
+                downloadManager.IsCancellationRequested(productId)
+                || _cts.Token.IsCancellationRequested
+            )
             {
                 UpdateService.StopStatusAnimation();
                 if (downloadItem != null)
@@ -510,86 +458,22 @@ public sealed partial class AppPage : Page
 
             downloadManager.UnregisterCancellationToken(productId);
 
-            if (downloadManager.IsCancellationRequested(productId) || _cts.Token.IsCancellationRequested)
+            StopButton.IsEnabled = false;
+
+            var currentItem = downloadManager.GetDownload(productId);
+            if (downloadManager.IsDownloaded(productId) || currentItem?.Status == DownloadStatus.Completed)
+            {
+                UnbindFromDownloadItem();
+                SetInstallButtonState(content: "Installed", enabled: false, showProgress: false);
+                return;
+            }
+
+            if (currentItem?.Status is DownloadStatus.Cancelled or DownloadStatus.Failed)
             {
                 UnbindFromDownloadItem();
                 SetInstallButtonState(content: "Retry", enabled: true, showProgress: false);
                 return;
             }
-
-            var downloadedPaths = downloadManager.GetDownload(productId)?.DownloadedFilePaths ?? [];
-            var mainPackage = PickMainPackage(downloadedPaths);
-            var dependencyPackages = downloadedPaths
-                .Where(p => !string.Equals(p, mainPackage, StringComparison.OrdinalIgnoreCase))
-                .Where(IsInstallablePackage)
-                .ToList();
-
-            if (string.IsNullOrWhiteSpace(mainPackage))
-            {
-                downloadManager.UpdateDownloadStatus(productId, DownloadStatus.Failed);
-                UnbindFromDownloadItem();
-                SetInstallButtonState(content: "Retry", enabled: true, showProgress: false);
-                await ShowErrorDialogAsync(
-                    "Installation failed",
-                    "No installable package was found in the downloaded files."
-                );
-                return;
-            }
-
-            // Start installing - fresh animation with no leftover status
-            UpdateService.StopStatusAnimation();
-            UpdateService.StartStatusAnimation("Installing");
-
-            var progress = new Progress<AppPackageInstaller.InstallProgress>(p =>
-            {
-                ProgressBar.Value = Math.Clamp(p.Percent, 0, 100);
-            });
-
-            try
-            {
-                await AppPackageInstaller.InstallAsync(
-                    mainPackage,
-                    dependencyPackages,
-                    progress,
-                    _cts.Token
-                );
-            }
-            catch (OperationCanceledException)
-            {
-                UpdateService.StopStatusAnimation();
-                HandleDownloadError(productId, "Operation canceled.", DownloadStatus.Cancelled);
-                return;
-            }
-            catch (COMException cex)
-            {
-                UpdateService.StopStatusAnimation();
-                HandleDownloadError(productId, "Failed to install.", DownloadStatus.Failed);
-                await InstallHelper.ShowInstallationErrorDialogAsync(
-                    this.Content.XamlRoot,
-                    "Installation failed",
-                    cex
-                );
-                return;
-            }
-            catch (UnauthorizedAccessException ua)
-            {
-                UpdateService.StopStatusAnimation();
-                HandleDownloadError(productId, "Failed to install.", DownloadStatus.Failed);
-                await InstallHelper.ShowInstallationErrorDialogAsync(
-                    this.Content.XamlRoot,
-                    "Installation failed",
-                    ua
-                );
-                return;
-            }
-
-            UpdateService.StopStatusAnimation();
-
-            // Only mark as completed/installed after installation succeeds.
-            downloadManager.UpdateDownloadStatus(productId, DownloadStatus.Completed);
-
-            UnbindFromDownloadItem();
-            SetInstallButtonState(content: "Installed", enabled: false, showProgress: false);
         }
         catch (OperationCanceledException)
         {

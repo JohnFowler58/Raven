@@ -131,7 +131,6 @@
                 Grid.Column="0"
                 HorizontalAlignment="Left"
                 Style="{ThemeResource CaptionTextBlockStyle}"
-                Text="{x:Bind UpdateService.StatusText, Mode=OneWay}"
               />
               <TextBlock
                 x:Name="DetailsText"
@@ -139,7 +138,6 @@
                 HorizontalAlignment="Right"
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                 Style="{ThemeResource CaptionTextBlockStyle}"
-                Text="{x:Bind UpdateService.DetailsText, Mode=OneWay}"
               />
             </Grid>
             <ProgressBar

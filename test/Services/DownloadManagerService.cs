@@ -26,13 +26,15 @@ public class DownloadManagerService
     // Track cancellation requests even when CTS isn't registered yet.
     private readonly ConcurrentDictionary<string, bool> _cancellationRequested = new();
 
+    // Simple observer count - when > 0, someone is viewing downloads (DownloadsPage or AppPage)
+    private int _observerCount = 0;
+
     public ObservableCollection<DownloadItem> Downloads { get; } = [];
     public HashSet<string> DownloadedProductIds { get; private set; } = [];
 
     private DownloadManagerService()
     {
         _downloadDataPath = Path.Combine(AppContext.BaseDirectory, "downloads.json");
-
         LoadDownloads();
     }
 
@@ -45,7 +47,34 @@ public class DownloadManagerService
         _dispatcherQueue = dispatcherQueue;
     }
 
-    private void RunOnUIThread(Action action)
+    public bool HasDispatcherQueue => _dispatcherQueue is not null;
+
+    /// <summary>
+    /// Call when a page starts displaying download progress (DownloadsPage or AppPage).
+    /// </summary>
+    public void BeginObserving() => Interlocked.Increment(ref _observerCount);
+
+    /// <summary>
+    /// Call when a page stops displaying download progress.
+    /// </summary>
+    public void EndObserving()
+    {
+        var count = Interlocked.Decrement(ref _observerCount);
+        if (count < 0)
+        {
+            Interlocked.Exchange(ref _observerCount, 0);
+        }
+    }
+
+    /// <summary>
+    /// Returns true if any page is currently displaying download progress.
+    /// </summary>
+    public bool IsAnyoneObserving => Volatile.Read(ref _observerCount) > 0;
+
+    /// <summary>
+    /// Run an action on the UI thread immediately.
+    /// </summary>
+    public void RunOnUIThread(Action action)
     {
         if (_dispatcherQueue == null || _dispatcherQueue.HasThreadAccess)
         {
@@ -109,6 +138,12 @@ public class DownloadManagerService
 
     public void CancelDownload(string productId)
     {
+        var item = GetDownload(productId);
+        if (item?.Status == DownloadStatus.Completed)
+        {
+            return;
+        }
+
         // Always remember the request so phases that haven't registered CTS yet
         // (URL fetch, install) still get cancelled.
         _cancellationRequested[productId] = true;
@@ -153,13 +188,20 @@ public class DownloadManagerService
         }
     }
 
+
     public void UpdateDownloadProgress(string productId, double progress)
     {
         var item = GetDownload(productId);
-        if (item != null)
+        if (item == null)
+            return;
+
+        if (IsAnyoneObserving)
         {
-            // Update on UI thread to ensure PropertyChanged works correctly
             RunOnUIThread(() => item.Progress = progress);
+        }
+        else
+        {
+            item.SetProgressSilent(progress);
         }
     }
 
@@ -168,13 +210,22 @@ public class DownloadManagerService
         var item = GetDownload(productId);
         if (item != null)
         {
-            RunOnUIThread(() =>
+            if (IsAnyoneObserving)
+            {
+                RunOnUIThread(() =>
+                {
+                    item.ReceivedBytes = receivedBytes;
+                    item.TotalBytes = totalBytes;
+                });
+            }
+            else
             {
                 item.ReceivedBytes = receivedBytes;
                 item.TotalBytes = totalBytes;
-            });
+            }
         }
     }
+
 
     public void AddDownloadedFilePath(string productId, string filePath)
     {
@@ -193,7 +244,30 @@ public class DownloadManagerService
         var item = GetDownload(productId);
         if (item != null)
         {
-            RunOnUIThread(() => item.StatusTextOverride = statusTextOverride);
+            if (IsAnyoneObserving)
+            {
+                RunOnUIThread(() => item.StatusTextOverride = statusTextOverride);
+            }
+            else
+            {
+                item.StatusTextOverride = statusTextOverride;
+            }
+        }
+    }
+
+    public void UpdateDownloadDetailsText(string productId, string detailsText)
+    {
+        var item = GetDownload(productId);
+        if (item == null)
+            return;
+
+        if (IsAnyoneObserving)
+        {
+            RunOnUIThread(() => item.DisplayDetailsText = detailsText);
+        }
+        else
+        {
+            item.SetDisplayDetailsTextSilent(detailsText);
         }
     }
 
@@ -202,14 +276,20 @@ public class DownloadManagerService
         var item = GetDownload(productId);
         if (item != null)
         {
-            // Update on UI thread
-            RunOnUIThread(() =>
+            void ApplyStatus()
             {
                 item.Status = status;
                 if (status == DownloadStatus.Completed)
                 {
                     item.CompletedAt = DateTime.Now;
-                    item.Progress = 100;
+                    if (IsAnyoneObserving)
+                    {
+                        item.Progress = 100;
+                    }
+                    else
+                    {
+                        item.SetProgressSilent(100);
+                    }
                     item.StatusTextOverride = null;
                     lock (_lock)
                     {
@@ -220,7 +300,16 @@ public class DownloadManagerService
                 {
                     item.StatusTextOverride = null;
                 }
-            });
+            }
+
+            if (IsAnyoneObserving)
+            {
+                RunOnUIThread(ApplyStatus);
+            }
+            else
+            {
+                ApplyStatus();
+            }
             SaveDownloads();
         }
     }
@@ -308,7 +397,11 @@ public class DownloadManagerService
             }
             finally
             {
-                try { File.Delete(tmpPath); } catch { }
+                try
+                {
+                    File.Delete(tmpPath);
+                }
+                catch { }
             }
         }
         catch (Exception ex)
@@ -358,12 +451,14 @@ public class DownloadManagerService
             _savePending = false;
 
             // Queue behind previous save; never run concurrently.
-            _saveTask = _saveTask.ContinueWith(
-                _ => SaveDownloadsAsync(),
-                CancellationToken.None,
-                TaskContinuationOptions.None,
-                TaskScheduler.Default
-            ).Unwrap();
+            _saveTask = _saveTask
+                .ContinueWith(
+                    _ => SaveDownloadsAsync(),
+                    CancellationToken.None,
+                    TaskContinuationOptions.None,
+                    TaskScheduler.Default
+                )
+                .Unwrap();
         }
     }
 
@@ -378,7 +473,11 @@ public class DownloadManagerService
         if (item != null)
         {
             // Cancel if still downloading
-            if (item.Status == DownloadStatus.Downloading || item.Status == DownloadStatus.Pending)
+            if (
+                item.Status == DownloadStatus.Downloading
+                || item.Status == DownloadStatus.Pending
+                || item.Status == DownloadStatus.Installing
+            )
             {
                 CancelDownload(productId);
             }

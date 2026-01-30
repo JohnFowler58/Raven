@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Navigation;
 using test.Contracts.Services;
 using test.Models;
 using test.Services;
@@ -18,6 +19,18 @@ public sealed partial class DownloadsPage : Page
         ViewModel = App.GetService<DownloadsViewModel>();
         _navigationService = App.GetService<INavigationService>();
         InitializeComponent();
+    }
+
+    protected override void OnNavigatedTo(NavigationEventArgs e)
+    {
+        base.OnNavigatedTo(e);
+        DownloadManagerService.Instance.BeginObserving();
+    }
+
+    protected override void OnNavigatedFrom(NavigationEventArgs e)
+    {
+        base.OnNavigatedFrom(e);
+        DownloadManagerService.Instance.EndObserving();
     }
 
     private void DownloadsList_ItemClick(object sender, ItemClickEventArgs e)
