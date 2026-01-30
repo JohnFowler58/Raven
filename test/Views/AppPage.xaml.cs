@@ -9,6 +9,7 @@ using test.Helpers;
 using test.Models;
 using test.Services;
 using test.ViewModels;
+using Windows.Management.Deployment;
 
 namespace test.Views;
 
@@ -36,7 +37,6 @@ public sealed partial class AppPage : Page
         InitializeComponent();
         UpdateService = new UIUpdateService(this.DispatcherQueue);
     }
-
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
@@ -76,7 +76,6 @@ public sealed partial class AppPage : Page
             productInfo.RatingCount,
             productInfo.Size
         );
-
         SetLoading(false);
         UpdateInstallButtonState();
     }
@@ -124,10 +123,11 @@ public sealed partial class AppPage : Page
             return;
 
         var productId = _currentProductInfo.ProductId;
+        var isInstalled = IsPackageInstalled(_currentProductInfo.PackageFamilyName);
         var downloadManager = DownloadManagerService.Instance;
         var downloadItem = downloadManager.GetDownload(productId);
 
-        if (downloadManager.IsDownloaded(productId))
+        if (isInstalled || downloadManager.IsDownloaded(productId))
         {
             SetInstallButtonState(content: "Installed", enabled: false, showProgress: false);
         }
@@ -170,7 +170,7 @@ public sealed partial class AppPage : Page
         {
             _activeDownloadItem.PropertyChanged -= OnDownloadItemPropertyChanged;
             _activeDownloadItem = null;
-            
+
             // Stop observing
             DownloadManagerService.Instance.EndObserving();
         }
@@ -254,9 +254,30 @@ public sealed partial class AppPage : Page
                 else if (item.Status is DownloadStatus.Cancelled or DownloadStatus.Failed)
                 {
                     UnbindFromDownloadItem();
-                    SetInstallButtonState(content: "Retry", enabled: true, showProgress: false);
+                    var isInstalled = IsPackageInstalled(_currentProductInfo?.PackageFamilyName);
+                    SetInstallButtonState(
+                        content: isInstalled ? "Installed" : "Retry",
+                        enabled: !isInstalled,
+                        showProgress: false
+                    );
                 }
                 break;
+        }
+    }
+
+    private static bool IsPackageInstalled(string? packageFamilyName)
+    {
+        if (string.IsNullOrWhiteSpace(packageFamilyName))
+            return false;
+
+        try
+        {
+            var packageManager = new PackageManager();
+            return packageManager.FindPackagesForUser(string.Empty, packageFamilyName).Any();
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -461,7 +482,10 @@ public sealed partial class AppPage : Page
             StopButton.IsEnabled = false;
 
             var currentItem = downloadManager.GetDownload(productId);
-            if (downloadManager.IsDownloaded(productId) || currentItem?.Status == DownloadStatus.Completed)
+            if (
+                downloadManager.IsDownloaded(productId)
+                || currentItem?.Status == DownloadStatus.Completed
+            )
             {
                 UnbindFromDownloadItem();
                 SetInstallButtonState(content: "Installed", enabled: false, showProgress: false);
