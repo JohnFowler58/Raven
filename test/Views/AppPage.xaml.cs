@@ -21,6 +21,12 @@ public sealed partial class AppPage : Page
     private StoreEdgeFDProduct? _currentProductInfo;
     private DownloadItem? _activeDownloadItem;
 
+    private static readonly string[] UnpackagedExtensions =
+    [
+        ".exe",
+        ".msi",
+    ];
+
     private static readonly string[] InstallableExtensions =
     [
         ".msix",
@@ -132,7 +138,8 @@ public sealed partial class AppPage : Page
             return;
 
         var productId = _currentProductInfo.ProductId;
-        var isInstalled = IsPackageInstalled(_currentProductInfo.PackageFamilyName);
+        var isUnpackaged = _currentProductInfo.InstallerType == InstallerType.Unpackaged;
+        var isInstalled = !isUnpackaged && IsPackageInstalled(_currentProductInfo.PackageFamilyName);
         var downloadManager = DownloadManagerService.Instance;
         var downloadItem = downloadManager.GetDownload(productId);
         var isUpdateAvailable = IsUpdateAvailable(downloadItem);
@@ -490,12 +497,30 @@ public sealed partial class AppPage : Page
             .FirstOrDefault();
     }
 
+    private static string? PickUnpackagedInstaller(IEnumerable<string> paths)
+    {
+        var existing = paths
+            .Where(p =>
+                !string.IsNullOrWhiteSpace(p)
+                && File.Exists(p)
+                && UnpackagedExtensions.Any(e => p.EndsWith(e, StringComparison.OrdinalIgnoreCase))
+            )
+            .ToList();
+
+        return existing
+            .OrderByDescending(p => p.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(p => p.EndsWith(".msi", StringComparison.OrdinalIgnoreCase))
+            .FirstOrDefault();
+    }
+
     private async void InstallButton_Click(object sender, RoutedEventArgs e)
     {
         if (_currentProductInfo == null)
             return;
 
         var productId = _currentProductInfo.ProductId;
+        var downloadManager = DownloadManagerService.Instance;
+        var isUnpackaged = _currentProductInfo.InstallerType == InstallerType.Unpackaged;
 
         // If the button is currently acting as "Open", don't ever start install/download.
         // If the user uninstalled the app while staying on this page, just refresh the UI to "Install".
@@ -513,7 +538,6 @@ public sealed partial class AppPage : Page
             return;
         }
 
-        var downloadManager = DownloadManagerService.Instance;
         var existingDownload = downloadManager.GetDownload(productId);
         UpdateService.SetDetails(string.Empty);
         DetailsText.Text = string.Empty;
@@ -525,6 +549,14 @@ public sealed partial class AppPage : Page
 
         try
         {
+            if (isUnpackaged && cacheCandidate is { HasValidCache: true })
+            {
+                cacheCandidate.ProductInfo = _currentProductInfo;
+                await LaunchUnpackagedInstallerAsync(cacheCandidate);
+                UpdateInstallButtonState();
+                return;
+            }
+
             // Always prefer using the on-disk cache when it's up-to-date.
             // This should work even if the current status is Failed/Cancelled after an install attempt.
             if (cacheCandidate != null
@@ -686,6 +718,10 @@ public sealed partial class AppPage : Page
             var currentItem = downloadManager.GetDownload(productId);
             if (currentItem?.Status == DownloadStatus.Completed)
             {
+                if (isUnpackaged && currentItem != null)
+                {
+                    await LaunchUnpackagedInstallerAsync(currentItem);
+                }
                 UnbindFromDownloadItem();
                 UpdateInstallButtonState();
                 return;
@@ -716,6 +752,9 @@ public sealed partial class AppPage : Page
         CancellationToken token
     )
     {
+        if (downloadItem.ProductInfo?.InstallerType == InstallerType.Unpackaged)
+            return false;
+
         var existingFiles = downloadItem
             .DownloadedFilePaths
             .Where(p => !string.IsNullOrWhiteSpace(p) && File.Exists(p))
@@ -818,6 +857,52 @@ public sealed partial class AppPage : Page
         DownloadManagerService.Instance.UnregisterCancellationToken(productId);
         UnbindFromDownloadItem();
         SetInstallButtonState(content: "Retry", enabled: true, showProgress: false);
+    }
+
+    private async Task<bool> LaunchUnpackagedInstallerAsync(DownloadItem downloadItem)
+    {
+        var installerPath = PickUnpackagedInstaller(downloadItem.DownloadedFilePaths);
+        if (string.IsNullOrWhiteSpace(installerPath))
+        {
+            await ShowErrorDialogAsync(
+                "Installer missing",
+                "The unpackaged installer could not be found on disk."
+            );
+            return false;
+        }
+
+        var dialog = new ContentDialog
+        {
+            Title = "Manual installation required",
+            Content =
+                "This app uses an unpackaged installer (EXE/MSI). It will open now and may require additional steps to finish installing.",
+            PrimaryButtonText = "Open installer",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = this.Content.XamlRoot,
+        };
+
+        var result = await dialog.ShowAsync();
+        if (result != ContentDialogResult.Primary)
+            return false;
+
+        try
+        {
+            Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName = installerPath,
+                    UseShellExecute = true,
+                    WorkingDirectory = Path.GetDirectoryName(installerPath) ?? Environment.CurrentDirectory,
+                }
+            );
+            return true;
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorDialogAsync("Unable to open installer", ex.Message);
+            return false;
+        }
     }
 
     private void StopButton_Click(object sender, RoutedEventArgs e)

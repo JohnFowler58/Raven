@@ -4,6 +4,7 @@ using Downloader;
 using Windows.Management.Deployment;
 using test.Models;
 using test.Services;
+using StoreListings.Library;
 
 namespace test.Helpers;
 
@@ -99,7 +100,6 @@ public sealed class DownloadHelper
         // Ensure the Downloads list is in the correct phase.
         // AppPage sets Status=Pending during URL fetch; once we start transferring bytes we must be Downloading.
         downloadManager.UpdateDownloadStatus(productId, test.Models.DownloadStatus.Downloading);
-        downloadManager.UpdateDownloadStatusText(productId, null);
 
         var animator = new DownloadItemStatusAnimator(updateService.DispatcherQueue);
 
@@ -137,16 +137,13 @@ public sealed class DownloadHelper
 
         var mainUrl = entry.Url;
 
+        var baseStatus = $"Downloading ({currentFileIndex}/{totalFiles}) {FilesLabel()}";
+
         // Single continuous animation for the page status (AppPage only)
-        updateService.StartStatusAnimation(
-            $"Downloading ({currentFileIndex}/{totalFiles}) {FilesLabel()}"
-        );
+        updateService.StartStatusAnimation(baseStatus);
 
         // Animated dots in the Downloads list
-        animator.Start(
-            downloadItem,
-            $"Downloading ({currentFileIndex}/{totalFiles}) {FilesLabel()}"
-        );
+        animator.Start(downloadItem, baseStatus);
 
         bool cancelled = false;
         bool hadError = false;
@@ -161,13 +158,9 @@ public sealed class DownloadHelper
 
             currentFileIndex = i + 1;
 
-            updateService.UpdateAnimatedStatusBase(
-                $"Downloading ({currentFileIndex}/{totalFiles}) {FilesLabel()}"
-            );
-            animator.UpdateBase(
-                downloadItem,
-                $"Downloading ({currentFileIndex}/{totalFiles}) {FilesLabel()}"
-            );
+            baseStatus = $"Downloading ({currentFileIndex}/{totalFiles}) {FilesLabel()}";
+            updateService.UpdateAnimatedStatusBase(baseStatus);
+            animator.UpdateBase(downloadItem, baseStatus);
 
             var file = flattened[i];
 
@@ -446,6 +439,17 @@ public sealed class DownloadHelper
 
         // Persist the final download state.
         downloadManager.SaveDownloadsThrottled(force: true);
+
+        var isUnpackaged = downloadItem.ProductInfo?.InstallerType == InstallerType.Unpackaged;
+
+        if (isUnpackaged)
+        {
+            animator.Stop(downloadItem);
+            updateService.StopStatusAnimation();
+            downloadManager.UpdateDownloadStatusText(productId, "Download completed. Open to install.");
+            downloadManager.UpdateDownloadStatus(productId, test.Models.DownloadStatus.Completed);
+            return;
+        }
 
         // Begin install phase and reflect it in Downloads page.
         downloadManager.UpdateDownloadStatus(productId, test.Models.DownloadStatus.Installing);

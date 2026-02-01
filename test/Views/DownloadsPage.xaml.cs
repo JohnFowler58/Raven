@@ -36,22 +36,32 @@ public sealed partial class DownloadsPage : Page
             switch (item.Status)
             {
                 case DownloadStatus.Pending:
-                    _animator.Start(item, "Fetching download URLs");
+                    _animator.Start(item, GetAnimatorBaseText(item, "Fetching download URLs"));
                     break;
                 case DownloadStatus.Downloading:
-                    _animator.Start(item, "Downloading");
+                    _animator.Start(item, GetAnimatorBaseText(item, "Downloading"));
                     break;
                 case DownloadStatus.Installing:
-                    _animator.Start(item, "Installing");
+                    _animator.Start(item, GetAnimatorBaseText(item, "Installing"));
                     break;
                 case DownloadStatus.Cancelling:
-                    _animator.Start(item, "Cancelling");
+                    _animator.Start(item, GetAnimatorBaseText(item, "Cancelling"));
                     break;
                 default:
                     _animator.Stop(item);
                     break;
             }
         }
+    }
+
+    private static string GetAnimatorBaseText(DownloadItem item, string fallback)
+    {
+        var text = item.StatusTextOverride ?? item.StatusText;
+        if (string.IsNullOrWhiteSpace(text))
+            return fallback;
+
+        var trimmed = text.TrimEnd('.', ' ');
+        return string.IsNullOrWhiteSpace(trimmed) ? fallback : trimmed;
     }
 
     protected override void OnNavigatedFrom(NavigationEventArgs e)
@@ -106,4 +116,5 @@ public sealed partial class DownloadsPage : Page
             DownloadManagerService.Instance.RemoveDownload(productId);
         }
     }
+
 }
