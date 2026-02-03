@@ -18,6 +18,20 @@ public enum DownloadStatus
 
 public partial class DownloadItem : INotifyPropertyChanged
 {
+    private DateTime _lastAccessedAt = DateTime.Now;
+    public DateTime LastAccessedAt
+    {
+        get => _lastAccessedAt;
+        set
+        {
+            if (_lastAccessedAt != value)
+            {
+                _lastAccessedAt = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
     private string? _storeVersion;
     public string? StoreVersion
     {

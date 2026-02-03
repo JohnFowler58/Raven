@@ -32,6 +32,34 @@ public class DownloadManagerService
     public ObservableCollection<DownloadItem> Downloads { get; } = [];
     public HashSet<string> DownloadedProductIds { get; private set; } = [];
 
+    private void TouchDownload(string productId)
+    {
+        DownloadItem? item;
+        lock (_lock)
+        {
+            item = Downloads.FirstOrDefault(d => d.ProductId == productId);
+        }
+
+        if (item == null)
+            return;
+
+        var now = DateTime.Now;
+
+        RunOnUIThread(() =>
+        {
+            item.LastAccessedAt = now;
+
+            lock (_lock)
+            {
+                var index = Downloads.IndexOf(item);
+                if (index > 0)
+                {
+                    Downloads.Move(index, 0);
+                }
+            }
+        });
+    }
+
     private DownloadManagerService()
     {
         _downloadDataPath = Path.Combine(AppContext.BaseDirectory, "downloads.json");
@@ -104,6 +132,7 @@ public class DownloadManagerService
                 StoreVersion = productInfo.Version,
                 Status = DownloadStatus.Downloading,
                 StartedAt = DateTime.Now,
+                LastAccessedAt = DateTime.Now,
                 ProductInfo = productInfo,
                 DownloadedFilePaths = [],
             };
@@ -164,6 +193,7 @@ public class DownloadManagerService
 
     public void CancelDownload(string productId)
     {
+        TouchDownload(productId);
         var item = GetDownload(productId);
         if (item?.Status == DownloadStatus.Completed)
         {
@@ -292,6 +322,8 @@ public class DownloadManagerService
         )
             return;
 
+        TouchDownload(productId);
+
         if (IsAnyoneObserving)
         {
             RunOnUIThread(() => item.RevisionId = revisionId);
@@ -355,6 +387,7 @@ public class DownloadManagerService
 
     public void UpdateDownloadStatusText(string productId, string? statusTextOverride)
     {
+        TouchDownload(productId);
         var item = GetDownload(productId);
         if (item != null)
         {
@@ -371,6 +404,7 @@ public class DownloadManagerService
 
     public void UpdateDownloadDetailsText(string productId, string detailsText)
     {
+        TouchDownload(productId);
         var item = GetDownload(productId);
         if (item == null)
             return;
@@ -387,6 +421,7 @@ public class DownloadManagerService
 
     public void UpdateDownloadStatus(string productId, DownloadStatus status)
     {
+        TouchDownload(productId);
         var item = GetDownload(productId);
         if (item != null)
         {
@@ -480,6 +515,11 @@ public class DownloadManagerService
                     DownloadedProductIds.Clear();
                     foreach (var item in items)
                     {
+                        if (item.LastAccessedAt == default)
+                        {
+                            item.LastAccessedAt = item.CompletedAt ?? item.StartedAt;
+                        }
+
                         // Migrate legacy states.
                         // - Older builds used "Downloaded" for "files present on disk".
                         // - Some builds used "Completed".
@@ -532,6 +572,13 @@ public class DownloadManagerService
                         {
                             DownloadedProductIds.Add(item.ProductId);
                         }
+                    }
+
+                    var sorted = Downloads.OrderByDescending(d => d.LastAccessedAt).ToList();
+                    Downloads.Clear();
+                    foreach (var d in sorted)
+                    {
+                        Downloads.Add(d);
                     }
                 }
             }
@@ -632,6 +679,7 @@ public class DownloadManagerService
 
     public void RemoveDownload(string productId, bool deleteFiles = true)
     {
+        TouchDownload(productId);
         DownloadItem? item;
         lock (_lock)
         {
