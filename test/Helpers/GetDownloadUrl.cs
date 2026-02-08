@@ -1,4 +1,5 @@
-﻿using StoreListings.Library;
+﻿using System.Diagnostics;
+using StoreListings.Library;
 using test.Models;
 
 namespace test.Helpers;
@@ -200,32 +201,7 @@ public static class GetDownloadUrl
                 if (!fe3sync.IsSuccess)
                     return null;
 
-                // Resolve all file URLs once
-                var updatesAndUrl = new List<(
-                    FE3Handler.SyncUpdatesResponse.Update Update,
-                    string Url
-                )>(fe3sync.Value.Updates.Count());
-                foreach (var update in fe3sync.Value.Updates)
-                {
-                    var fileUrlResult = await FE3Handler.GetFileUrl(
-                        fe3sync.Value.NewCookie,
-                        update.UpdateID,
-                        update.RevisionNumber,
-                        update.Digest,
-                        language,
-                        market,
-                        currentBranch,
-                        flightRing,
-                        flightingBranchName,
-                        OSVersion.Value,
-                        deviceFamily,
-                        cancellationToken,
-                        osArch
-                    );
-
-                    if (fileUrlResult.IsSuccess)
-                        updatesAndUrl.Add((update, fileUrlResult.Value));
-                }
+                var updates = fe3sync.Value.Updates.ToList();
 
                 // Choose latest applicable main (non-framework) that matches OS + device family + arch
                 static IReadOnlyList<string> GetArchPreferenceOrder(string archRid)
@@ -265,15 +241,15 @@ public static class GetDownloadUrl
 
                 var archPreferences = GetArchPreferenceOrder(archRid);
 
-                var candidates = updatesAndUrl
+                var candidates = updates
                     .Where(t =>
-                        !t.Update.IsFramework
-                        && t.Update.TargetPlatforms.Any(p =>
+                        !t.IsFramework
+                        && t.TargetPlatforms.Any(p =>
                             (p.Family == deviceFamily || p.Family == DeviceFamily.Universal)
                             && p.MinVersion <= OSVersion.Value
                         )
                     )
-                    .OrderByDescending(t => t.Update.Version)
+                    .OrderByDescending(t => t.Version)
                     .ToList();
 
                 // Try preferred architectures in order (native first, then compatible fallbacks).
@@ -282,19 +258,42 @@ public static class GetDownloadUrl
                     // Find the first candidate whose dependencies are fully applicable
                     foreach (
                         var main in candidates.Where(c =>
-                            ArchMatches(c.Update.FileName ?? c.Update.PackageIdentityName, arch)
+                            ArchMatches(c.FileName ?? c.PackageIdentityName, arch)
                         )
                     )
                     {
+                        // Fetch download-info only for the chosen main candidate.
+                        var mainDownloadInfo = await FE3Handler.GetPackageDownloadInfo(
+                            fe3sync.Value.NewCookie,
+                            main.UpdateID,
+                            main.RevisionNumber,
+                            main.Digest,
+                            language,
+                            market,
+                            currentBranch,
+                            flightRing,
+                            flightingBranchName,
+                            OSVersion.Value,
+                            deviceFamily,
+                            cancellationToken,
+                            osArch
+                        );
+
+                        if (!mainDownloadInfo.IsSuccess)
+                            continue;
+
                         var dcatMain = packageResult.Value.FirstOrDefault(p =>
                             p.PackageIdentity.Equals(
-                                main.Update.PackageIdentityName,
+                                main.PackageIdentityName,
                                 StringComparison.OrdinalIgnoreCase
                             )
-                            && p.Version == main.Update.Version
+                            && p.Version == main.Version
                         );
 
                         var depEntries = new List<FileEntry>();
+
+                        // Accumulate the dependency updates we actually need.
+                        var requiredDepUpdates = new List<FE3Handler.SyncUpdatesResponse.Update>();
 
                         if (dcatMain is not null && dcatMain.FrameworkDependencies.Any())
                         {
@@ -302,14 +301,14 @@ public static class GetDownloadUrl
 
                             foreach (var dep in dcatMain.FrameworkDependencies)
                             {
-                                var applicable = updatesAndUrl
+                                var applicable = updates
                                     .Where(d =>
-                                        d.Update.PackageIdentityName.Equals(
+                                        d.PackageIdentityName.Equals(
                                             dep.PackageIdentity,
                                             StringComparison.OrdinalIgnoreCase
                                         )
-                                        && d.Update.Version >= dep.MinVersion
-                                        && d.Update.TargetPlatforms.Any(tp =>
+                                        && d.Version >= dep.MinVersion
+                                        && d.TargetPlatforms.Any(tp =>
                                             tp.MinVersion <= OSVersion.Value
                                             && (
                                                 tp.Family == DeviceFamily.Universal
@@ -317,7 +316,7 @@ public static class GetDownloadUrl
                                             )
                                         )
                                         && ArchMatches(
-                                            d.Update.FileName ?? d.Update.PackageIdentityName,
+                                            d.FileName ?? d.PackageIdentityName,
                                             arch
                                         )
                                     )
@@ -330,35 +329,83 @@ public static class GetDownloadUrl
                                 }
 
                                 var latestGroup = applicable
-                                    .GroupBy(a => a.Update.Version)
+                                    .GroupBy(a => a.Version)
                                     .OrderByDescending(g => g.Key)
                                     .First()
                                     .ToList();
 
-                                var reduced = ReduceFrameworkDependencyFiles(latestGroup, arch);
+                                // Reduce using existing helper (operates over a tuple list).
+                                var reduced = ReduceFrameworkDependencyFiles(
+                                    latestGroup.Select(u => (Update: u, Url: string.Empty)).ToList(),
+                                    arch
+                                );
 
-                                foreach (var a in reduced)
-                                {
-                                    depEntries.Add(
-                                        new FileEntry(
-                                            FileName: a.Update.FileName,
-                                            Url: a.Url,
-                                            Dependencies: Array.Empty<FileEntry>()
-                                        )
-                                    );
-                                }
+                                requiredDepUpdates.AddRange(reduced.Select(r => r.Update));
                             }
 
                             if (!allDepsOk)
                                 continue; // try next candidate
                         }
 
+                        // Fetch download-info only for required dependency updates.
+                        foreach (var depUpdate in requiredDepUpdates.Distinct())
+                        {
+                            var depDownloadInfo = await FE3Handler.GetPackageDownloadInfo(
+                                fe3sync.Value.NewCookie,
+                                depUpdate.UpdateID,
+                                depUpdate.RevisionNumber,
+                                depUpdate.Digest,
+                                language,
+                                market,
+                                currentBranch,
+                                flightRing,
+                                flightingBranchName,
+                                OSVersion.Value,
+                                deviceFamily,
+                                cancellationToken,
+                                osArch
+                            );
+
+                            if (!depDownloadInfo.IsSuccess)
+                            {
+                                // If any required dep can't be resolved, try next main candidate.
+                                depEntries.Clear();
+                                goto NextMainCandidate;
+                            }
+
+                            depUpdate.SetDownloadInfoPackageDigest(depDownloadInfo.Value.Package.Digest);
+                            depUpdate.SetDownloadInfoBlockmapUrl(depDownloadInfo.Value.BlockmapCab?.Url);
+                            depUpdate.SetDownloadInfoBlockmapDigest(depDownloadInfo.Value.BlockmapCab?.Digest);
+
+                            depEntries.Add(
+                                new FileEntry(
+                                    FileName: depUpdate.FileName,
+                                    Url: depDownloadInfo.Value.Package.Url,
+                                    Dependencies: Array.Empty<FileEntry>(),
+                                    Digest: depUpdate.GetDownloadInfoPackageDigest(),
+                                    BlockmapUrl: depUpdate.GetDownloadInfoBlockmapUrl(),
+                                    BlockmapCabFileDigest: depUpdate.GetDownloadInfoBlockmapDigest()
+                                )
+                            );
+                        }
+
+                        // Store download-info on main update for downstream cache/delta logic.
+                        main.SetDownloadInfoPackageDigest(mainDownloadInfo.Value.Package.Digest);
+                        main.SetDownloadInfoBlockmapUrl(mainDownloadInfo.Value.BlockmapCab?.Url);
+                        main.SetDownloadInfoBlockmapDigest(mainDownloadInfo.Value.BlockmapCab?.Digest);
+
                         // Return main with dependencies
                         return new FileEntry(
-                            FileName: main.Update.FileName,
-                            Url: main.Url,
-                            Dependencies: depEntries
+                            FileName: main.FileName,
+                            Url: mainDownloadInfo.Value.Package.Url,
+                            Dependencies: depEntries,
+                            Digest: main.GetDownloadInfoPackageDigest(),
+                            BlockmapUrl: main.GetDownloadInfoBlockmapUrl(),
+                            BlockmapCabFileDigest: main.GetDownloadInfoBlockmapDigest()
                         );
+
+                    NextMainCandidate:
+                        ;
                     }
                 }
 
@@ -379,11 +426,13 @@ public static class GetDownloadUrl
 
                 var url = unpackagedResult.Value.InstallerUrl;
                 var fileName = unpackagedResult.Value.FileName;
+                var sha256 = unpackagedResult.Value.InstallerSha256;
 
                 return new FileEntry(
                     FileName: fileName,
                     Url: url,
-                    Dependencies: Array.Empty<FileEntry>()
+                    Dependencies: Array.Empty<FileEntry>(),
+                    Sha256: sha256
                 );
             }
             default:

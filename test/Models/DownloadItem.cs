@@ -134,17 +134,18 @@ public partial class DownloadItem : INotifyPropertyChanged
 
 
     private double _progress;
+
+    [JsonIgnore]
     public double Progress
     {
         get => _progress;
         set
         {
             // Only fire PropertyChanged when the visible percentage changes (1% increments)
-            // This reduces UI updates from potentially thousands per second to ~100 max
             int oldPercent = (int)_progress;
             int newPercent = (int)value;
             _progress = value;
-            
+
             if (oldPercent != newPercent)
             {
                 OnPropertyChanged();
@@ -152,59 +153,9 @@ public partial class DownloadItem : INotifyPropertyChanged
         }
     }
 
-    /// <summary>
-    /// Update progress without firing PropertyChanged. Use when nobody is observing.
-    /// </summary>
     public void SetProgressSilent(double value) => _progress = value;
 
-    private DateTime _startedAt = DateTime.Now;
-    public DateTime StartedAt
-    {
-        get => _startedAt;
-        set
-        {
-            if (_startedAt != value)
-            {
-                _startedAt = value;
-                OnPropertyChanged();
-            }
-        }
-    }
-
-    private DateTime? _completedAt;
-    public DateTime? CompletedAt
-    {
-        get => _completedAt;
-        set
-        {
-            if (_completedAt != value)
-            {
-                _completedAt = value;
-                OnPropertyChanged();
-            }
-        }
-    }
-
     private List<string> _downloadedFilePaths = [];
-
-    private bool _hasValidCache;
-
-    /// <summary>
-    /// True when we have a verified on-disk cache for this item (download completed).
-    /// This persists even if the install later fails or is cancelled.
-    /// </summary>
-    public bool HasValidCache
-    {
-        get => _hasValidCache;
-        set
-        {
-            if (_hasValidCache != value)
-            {
-                _hasValidCache = value;
-                OnPropertyChanged();
-            }
-        }
-    }
 
     /// <summary>
     /// List of file paths that were downloaded for this item

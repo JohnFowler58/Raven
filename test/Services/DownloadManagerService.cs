@@ -131,7 +131,6 @@ public class DownloadManagerService
                 RevisionId = productInfo.RevisionId,
                 StoreVersion = productInfo.Version,
                 Status = DownloadStatus.Downloading,
-                StartedAt = DateTime.Now,
                 LastAccessedAt = DateTime.Now,
                 ProductInfo = productInfo,
                 DownloadedFilePaths = [],
@@ -430,8 +429,6 @@ public class DownloadManagerService
                 item.Status = status;
                 if (status is DownloadStatus.Completed)
                 {
-                    item.CompletedAt = DateTime.Now;
-                    item.HasValidCache = true;
                     if (IsAnyoneObserving)
                     {
                         item.Progress = 100;
@@ -462,7 +459,7 @@ public class DownloadManagerService
                 else if (status == DownloadStatus.Installing)
                 {
                     // Installing implies download phase completed and files should be available on disk.
-                    item.HasValidCache = item.DownloadedFilePaths.Count > 0;
+                    // No dedicated cache flag; the presence of downloaded file paths can be used as a hint.
                 }
             }
 
@@ -517,7 +514,7 @@ public class DownloadManagerService
                     {
                         if (item.LastAccessedAt == default)
                         {
-                            item.LastAccessedAt = item.CompletedAt ?? item.StartedAt;
+                            item.LastAccessedAt = DateTime.Now;
                         }
 
                         // Migrate legacy states.
@@ -530,14 +527,6 @@ public class DownloadManagerService
                         )
                         {
                             item.Status = DownloadStatus.Completed;
-                        }
-
-                        // Infer cache presence if it wasn't persisted in older versions.
-                        if (!item.HasValidCache)
-                        {
-                            item.HasValidCache =
-                                item.Status == DownloadStatus.Completed
-                                || item.DownloadedFilePaths.Count > 0;
                         }
 
                         // Reset any "Downloading" status to "Cancelled" on app restart
