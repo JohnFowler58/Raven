@@ -18,6 +18,12 @@ public enum DownloadStatus
 
 public partial class DownloadItem : INotifyPropertyChanged
 {
+    public sealed class DownloadedFile
+    {
+        public string Path { get; set; } = string.Empty;
+        public string? Hash { get; set; }
+    }
+
     private DateTime _lastAccessedAt = DateTime.Now;
     public DateTime LastAccessedAt
     {
@@ -155,23 +161,27 @@ public partial class DownloadItem : INotifyPropertyChanged
 
     public void SetProgressSilent(double value) => _progress = value;
 
-    private List<string> _downloadedFilePaths = [];
+    private List<DownloadedFile> _downloadedFiles = [];
 
     /// <summary>
-    /// List of file paths that were downloaded for this item
+    /// List of downloaded files with optional computed hash.
     /// </summary>
-    public List<string> DownloadedFilePaths
+    public List<DownloadedFile> DownloadedFiles
     {
-        get => _downloadedFilePaths;
+        get => _downloadedFiles;
         set
         {
-            if (_downloadedFilePaths != value)
+            if (_downloadedFiles != value)
             {
-                _downloadedFilePaths = value;
+                _downloadedFiles = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(DownloadedFilePaths));
             }
         }
     }
+
+    [JsonIgnore]
+    public List<string> DownloadedFilePaths => DownloadedFiles.Select(f => f.Path).ToList();
 
     // For storing the original product info to navigate back
     [JsonIgnore]

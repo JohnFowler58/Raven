@@ -5,6 +5,10 @@ namespace test.Helpers;
 
 public static class DeltaDownloadHelper
 {
+    private const int MergeGapThresholdBytes = 64 * 1024;
+
+    private sealed record RangePatch(long Offset, int Length);
+
     public static async Task<string?> TryComputeSha256HexAsync(
         string filePath,
         CancellationToken token
@@ -16,39 +20,6 @@ public static class DeltaDownloadHelper
         await using var stream = File.OpenRead(filePath);
         var hash = await SHA256.HashDataAsync(stream, token).ConfigureAwait(false);
         return Convert.ToHexString(hash);
-    }
-
-    public static async Task<string?> TryComputeSha1HexAsync(
-        string filePath,
-        CancellationToken token
-    )
-    {
-        if (!File.Exists(filePath))
-            return null;
-
-        await using var stream = File.OpenRead(filePath);
-        var hash = await SHA1.HashDataAsync(stream, token).ConfigureAwait(false);
-        return Convert.ToHexString(hash);
-    }
-
-    public static bool DigestsMatchSha1(string sha1Hex, string? digestFromService)
-    {
-        if (string.IsNullOrWhiteSpace(digestFromService))
-            return false;
-
-        // FE3 gives the digest as base64 of raw SHA1 bytes.
-        byte[] serviceBytes;
-        try
-        {
-            serviceBytes = Convert.FromBase64String(digestFromService);
-        }
-        catch
-        {
-            return false;
-        }
-
-        var serviceHex = Convert.ToHexString(serviceBytes);
-        return string.Equals(serviceHex, sha1Hex, StringComparison.OrdinalIgnoreCase);
     }
 
     public static async Task DownloadToFileAsync(
@@ -63,7 +34,14 @@ public static class DeltaDownloadHelper
         resp.EnsureSuccessStatusCode();
 
         await using var src = await resp.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
-        await using var dst = File.Create(destinationPath);
+        await using var dst = new FileStream(
+            destinationPath,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.ReadWrite | FileShare.Delete,
+            bufferSize: 81920,
+            useAsync: true
+        );
         await src.CopyToAsync(dst, token).ConfigureAwait(false);
     }
 
@@ -94,8 +72,20 @@ public static class DeltaDownloadHelper
             if (!File.Exists(cabPath))
                 return false;
 
-            var sha1Hex = await TryComputeSha1HexAsync(cabPath, token).ConfigureAwait(false);
-            return sha1Hex is not null && DigestsMatchSha1(sha1Hex, blockmapCabFileDigest);
+            // FE3 gives the digest as base64 of raw SHA1 bytes.
+            byte[] serviceBytes;
+            try
+            {
+                serviceBytes = Convert.FromBase64String(blockmapCabFileDigest);
+            }
+            catch
+            {
+                return false;
+            }
+
+            await using var stream = File.OpenRead(cabPath);
+            var localSha1 = await SHA1.HashDataAsync(stream, token).ConfigureAwait(false);
+            return localSha1.AsSpan().SequenceEqual(serviceBytes);
         }
 
         var cabOk = await CabMatchesDigestAsync().ConfigureAwait(false);
@@ -126,6 +116,8 @@ public static class DeltaDownloadHelper
             return;
         }
 
+        var remoteLength = await TryGetContentLengthAsync(http, packageUrl, token).ConfigureAwait(false);
+
         // If local file doesn't exist at all, full download.
         var fileInfo = new FileInfo(destinationPath);
         if (!fileInfo.Exists)
@@ -138,6 +130,14 @@ public static class DeltaDownloadHelper
         var expectedBlocks = blockMap.BlockHashes.Count;
         var localFileLength = fileInfo.Length;
 
+        if (remoteLength is long lenFromServer && lenFromServer > 0)
+        {
+            if (lenFromServer <= 0)
+                remoteLength = null;
+            else
+                remoteLength = lenFromServer;
+        }
+
         // Compute local SHA256 per block and determine which blocks differ.
         // Blocks beyond the local file length are automatically marked as changed.
         var changed = new List<int>();
@@ -146,7 +146,7 @@ public static class DeltaDownloadHelper
                 destinationPath,
                 FileMode.Open,
                 FileAccess.Read,
-                FileShare.Read,
+                FileShare.ReadWrite | FileShare.Delete,
                 bufferSize: blockMap.BlockSize,
                 useAsync: true
             )
@@ -186,67 +186,221 @@ public static class DeltaDownloadHelper
         if (changed.Count == 0)
             return; // already matches blockmap
 
-        // Calculate total bytes to download from ranges so callers can show progress.
-        long totalRangeBytes = 0;
-        foreach (var idx in changed)
+        var changedSet = new HashSet<int>(changed);
+
+        static int GetBlockLength(int blockIndex, int expectedBlocks, int blockSize, long? totalLength)
         {
-            var start = (long)idx * blockMap.BlockSize;
-            // Last block may be smaller; use blockSize for all except possibly the last.
-            totalRangeBytes += blockMap.BlockSize;
+            if (blockIndex != expectedBlocks - 1)
+                return blockSize;
+
+            if (totalLength is not long len || len <= 0)
+                return blockSize;
+
+            var tail = (int)(len % blockSize);
+            return tail == 0 ? blockSize : tail;
         }
+
+        var patches = BuildMergedPatches(changedSet, expectedBlocks, blockMap.BlockSize, remoteLength);
+        long totalRangeBytes = patches.Sum(p => (long)p.Length);
 
         long downloadedRangeBytes = 0;
         progress?.Report((0, totalRangeBytes));
 
-        // Patch changed blocks in-place using HTTP range requests.
         await using (
             var fs = new FileStream(
                 destinationPath,
                 FileMode.OpenOrCreate,
                 FileAccess.Write,
-                FileShare.Read,
+                FileShare.ReadWrite | FileShare.Delete,
                 bufferSize: blockMap.BlockSize,
                 useAsync: true
             )
         )
         {
-            foreach (var idx in changed)
+            var buffer = new byte[blockMap.BlockSize];
+            var blockScratch = new byte[blockMap.BlockSize];
+
+            foreach (var patch in patches)
             {
                 token.ThrowIfCancellationRequested();
 
-                var start = (long)idx * blockMap.BlockSize;
-                // Always request a full block from the server.
-                var rangeLen = blockMap.BlockSize;
+                using var req = new HttpRequestMessage(HttpMethod.Get, packageUrl);
+                req.Headers.Range = new RangeHeaderValue(patch.Offset, patch.Offset + patch.Length - 1);
 
-                using var ms = new MemoryStream(capacity: rangeLen);
-                await DownloadRangeToStreamAsync(
-                        http,
-                        packageUrl,
-                        start,
-                        start + rangeLen - 1,
-                        ms,
-                        token
-                    )
+                using var resp = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, token)
                     .ConfigureAwait(false);
+                resp.EnsureSuccessStatusCode();
 
-                var bytes = ms.ToArray();
-                var remoteHash = SHA256.HashData(bytes);
-                var remoteB64 = Convert.ToBase64String(remoteHash);
-                if (!string.Equals(remoteB64, blockMap.BlockHashes[idx], StringComparison.Ordinal))
+                await using var src = await resp.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
+
+                var remaining = patch.Length;
+                var currentPos = patch.Offset;
+
+                while (remaining > 0)
                 {
-                    // If we can't validate a single block, safest is full download.
-                    await DownloadToFileAsync(http, packageUrl, destinationPath, token)
+                    token.ThrowIfCancellationRequested();
+
+                    var globalBlockIndex = (int)(currentPos / blockMap.BlockSize);
+                    var blockOffsetInPatch = (int)(currentPos - ((long)globalBlockIndex * blockMap.BlockSize));
+                    var blockRemaining = blockMap.BlockSize - blockOffsetInPatch;
+
+                    var toRead = Math.Min(remaining, blockRemaining);
+
+                    var read = await ReadExactlyOrLessAsync(src, buffer, 0, toRead, token)
                         .ConfigureAwait(false);
-                    return;
+
+                    if (read != toRead)
+                        throw new IOException("Unexpected EOF while reading HTTP range response.");
+
+                    // Only validate & patch blocks that were identified as changed.
+                    // We still stream the whole merged range to keep HTTP requests low,
+                    // but we avoid rewriting unchanged blocks.
+                    if (changedSet.Contains(globalBlockIndex))
+                    {
+                        // Blockmap hashes are per full block (except possibly the final block).
+                        // When using merged ranges we might be reading only a portion of a block at a time.
+                        // Reconstruct the full block bytes for hashing before validating/writing.
+                        var blockStart = (long)globalBlockIndex * blockMap.BlockSize;
+                        var expectedLen = GetBlockLength(globalBlockIndex, expectedBlocks, blockMap.BlockSize, remoteLength);
+
+                        if (blockOffsetInPatch == 0 && read >= expectedLen)
+                        {
+                            // Common case: we read an entire block in one go.
+                            var remoteHash = SHA256.HashData(buffer.AsSpan(0, expectedLen));
+                            var remoteB64 = Convert.ToBase64String(remoteHash);
+                            if (!string.Equals(remoteB64, blockMap.BlockHashes[globalBlockIndex], StringComparison.Ordinal))
+                                throw new InvalidDataException("Remote block hash does not match blockmap.");
+
+                            fs.Position = blockStart;
+                            await fs.WriteAsync(buffer.AsMemory(0, expectedLen), token).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            // Slow path: fill missing bytes by combining existing local data with newly downloaded bytes,
+                            // then verify the full reconstructed block.
+                            fs.Position = blockStart;
+                            var gotLocal = await ReadExactlyOrLessAsync(
+                                    fs,
+                                    blockScratch,
+                                    0,
+                                    expectedLen,
+                                    token
+                                )
+                                .ConfigureAwait(false);
+
+                            if (gotLocal != expectedLen)
+                                Array.Clear(blockScratch, gotLocal, expectedLen - gotLocal);
+
+                            buffer.AsSpan(0, read).CopyTo(blockScratch.AsSpan(blockOffsetInPatch, read));
+
+                            var remoteHash = SHA256.HashData(blockScratch.AsSpan(0, expectedLen));
+                            var remoteB64 = Convert.ToBase64String(remoteHash);
+                            if (!string.Equals(remoteB64, blockMap.BlockHashes[globalBlockIndex], StringComparison.Ordinal))
+                                throw new InvalidDataException("Remote block hash does not match blockmap.");
+
+                            fs.Position = blockStart;
+                            await fs.WriteAsync(blockScratch.AsMemory(0, expectedLen), token).ConfigureAwait(false);
+                        }
+                    }
+
+                    // Even when not writing (merged gap/unchanged block), advance within the range.
+
+                    currentPos += read;
+                    remaining -= read;
+
+                    downloadedRangeBytes += read;
+                    progress?.Report((downloadedRangeBytes, totalRangeBytes));
                 }
-
-                fs.Position = start;
-                await fs.WriteAsync(bytes, 0, bytes.Length, token).ConfigureAwait(false);
-
-                downloadedRangeBytes += bytes.Length;
-                progress?.Report((downloadedRangeBytes, totalRangeBytes));
             }
         }
+    }
+
+    private static List<RangePatch> BuildMergedPatches(
+        HashSet<int> changed,
+        int expectedBlocks,
+        int blockSize,
+        long? totalLength
+    )
+    {
+        if (changed.Count == 0)
+            return [];
+
+        var ordered = changed.OrderBy(i => i).ToArray();
+        var patches = new List<RangePatch>();
+
+        var startIdx = ordered[0];
+        var endIdx = ordered[0];
+
+        for (var i = 1; i < ordered.Length; i++)
+        {
+            var next = ordered[i];
+
+            var endOffsetInclusive = ((long)endIdx * blockSize) + blockSize - 1;
+            var nextStart = (long)next * blockSize;
+            var gap = nextStart - (endOffsetInclusive + 1);
+
+            if (gap <= MergeGapThresholdBytes)
+            {
+                endIdx = next;
+                continue;
+            }
+
+            patches.Add(ToPatch(startIdx, endIdx, expectedBlocks, blockSize, totalLength));
+            startIdx = endIdx = next;
+        }
+
+        patches.Add(ToPatch(startIdx, endIdx, expectedBlocks, blockSize, totalLength));
+        return patches;
+
+        static RangePatch ToPatch(int start, int end, int expectedBlocks, int blockSize, long? totalLength)
+        {
+            var offset = (long)start * blockSize;
+            var endExclusiveByBlocks = Math.Min((long)(end + 1) * blockSize, (long)expectedBlocks * blockSize);
+            var endExclusive = totalLength is long total && total > 0
+                ? Math.Min(endExclusiveByBlocks, total)
+                : endExclusiveByBlocks;
+            var length = checked((int)(endExclusive - offset));
+            return new RangePatch(offset, length);
+        }
+    }
+
+    private static async Task<long?> TryGetContentLengthAsync(HttpClient http, string url, CancellationToken token)
+    {
+        try
+        {
+            using var head = new HttpRequestMessage(HttpMethod.Head, url);
+            using var resp = await http.SendAsync(head, HttpCompletionOption.ResponseHeadersRead, token)
+                .ConfigureAwait(false);
+            if (resp.IsSuccessStatusCode && resp.Content.Headers.ContentLength is long len && len > 0)
+                return len;
+        }
+        catch
+        {
+            // ignore
+        }
+
+        try
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Get, url);
+            req.Headers.Range = new RangeHeaderValue(0, 0);
+            using var resp = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, token)
+                .ConfigureAwait(false);
+            if (!resp.IsSuccessStatusCode)
+                return null;
+
+            // Prefer Content-Range total when available.
+            if (resp.Content.Headers.ContentRange?.Length is long total && total > 0)
+                return total;
+
+            if (resp.Content.Headers.ContentLength is long len && len > 0)
+                return len;
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return null;
     }
 
     private static async Task<int> ReadExactlyOrLessAsync(

@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Net;
+using System.Security.Cryptography;
 using Downloader;
 using StoreListings.Library;
 using test.Models;
@@ -10,6 +11,37 @@ namespace test.Helpers;
 
 public sealed class DownloadHelper
 {
+    private static async Task DownloadAsync(
+        DownloadConfiguration config,
+        string url,
+        string destinationPath,
+        CancellationToken token,
+        Action<long>? onTotalBytesKnown = null,
+        Action<long>? onBytesReceived = null,
+        Action<double>? onProgressChanged = null
+    )
+    {
+        using var svc = new DownloadService(config);
+
+        long lastReceivedBytes = 0;
+        svc.DownloadProgressChanged += (_, e) =>
+        {
+            if (e.TotalBytesToReceive > 0)
+                onTotalBytesKnown?.Invoke(e.TotalBytesToReceive);
+
+            // e.ReceivedBytesSize is cumulative bytes received.
+            if (e.ReceivedBytesSize >= 0 && e.ReceivedBytesSize != lastReceivedBytes)
+            {
+                lastReceivedBytes = e.ReceivedBytesSize;
+                onBytesReceived?.Invoke(e.ReceivedBytesSize);
+            }
+
+            onProgressChanged?.Invoke(e.ProgressPercentage);
+        };
+
+        await svc.DownloadFileTaskAsync(url, destinationPath, token).ConfigureAwait(false);
+    }
+
     private static string FormatBytes(long bytes)
     {
         const double KB = 1024d;
@@ -38,7 +70,6 @@ public sealed class DownloadHelper
         const int MAX_RETRIES_PER_FILE = 5;
         const int NO_PROGRESS_TIMEOUT_MS = 60_000;
         const int MAX_BACKOFF_MS = 30_000;
-        const int PERSIST_THROTTLE_MS = 2_000;
 
         // Simple throttle: update UI at most every 250ms
         const int UI_THROTTLE_MS = 250;
@@ -174,6 +205,20 @@ public sealed class DownloadHelper
             var localExists = File.Exists(destinationPath);
             var localMatches = false;
 
+            string? expectedHash = null;
+            bool HashMatches(string storedHash) =>
+                !string.IsNullOrWhiteSpace(expectedHash)
+                && string.Equals(
+                    storedHash.Trim(),
+                    expectedHash.Trim(),
+                    StringComparison.OrdinalIgnoreCase
+                );
+
+            if (isUnpackaged)
+                expectedHash = file.Sha256;
+            else
+                expectedHash = file.Digest;
+
             // Hash-based caching:
             // - Packaged: compare FE3 SHA1 digest (existing behavior)
             // - Unpackaged: compare SHA256 when provided
@@ -181,53 +226,36 @@ public sealed class DownloadHelper
             {
                 if (localExists && !string.IsNullOrWhiteSpace(file.Sha256))
                 {
-                    try
-                    {
-                        var sha256Hex = await DeltaDownloadHelper
-                            .TryComputeSha256HexAsync(destinationPath, token)
-                            .ConfigureAwait(false);
+                    var storedHash = downloadItem.DownloadedFiles.FirstOrDefault(f =>
+                        string.Equals(f.Path, destinationPath, StringComparison.OrdinalIgnoreCase)
+                    )?.Hash;
 
-                        localMatches =
-                            sha256Hex is not null
-                            && string.Equals(
-                                sha256Hex.Trim(),
-                                file.Sha256.Trim(),
-                                StringComparison.OrdinalIgnoreCase
-                            );
-                        if (localMatches)
-                        {
-                            downloadManager.AddDownloadedFilePath(productId, destinationPath);
-                            continue;
-                        }
-                    }
-                    catch
-                    {
-                        localMatches = false;
-                    }
-                }
-            }
-            else if (localExists && !string.IsNullOrWhiteSpace(file.Digest))
-            {
-                try
-                {
-                    var sha1Hex = await DeltaDownloadHelper
-                        .TryComputeSha1HexAsync(destinationPath, token)
-                        .ConfigureAwait(false);
-
-                    localMatches =
-                        sha1Hex is not null
-                        && DeltaDownloadHelper.DigestsMatchSha1(sha1Hex, file.Digest);
-
+                    localMatches = !string.IsNullOrWhiteSpace(storedHash) && HashMatches(storedHash);
                     if (localMatches)
                     {
                         downloadManager.AddDownloadedFilePath(productId, destinationPath);
                         continue;
                     }
                 }
-                catch
+            }
+            else if (localExists && !string.IsNullOrWhiteSpace(file.Digest))
+            {
+                var storedHash = downloadItem.DownloadedFiles.FirstOrDefault(f =>
+                    string.Equals(f.Path, destinationPath, StringComparison.OrdinalIgnoreCase)
+                )?.Hash;
+
+                localMatches =
+                    !string.IsNullOrWhiteSpace(storedHash)
+                    && string.Equals(
+                        storedHash.Trim(),
+                        file.Digest.Trim(),
+                        StringComparison.OrdinalIgnoreCase
+                    );
+
+                if (localMatches)
                 {
-                    // If anything goes wrong, treat as mismatch and proceed.
-                    localMatches = false;
+                    downloadManager.AddDownloadedFilePath(productId, destinationPath);
+                    continue;
                 }
             }
 
@@ -264,17 +292,12 @@ public sealed class DownloadHelper
                     );
                 }
 
-                // Create a fresh DownloadService for each attempt to avoid state leakage
-                using var svc = new DownloadService(config);
-
-                bool currentFileCancelled = false;
-
                 using var cancellationRegistration = token.Register(() =>
                 {
                     try
                     {
                         updateService.UpdateAnimatedStatusBase("Cancelling");
-                        svc.CancelAsync();
+                        // Best-effort cancel; DownloadService is created per attempt in the actual download branch.
                     }
                     catch
                     {
@@ -297,7 +320,6 @@ public sealed class DownloadHelper
                                     "No progress detected. Restarting..."
                                 );
                                 attemptCts.Cancel();
-                                svc.CancelAsync();
                             }
                         }
                         catch
@@ -310,78 +332,20 @@ public sealed class DownloadHelper
                     NO_PROGRESS_TIMEOUT_MS
                 );
 
-                // Throttle persisting the downloads list to disk; frequent writes to downloads.json
-                // during big transfers can block the UI thread.
-                long lastPersistMs = 0;
-                void PersistMilestoneIfDue(long nowMs, bool force = false)
-                {
-                    if (force || nowMs - Interlocked.Read(ref lastPersistMs) >= PERSIST_THROTTLE_MS)
-                    {
-                        Interlocked.Exchange(ref lastPersistMs, nowMs);
-                        downloadManager.SaveDownloadsThrottled();
-                    }
-                }
-
                 // Cache item reference
                 var cachedItem = downloadItem!;
 
-                svc.DownloadProgressChanged += (s, e) =>
-                {
-                    long tickNow = Environment.TickCount64;
-
-                    // Simple throttle: don't update more than every 250ms (except for 100%)
-                    int wholePercent = (int)Math.Clamp(e.ProgressPercentage, 0, 100);
-                    bool isComplete = wholePercent == 100;
-
-                    if (!isComplete && tickNow - Volatile.Read(ref lastUIUpdateMs) < UI_THROTTLE_MS)
-                        return;
-
-                    // We remove the strict 'wholePercent == lastWholePercent' check here so that
-                    // we can update byte counts and text even if the percentage hasn't changed.
-                    // This ensures the UI doesn't look "stuck" on large files where % is slow to move.
-
-                    lastWholePercent = wholePercent;
-                    Volatile.Write(ref lastUIUpdateMs, tickNow);
-                    Interlocked.Exchange(ref lastProgressTicks, tickNow - startTicks);
-
-                    var receivedText = FormatBytes(e.ReceivedBytesSize);
-                    var totalText = FormatBytes(e.TotalBytesToReceive);
-                    var detailsString = $"{wholePercent}% • {receivedText} / {totalText}";
-
-                    // Skip UI updates if nobody is watching (saves CPU when on other pages)
-                    // Still update backing fields so values are ready when user navigates back
-                    if (!downloadManager.IsAnyoneObserving)
-                    {
-                        cachedItem.SetProgressSilent(wholePercent);
-                        cachedItem.ReceivedBytes = e.ReceivedBytesSize;
-                        cachedItem.TotalBytes = e.TotalBytesToReceive;
-                        cachedItem.SetDisplayDetailsTextSilent(detailsString);
-
-                        PersistMilestoneIfDue(tickNow - startTicks, force: isComplete);
-                        return;
-                    }
-
-                    // Update on UI thread - only when someone is watching
-                    downloadManager.RunOnUIThread(() =>
-                    {
-                        cachedItem.Progress = wholePercent;
-                        cachedItem.ReceivedBytes = e.ReceivedBytesSize;
-                        cachedItem.TotalBytes = e.TotalBytesToReceive;
-                        cachedItem.DisplayDetailsText = detailsString;
-                    });
-
-                    // Persist occasionally
-                    PersistMilestoneIfDue(tickNow - startTicks, force: isComplete);
-                };
-
-                svc.DownloadFileCompleted += (s, e) =>
-                {
-                    if (e.Cancelled)
-                        currentFileCancelled = true;
-                };
+                // Progress + cancellation detection are now handled by the concrete download implementation
+                // (Downloader for full download, blockmap progress for delta).
 
                 try
                 {
+                    // If we're about to (re)download/patch this file, clear any previously
+                    // persisted hash. Otherwise a past successful hash can survive into a
+                    // new partial/failed attempt and cause a false cache hit later.
+                    downloadManager.ClearDownloadedFileHash(productId, destinationPath);
+                    downloadManager.RemoveDownloadedFileEntry(productId, destinationPath);
+
                     // Delta: only when there is an existing local file, it doesn't match the expected digest,
                     // and we have the blockmap CAB URL + digest.
                     if (
@@ -431,8 +395,6 @@ public sealed class DownloadHelper
                                     cachedItem.ReceivedBytes = p.bytesDownloaded;
                                     cachedItem.TotalBytes = p.totalBytes;
                                     cachedItem.SetDisplayDetailsTextSilent(detailsString);
-
-                                    PersistMilestoneIfDue(tickNow - startTicks, force: isComplete);
                                     return;
                                 }
 
@@ -443,8 +405,6 @@ public sealed class DownloadHelper
                                     cachedItem.TotalBytes = p.totalBytes;
                                     cachedItem.DisplayDetailsText = detailsString;
                                 });
-
-                                PersistMilestoneIfDue(tickNow - startTicks, force: isComplete);
                             }
                         );
 
@@ -462,17 +422,84 @@ public sealed class DownloadHelper
                     }
                     else
                     {
-                        await svc.DownloadFileTaskAsync(file.Url, destinationPath, attemptToken)
+                        var downloadConfig = new DownloadConfiguration
+                        {
+                            ReserveStorageSpaceBeforeStartingDownload = config.ReserveStorageSpaceBeforeStartingDownload,
+                            ParallelDownload = false,
+                            ChunkCount = 1,
+                            ParallelCount = 1,
+                            Timeout = config.Timeout,
+                            BufferBlockSize = config.BufferBlockSize,
+                            MaximumBytesPerSecond = config.MaximumBytesPerSecond,
+                            EnableLiveStreaming = true,
+                        };
+
+                        await DownloadAsync(
+                                downloadConfig,
+                                file.Url,
+                                destinationPath,
+                                attemptToken,
+                                totalBytes =>
+                                {
+                                    if (totalBytes > 0)
+                                    {
+                                        cachedItem.TotalBytes = totalBytes;
+                                        downloadManager.UpdateDownloadBytes(
+                                            productId,
+                                            cachedItem.ReceivedBytes,
+                                            cachedItem.TotalBytes
+                                        );
+                                    }
+                                },
+                                receivedBytes =>
+                                {
+                                    cachedItem.ReceivedBytes = receivedBytes;
+                                    downloadManager.UpdateDownloadBytes(
+                                        productId,
+                                        cachedItem.ReceivedBytes,
+                                        cachedItem.TotalBytes
+                                    );
+                                },
+                                progress =>
+                                {
+                                    long tickNow = Environment.TickCount64;
+                                    int wholePercent = (int)Math.Clamp(progress, 0, 100);
+                                    bool isComplete = wholePercent == 100;
+
+                                    if (
+                                        !isComplete
+                                        && tickNow - Volatile.Read(ref lastUIUpdateMs) < UI_THROTTLE_MS
+                                    )
+                                        return;
+
+                                    lastWholePercent = wholePercent;
+                                    Volatile.Write(ref lastUIUpdateMs, tickNow);
+                                    Interlocked.Exchange(ref lastProgressTicks, tickNow - startTicks);
+
+                                    var receivedText = FormatBytes(cachedItem.ReceivedBytes ?? 0);
+                                    var totalText = FormatBytes(cachedItem.TotalBytes ?? 0);
+                                    var detailsString =
+                                        $"{wholePercent}% • {receivedText} / {totalText}";
+
+                                    downloadManager.UpdateDownloadProgress(productId, wholePercent);
+                                    downloadManager.UpdateDownloadDetailsText(productId, detailsString);
+                                }
+                            )
                             .ConfigureAwait(false);
                     }
 
-                    if (token.IsCancellationRequested || currentFileCancelled)
+                    if (token.IsCancellationRequested)
                     {
                         cancelled = true;
                         break;
                     }
 
-                    downloadManager.AddDownloadedFilePath(productId, destinationPath);
+                    // Only persist the hash now that the file is confirmed on disk.
+                    // Storing it earlier risks writing to JSON before completion,
+                    // which would cause the integrity-cache check to skip
+                    // re-downloading a partially written file.
+                    var confirmedHash = isUnpackaged ? file.Sha256 : file.Digest;
+                    downloadManager.AddDownloadedFile(productId, destinationPath, confirmedHash);
                     downloaded = true;
                     break;
                 }
@@ -608,14 +635,16 @@ public sealed class DownloadHelper
         // Animated dots in the Downloads list during install
         animator.Start(downloadItem, "Installing");
 
-        var mainPackagePath = downloadItem.DownloadedFilePaths.FirstOrDefault(p =>
-            !string.IsNullOrWhiteSpace(p)
-            && string.Equals(
-                Path.GetFileName(p),
-                Path.GetFileName(entry.FileName),
-                StringComparison.OrdinalIgnoreCase
-            )
-        );
+        var mainPackagePath = downloadItem.DownloadedFiles
+            .Select(f => f.Path)
+            .FirstOrDefault(p =>
+                !string.IsNullOrWhiteSpace(p)
+                && string.Equals(
+                    Path.GetFileName(p),
+                    Path.GetFileName(entry.FileName),
+                    StringComparison.OrdinalIgnoreCase
+                )
+            );
 
         if (string.IsNullOrWhiteSpace(mainPackagePath) || !File.Exists(mainPackagePath))
         {
@@ -629,7 +658,8 @@ public sealed class DownloadHelper
             return;
         }
 
-        var depPaths = (downloadItem?.DownloadedFilePaths ?? [])
+        var depPaths = (downloadItem?.DownloadedFiles ?? [])
+            .Select(f => f.Path)
             .Where(p =>
                 !string.IsNullOrWhiteSpace(p)
                 && File.Exists(p)

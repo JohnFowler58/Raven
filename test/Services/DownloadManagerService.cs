@@ -60,6 +60,62 @@ public class DownloadManagerService
         });
     }
 
+    public void ClearDownloadedFileHash(string productId, string filePath)
+    {
+        var changed = false;
+
+        lock (_lock)
+        {
+            var item = Downloads.FirstOrDefault(d => d.ProductId == productId);
+            if (item == null)
+                return;
+
+            var existing = item.DownloadedFiles.FirstOrDefault(f =>
+                string.Equals(f.Path, filePath, StringComparison.OrdinalIgnoreCase)
+            );
+
+            if (existing is null)
+                return;
+
+            if (!string.IsNullOrWhiteSpace(existing.Hash))
+            {
+                existing.Hash = null;
+                changed = true;
+            }
+        }
+
+        if (changed)
+        {
+            SaveDownloadsThrottled();
+        }
+    }
+
+    public void RemoveDownloadedFileEntry(string productId, string filePath)
+    {
+        var changed = false;
+
+        lock (_lock)
+        {
+            var item = Downloads.FirstOrDefault(d => d.ProductId == productId);
+            if (item == null)
+                return;
+
+            var index = item.DownloadedFiles.FindIndex(f =>
+                string.Equals(f.Path, filePath, StringComparison.OrdinalIgnoreCase)
+            );
+            if (index < 0)
+                return;
+
+            item.DownloadedFiles.RemoveAt(index);
+            changed = true;
+        }
+
+        if (changed)
+        {
+            SaveDownloadsThrottled();
+        }
+    }
+
     private DownloadManagerService()
     {
         _downloadDataPath = Path.Combine(AppContext.BaseDirectory, "downloads.json");
@@ -133,7 +189,7 @@ public class DownloadManagerService
                 Status = DownloadStatus.Downloading,
                 LastAccessedAt = DateTime.Now,
                 ProductInfo = productInfo,
-                DownloadedFilePaths = [],
+                DownloadedFiles = [],
             };
 
             RunOnUIThread(() => Downloads.Insert(0, item));
@@ -372,15 +428,52 @@ public class DownloadManagerService
         }
     }
 
-    public void AddDownloadedFilePath(string productId, string filePath)
+    public void AddDownloadedFilePath(string productId, string filePath) =>
+        AddDownloadedFile(productId, filePath, hash: null);
+
+    public void AddDownloadedFile(string productId, string filePath, string? hash)
     {
         lock (_lock)
         {
             var item = Downloads.FirstOrDefault(d => d.ProductId == productId);
-            if (item != null && !item.DownloadedFilePaths.Contains(filePath))
+            if (item == null)
+                return;
+
+            var existing = item.DownloadedFiles.FirstOrDefault(f =>
+                string.Equals(f.Path, filePath, StringComparison.OrdinalIgnoreCase)
+            );
+
+            if (existing is null)
             {
-                item.DownloadedFilePaths.Add(filePath);
+                item.DownloadedFiles.Add(
+                    new DownloadItem.DownloadedFile { Path = filePath, Hash = hash }
+                );
             }
+            else
+            {
+                if (!string.IsNullOrWhiteSpace(hash))
+                    existing.Hash = hash;
+            }
+        }
+
+        // Persist hashes to disk so integrity checks survive restart, but only once the file
+        // has completed (or can be resumed via delta on next run). Callers must only provide
+        // a non-null hash after a successful download/delta apply.
+        if (!string.IsNullOrWhiteSpace(hash))
+        {
+            SaveDownloadsThrottled();
+        }
+    }
+
+    public string? TryGetDownloadedFileHash(string productId, string filePath)
+    {
+        lock (_lock)
+        {
+            var item = Downloads.FirstOrDefault(d => d.ProductId == productId);
+            var entry = item?.DownloadedFiles.FirstOrDefault(f =>
+                string.Equals(f.Path, filePath, StringComparison.OrdinalIgnoreCase)
+            );
+            return entry?.Hash;
         }
     }
 
@@ -540,7 +633,7 @@ public class DownloadManagerService
                         }
                         else if (
                             item.Status == DownloadStatus.Cancelling
-                            && item.DownloadedFilePaths.Count > 0
+                            && item.DownloadedFiles.Count > 0
                         )
                         {
                             item.Status = DownloadStatus.Completed;
@@ -552,7 +645,7 @@ public class DownloadManagerService
                         else if (item.Status == DownloadStatus.Installing)
                         {
                             item.Status =
-                                item.DownloadedFilePaths.Count > 0
+                                item.DownloadedFiles.Count > 0
                                     ? DownloadStatus.Completed
                                     : DownloadStatus.Cancelled;
                         }
