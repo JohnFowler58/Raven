@@ -247,37 +247,13 @@ public sealed partial class AppPage : Page
         if (_currentProductInfo == null)
             return false;
 
-        // Only show "Update" for installed apps when:
-        // - We can parse the Store revision date (RevisionId)
-        // - We can determine the install timestamp
-        // - Installed timestamp is older than the Store revision date
-        if (!TryParseStoreRevisionUtc(_currentProductInfo.RevisionId, out var storeRevisionUtc))
-            return false;
-
-        var installedUtc = GetInstalledUtc(_currentProductInfo.PackageFamilyName);
-        if (installedUtc == null)
-            return false;
-
-        return installedUtc.Value < storeRevisionUtc;
-    }
-
-    private static bool TryParseStoreRevisionUtc(string? revisionId, out DateTimeOffset revisionUtc)
-    {
-        revisionUtc = default;
-        if (string.IsNullOrWhiteSpace(revisionId))
-            return false;
-
-        return DateTimeOffset.TryParse(
-            revisionId,
-            System.Globalization.CultureInfo.InvariantCulture,
-            System.Globalization.DateTimeStyles.AssumeUniversal
-                | System.Globalization.DateTimeStyles.AdjustToUniversal,
-            out revisionUtc
+        var storeVersion = downloadItem?.StoreVersion ?? AppData.Version;
+        var installedVersion = PackagedAppDiscovery.GetInstalledVersion(
+            _currentProductInfo.PackageFamilyName
         );
-    }
 
-    private static DateTimeOffset? GetInstalledUtc(string? packageFamilyName) =>
-        PackagedAppDiscovery.GetInstalledUtc(packageFamilyName);
+        return VersionComparison.IsStoreNewer(storeVersion, installedVersion);
+    }
 
     private void BindToDownloadItem(DownloadItem item)
     {
@@ -725,11 +701,6 @@ public sealed partial class AppPage : Page
                         "The app package is installed, but no launchable app entries were found.",
                     _ => "The app couldn't be opened. Try reinstalling the app.",
                 };
-
-                if (!string.IsNullOrWhiteSpace(launch.InstalledUtc))
-                {
-                    msg += $"\n\nInstalled: {launch.InstalledUtc}";
-                }
 
                 await ShowErrorDialogAsync("Unable to open app", msg);
             }

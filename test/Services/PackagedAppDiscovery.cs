@@ -5,7 +5,7 @@ namespace test.Services;
 
 public static class PackagedAppDiscovery
 {
-    public sealed record InstalledAppInfo(bool IsInstalled, string? InstalledUtc);
+    public sealed record InstalledAppInfo(bool IsInstalled);
 
     public enum LaunchFailureReason
     {
@@ -16,9 +16,28 @@ public static class PackagedAppDiscovery
         LaunchFailed,
     }
 
+    public static string? GetInstalledVersion(string? packageFamilyName)
+    {
+        if (string.IsNullOrWhiteSpace(packageFamilyName))
+            return null;
+
+        try
+        {
+            var pm = new PackageManager();
+            var pkg = pm.FindPackagesForUser(string.Empty, packageFamilyName).FirstOrDefault();
+            var v = pkg?.Id?.Version;
+            return v == null
+                ? null
+                : $"{v.Value.Major}.{v.Value.Minor}.{v.Value.Build}.{v.Value.Revision}";
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public sealed record PackagedLaunchResult(
         bool Success,
-        string? InstalledUtc,
         string? LaunchedAppUserModelId,
         LaunchFailureReason FailureReason
     );
@@ -32,33 +51,17 @@ public static class PackagedAppDiscovery
     public static InstalledAppInfo GetInstalledInfo(string? packageFamilyName)
     {
         if (string.IsNullOrWhiteSpace(packageFamilyName))
-            return new InstalledAppInfo(false, null);
-
-        var installedUtc = GetInstalledUtc(packageFamilyName);
-        return installedUtc != null
-            ? new InstalledAppInfo(true, installedUtc.Value.ToString("o"))
-            : new InstalledAppInfo(false, null);
-    }
-
-    public static DateTimeOffset? GetInstalledUtc(string? packageFamilyName)
-    {
-        if (string.IsNullOrWhiteSpace(packageFamilyName))
-            return null;
+            return new InstalledAppInfo(false);
 
         try
         {
             var pm = new PackageManager();
             var pkg = pm.FindPackagesForUser(string.Empty, packageFamilyName).FirstOrDefault();
-            var path = pkg?.InstalledLocation?.Path;
-            if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
-                return null;
-
-            var creationUtc = Directory.GetCreationTimeUtc(path);
-            return new DateTimeOffset(creationUtc, TimeSpan.Zero);
+            return new InstalledAppInfo(pkg != null);
         }
         catch
         {
-            return null;
+            return new InstalledAppInfo(false);
         }
     }
 
@@ -74,7 +77,6 @@ public static class PackagedAppDiscovery
         {
             return new PackagedLaunchResult(
                 Success: false,
-                InstalledUtc: null,
                 LaunchedAppUserModelId: null,
                 FailureReason: LaunchFailureReason.PackageFamilyNameMissing
             );
@@ -88,14 +90,10 @@ public static class PackagedAppDiscovery
             {
                 return new PackagedLaunchResult(
                     Success: false,
-                    InstalledUtc: null,
                     LaunchedAppUserModelId: null,
                     FailureReason: LaunchFailureReason.NotInstalled
                 );
             }
-
-            var installedUtc = GetInstalledUtc(packageFamilyName);
-            var installedUtcString = installedUtc?.ToString("o");
 
             var entries = await pkg.GetAppListEntriesAsync();
             var entry = entries.FirstOrDefault();
@@ -103,7 +101,6 @@ public static class PackagedAppDiscovery
             {
                 return new PackagedLaunchResult(
                     Success: false,
-                    InstalledUtc: installedUtcString,
                     LaunchedAppUserModelId: null,
                     FailureReason: LaunchFailureReason.NoAppEntries
                 );
@@ -112,7 +109,6 @@ public static class PackagedAppDiscovery
             await entry.LaunchAsync();
             return new PackagedLaunchResult(
                 Success: true,
-                InstalledUtc: installedUtcString,
                 LaunchedAppUserModelId: entry.AppUserModelId,
                 FailureReason: LaunchFailureReason.None
             );
@@ -122,7 +118,6 @@ public static class PackagedAppDiscovery
             Debug.WriteLine(ex);
             return new PackagedLaunchResult(
                 Success: false,
-                InstalledUtc: null,
                 LaunchedAppUserModelId: null,
                 FailureReason: LaunchFailureReason.LaunchFailed
             );
