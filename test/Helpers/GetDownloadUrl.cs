@@ -132,7 +132,6 @@ public static class GetDownloadUrl
 
                 var updates = fe3sync.Value.Updates.ToList();
                 var priorities = Utils.GetArchPriorities(archRid, isPackaged: true);
-
                 var candidates = updates
                     .Where(t =>
                         !t.IsFramework
@@ -146,7 +145,6 @@ public static class GetDownloadUrl
 
                 foreach (var archPref in priorities)
                 {
-                    // 1. Select Main App Candidates matching current priority
                     var archCandidates = candidates.Where(c =>
                         Utils.ParseArchString(c.FileName ?? c.PackageIdentityName, isPackaged: true)
                         == archPref
@@ -173,8 +171,6 @@ public static class GetDownloadUrl
                         {
                             foreach (var dep in dcatMain.FrameworkDependencies)
                             {
-                                // FIX: Do NOT filter by 'archPref' here.
-                                // Find ALL valid candidates for this dependency, then let ReduceFrameworkDependencyFiles pick the best one.
                                 var applicable = updates
                                     .Where(d =>
                                         d.PackageIdentityName.Equals(
@@ -198,15 +194,12 @@ public static class GetDownloadUrl
                                     break;
                                 }
 
-                                // Group by version to get the latest available version of this dependency
                                 var latestGroup = applicable
                                     .GroupBy(a => a.Version)
                                     .OrderByDescending(g => g.Key)
                                     .First()
                                     .ToList();
 
-                                // Use the helper to pick the best architecture for this dependency
-                                // (e.g. It might pick 'neutral' even if main app is 'x64')
                                 var reduced = ReduceFrameworkDependencyFiles(
                                     latestGroup
                                         .Select(u => (Update: u, Url: string.Empty))

@@ -1,3 +1,4 @@
+using System.IO;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -5,7 +6,6 @@ using test.Contracts.Services;
 using test.Models;
 using test.Services;
 using test.ViewModels;
-using System.IO;
 
 namespace test.Views;
 
@@ -14,6 +14,7 @@ public sealed partial class DownloadsPage : Page
     public DownloadsViewModel ViewModel { get; }
     private readonly INavigationService _navigationService;
     private test.Helpers.DownloadItemStatusAnimator? _animator;
+    private readonly HashSet<string> _subscribedProductIds = new(StringComparer.OrdinalIgnoreCase);
 
     public DownloadsPage()
     {
@@ -33,6 +34,58 @@ public sealed partial class DownloadsPage : Page
         // may get GC'ed. Restart animations for any active items so the Downloads list doesn't look stuck.
         foreach (var item in ViewModel.Downloads)
         {
+            SubscribeToItemIfNeeded(item);
+            switch (item.Status)
+            {
+                case DownloadStatus.Pending:
+                    // Reset any stale override from other pages/flows so our animator can take over.
+                    item.StatusTextOverride = null;
+                    StartOrUpdateAnimation(item, fallback: "Fetching download URLs");
+                    break;
+                case DownloadStatus.Downloading:
+                    item.StatusTextOverride = null;
+                    StartOrUpdateAnimation(item, fallback: "Downloading");
+                    break;
+                case DownloadStatus.Installing:
+                    item.StatusTextOverride = null;
+                    StartOrUpdateAnimation(item, fallback: "Installing");
+                    break;
+                case DownloadStatus.Cancelling:
+                    item.StatusTextOverride = null;
+                    StartOrUpdateAnimation(item, fallback: "Cancelling");
+                    break;
+                default:
+                    _animator.Stop(item);
+                    break;
+            }
+        }
+    }
+
+    private void SubscribeToItemIfNeeded(DownloadItem item)
+    {
+        if (string.IsNullOrWhiteSpace(item.ProductId))
+            return;
+
+        if (_subscribedProductIds.Contains(item.ProductId))
+            return;
+
+        item.PropertyChanged -= OnDownloadItemPropertyChanged;
+        item.PropertyChanged += OnDownloadItemPropertyChanged;
+        _subscribedProductIds.Add(item.ProductId);
+    }
+
+    private void OnDownloadItemPropertyChanged(
+        object? sender,
+        System.ComponentModel.PropertyChangedEventArgs e
+    )
+    {
+        if (sender is not DownloadItem item)
+            return;
+
+        if (
+            e.PropertyName is nameof(DownloadItem.Status) or nameof(DownloadItem.StatusTextOverride)
+        )
+        {
             switch (item.Status)
             {
                 case DownloadStatus.Pending:
@@ -48,7 +101,7 @@ public sealed partial class DownloadsPage : Page
                     StartOrUpdateAnimation(item, fallback: "Cancelling");
                     break;
                 default:
-                    _animator.Stop(item);
+                    _animator?.Stop(item);
                     break;
             }
         }
@@ -98,8 +151,11 @@ public sealed partial class DownloadsPage : Page
             foreach (var item in ViewModel.Downloads)
             {
                 _animator.Stop(item);
+                item.PropertyChanged -= OnDownloadItemPropertyChanged;
             }
         }
+
+        _subscribedProductIds.Clear();
     }
 
     private void DownloadsList_ItemClick(object sender, ItemClickEventArgs e)
@@ -119,7 +175,7 @@ public sealed partial class DownloadsPage : Page
         var psi = new System.Diagnostics.ProcessStartInfo
         {
             FileName = downloadsPath,
-            UseShellExecute = true
+            UseShellExecute = true,
         };
 
         System.Diagnostics.Process.Start(psi);
@@ -140,5 +196,4 @@ public sealed partial class DownloadsPage : Page
             DownloadManagerService.Instance.RemoveDownload(productId);
         }
     }
-
 }

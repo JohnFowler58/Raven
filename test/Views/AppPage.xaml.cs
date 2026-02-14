@@ -20,6 +20,7 @@ public sealed partial class AppPage : Page
     private CancellationTokenSource? _downloadCts;
     private ProductData? _currentProductInfo;
     private DownloadItem? _activeDownloadItem;
+    private bool _isForceInstalling;
 
     private static readonly string[] UnpackagedExtensions = [".exe", ".msi"];
 
@@ -75,6 +76,7 @@ public sealed partial class AppPage : Page
         _productLoadCts?.Dispose();
         _productLoadCts = null;
 
+        _isForceInstalling = false;
         UpdateService.StopStatusAnimation();
         UnbindFromDownloadItem();
     }
@@ -390,10 +392,139 @@ public sealed partial class AppPage : Page
                 {
                     UpdateService.StopStatusAnimation();
                     StatusText.Text = item.StatusText;
+                    if (item.Status == DownloadStatus.Failed && !_isForceInstalling)
+                    {
+                        _ = ShowInstallationFailedPopupIfAvailableAsync(item);
+                    }
                     UnbindFromDownloadItem();
                     UpdateInstallButtonState();
                 }
                 break;
+        }
+    }
+
+    private bool IsCurrentProduct(DownloadItem item) =>
+        _currentProductInfo != null
+        && string.Equals(
+            _currentProductInfo.ProductId,
+            item.ProductId,
+            StringComparison.OrdinalIgnoreCase
+        );
+
+    private async Task ShowInstallationFailedPopupIfAvailableAsync(DownloadItem item)
+    {
+        if (item.LastInstallError == null)
+            return;
+
+        try
+        {
+            var mainPackagePath = PickMainPackage(item.DownloadedFilePaths);
+
+            if (IsCurrentProduct(item))
+            {
+                var force = await InstallHelper.ShowInstallationErrorOrForceInstallDialogAsync(
+                    this.Content.XamlRoot,
+                    "Installation failed",
+                    item.LastInstallError
+                );
+
+                if (force && !string.IsNullOrWhiteSpace(mainPackagePath))
+                {
+                    await RetryForceInstallAsync(item, mainPackagePath);
+                    return;
+                }
+            }
+        }
+        finally
+        {
+            // prevent repeating the same popup if state updates fire again
+            item.LastInstallError = null;
+        }
+    }
+
+    private async Task RetryForceInstallAsync(DownloadItem item, string mainPackagePath)
+    {
+        var productId = item.ProductId;
+        var downloadManager = DownloadManagerService.Instance;
+
+        _isForceInstalling = true;
+
+        // Ensure we're observing so status/progress changes propagate immediately.
+        if (!ReferenceEquals(_activeDownloadItem, item))
+        {
+            UnbindFromDownloadItem();
+            _activeDownloadItem = item;
+            BindToDownloadItem(item);
+        }
+
+        // Clear any previous install error so status handler can't pick it up.
+        item.LastInstallError = null;
+
+        // Reflect install retry in UI + Downloads page.
+        downloadManager.UpdateDownloadStatus(productId, DownloadStatus.Installing);
+        downloadManager.UpdateDownloadProgress(productId, 0);
+        // Use the override for animated dots in the Downloads list.
+        downloadManager.UpdateDownloadStatusText(productId, "Installing");
+        try
+        {
+            downloadManager.UpdateDownloadBytes(productId, null, null);
+        }
+        catch { }
+
+        downloadManager.UpdateDownloadDetailsText(productId, string.Empty);
+
+        UpdateService.SetProgress(0);
+        UpdateService.SetDetails(string.Empty);
+        StatusText.Text = "Installing";
+        DetailsText.Text = "0%";
+        SetInstallButtonState(showProgress: true);
+        SetProgressIndeterminate(false);
+        UpdateService.StartStatusAnimation("Installing");
+
+        var depPaths = item
+            .DownloadedFilePaths.Where(p =>
+                !string.IsNullOrWhiteSpace(p)
+                && File.Exists(p)
+                && !string.Equals(p, mainPackagePath, StringComparison.OrdinalIgnoreCase)
+            )
+            .ToList();
+
+        try
+        {
+            var installProgress = new Progress<AppPackageInstaller.InstallProgress>(p =>
+            {
+                var percent = (int)Math.Clamp(p.Percent, 0, 100);
+                downloadManager.UpdateDownloadProgress(productId, percent);
+            });
+
+            await AppPackageInstaller.InstallAsync(
+                mainPackagePath,
+                dependencyPackagePaths: depPaths,
+                progress: installProgress,
+                ignoreVersion: true
+            );
+
+            UpdateService.StopStatusAnimation();
+            downloadManager.UpdateDownloadStatusText(productId, null);
+            downloadManager.UpdateDownloadStatus(productId, DownloadStatus.Completed);
+        }
+        catch (Exception ex)
+        {
+            UpdateService.StopStatusAnimation();
+            downloadManager.UpdateDownloadStatusText(productId, $"Install failed: {ex.Message}");
+            downloadManager.UpdateDownloadStatus(productId, DownloadStatus.Failed);
+
+            // Force install already failed: do not re-offer force install.
+            await InstallHelper.ShowInstallationErrorDialogAsync(
+                this.Content.XamlRoot,
+                "Installation failed",
+                ex
+            );
+        }
+        finally
+        {
+            _isForceInstalling = false;
+            UpdateInstallButtonState();
         }
     }
 

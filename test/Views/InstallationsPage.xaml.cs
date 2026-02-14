@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -193,7 +194,11 @@ public sealed partial class InstallationsPage : Page
         }
         catch (Exception ex)
         {
-            _ = InstallHelper.ShowDialogAsync(this.Content.XamlRoot, "File picker error", ex.Message);
+            _ = InstallHelper.ShowDialogAsync(
+                this.Content.XamlRoot,
+                "File picker error",
+                ex.Message
+            );
         }
         finally
         {
@@ -241,10 +246,10 @@ public sealed partial class InstallationsPage : Page
         if (string.IsNullOrWhiteSpace(path))
             return;
 
-        await PerformInstallAsync(path);
+        await PerformInstallAsync(path, false);
     }
 
-    private async Task PerformInstallAsync(string path)
+    private async Task PerformInstallAsync(string path, bool ignoreVersion)
     {
         InstallButton.IsEnabled = false;
         DropZoneButton.IsEnabled = false; // disable drag box during install
@@ -252,6 +257,7 @@ public sealed partial class InstallationsPage : Page
         InstallProgressBar.Value = 0;
         ProgressPercentText.Text = "0%";
         UpdateService.StartStatusAnimation("Installing");
+        var shouldForceRetry = false;
 
         var progress = new Progress<AppPackageInstaller.InstallProgress>(p =>
         {
@@ -265,7 +271,13 @@ public sealed partial class InstallationsPage : Page
         Exception? installException = null;
         try
         {
-            await AppPackageInstaller.InstallAsync(path, dependencyPackagePaths: null, progress);
+            Debug.WriteLine($"Starting installation with ignoreVersion={ignoreVersion}");
+            await AppPackageInstaller.InstallAsync(
+                path,
+                dependencyPackagePaths: null,
+                progress,
+                ignoreVersion: ignoreVersion
+            );
             UpdateService.StopStatusAnimation();
             ProgressStatusText.Text = "Installed.";
             ProgressPercentText.Text = "100%";
@@ -311,13 +323,24 @@ public sealed partial class InstallationsPage : Page
 
                 if (installException != null)
                 {
-                    await InstallHelper.ShowInstallationErrorDialogAsync(
-                        this.Content.XamlRoot,
-                        "Installation failed",
-                        installException
-                    );
+                    shouldForceRetry =
+                        !ignoreVersion
+                        && await InstallHelper.ShowInstallationErrorOrForceInstallDialogAsync(
+                            this.Content.XamlRoot,
+                            "Installation failed",
+                            installException
+                        );
                 }
             }
+        }
+
+        if (shouldForceRetry)
+        {
+            // Retry with ignore-version.
+            ProgressStatusText.Text = string.Empty;
+            ProgressPercentText.Text = "0%";
+            InstallProgressBar.Value = 0;
+            await PerformInstallAsync(path, ignoreVersion: true);
         }
     }
 }

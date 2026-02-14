@@ -648,13 +648,16 @@ public class DownloadManagerService
                         // Helper to detect if files are present (legacy list or new folder path)
                         bool HasFiles()
                         {
-                            if (item.DownloadedFiles.Count > 0) return true;
+                            if (item.DownloadedFiles.Count > 0)
+                                return true;
                             if (
                                 !string.IsNullOrWhiteSpace(item.DownloadPath)
                                 && Directory.Exists(item.DownloadPath)
                             )
                             {
-                                return Directory.EnumerateFileSystemEntries(item.DownloadPath).Any();
+                                return Directory
+                                    .EnumerateFileSystemEntries(item.DownloadPath)
+                                    .Any();
                             }
                             return false;
                         }
@@ -668,10 +671,7 @@ public class DownloadManagerService
                         {
                             item.Status = DownloadStatus.Cancelled;
                         }
-                        else if (
-                            item.Status == DownloadStatus.Cancelling
-                            && HasFiles()
-                        )
+                        else if (item.Status == DownloadStatus.Cancelling && HasFiles())
                         {
                             item.Status = DownloadStatus.Completed;
                         }
@@ -840,7 +840,9 @@ public class DownloadManagerService
         // This handles cases where individual file paths are missing or stale.
         try
         {
-            if (!string.IsNullOrWhiteSpace(item.DownloadPath) && Directory.Exists(item.DownloadPath))
+            if (
+                !string.IsNullOrWhiteSpace(item.DownloadPath) && Directory.Exists(item.DownloadPath)
+            )
             {
                 Directory.Delete(item.DownloadPath, recursive: true);
                 Debug.WriteLine($"Deleted app folder: {item.DownloadPath}");
@@ -874,7 +876,10 @@ public class DownloadManagerService
                 var parent = Directory.GetParent(dir);
                 if (
                     parent != null
-                    && parent.FullName.Equals(baseDownloadsDirOld, StringComparison.OrdinalIgnoreCase)
+                    && parent.FullName.Equals(
+                        baseDownloadsDirOld,
+                        StringComparison.OrdinalIgnoreCase
+                    )
                 )
                 {
                     appDir = dir;

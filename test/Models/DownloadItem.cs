@@ -212,6 +212,9 @@ public partial class DownloadItem : INotifyPropertyChanged
     [JsonIgnore]
     public ProductData? ProductInfo { get; set; }
 
+    [JsonIgnore]
+    public Exception? LastInstallError { get; set; }
+
     private string? _statusTextOverride;
 
     [JsonIgnore]

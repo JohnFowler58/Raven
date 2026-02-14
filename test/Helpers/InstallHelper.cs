@@ -8,10 +8,10 @@ namespace test.Helpers;
 public static class InstallHelper
 {
     private const int ERROR_PACKAGED_SERVICE_REQUIRES_ADMIN = unchecked((int)0x80073D28);
+    private const int ERROR_INSTALL_CONFLICTING_PACKAGE = unchecked((int)0x80073D06);
 
     public static string GetFriendlyMsixError(int hresult, string message)
     {
-        const int ERROR_INSTALL_CONFLICTING_PACKAGE = unchecked((int)0x80073D06);
         const int ERROR_DEPLOYMENT_IN_PROGRESS = unchecked((int)0x80073D01);
         const int ERROR_INVALID_PACKAGE = unchecked((int)0x80073CF3);
         const int ERROR_PACKAGE_NOT_FOUND = unchecked((int)0x80073CFA);
@@ -52,6 +52,9 @@ public static class InstallHelper
     public static bool IsPackagedServiceAdminRequired(int hresult) =>
         hresult == ERROR_PACKAGED_SERVICE_REQUIRES_ADMIN;
 
+    public static bool IsNewerOrSameVersionInstalled(int hresult) =>
+        hresult == ERROR_INSTALL_CONFLICTING_PACKAGE;
+
     public static async Task ShowInstallationErrorDialogAsync(
         XamlRoot xamlRoot,
         string title,
@@ -68,7 +71,7 @@ public static class InstallHelper
             return;
         }
 
-        string content = exception switch
+        var content = exception switch
         {
             COMException comEx => GetFriendlyMsixError(comEx.HResult, comEx.Message),
             UnauthorizedAccessException ua =>
@@ -78,6 +81,30 @@ public static class InstallHelper
         };
 
         await ShowDialogAsync(xamlRoot, title, content);
+    }
+
+    public static async Task<bool> ShowInstallationErrorOrForceInstallDialogAsync(
+        XamlRoot xamlRoot,
+        string title,
+        Exception exception
+    )
+    {
+        if (exception is COMException comEx && IsNewerOrSameVersionInstalled(comEx.HResult))
+        {
+            var dialog = new ContentDialog
+            {
+                Title = title,
+                Content = GetFriendlyMsixError(comEx.HResult, comEx.Message),
+                PrimaryButtonText = "Force install",
+                CloseButtonText = "OK",
+                DefaultButton = ContentDialogButton.Primary,
+                XamlRoot = xamlRoot,
+            };
+
+            var result = await dialog.ShowAsync();
+            return result == ContentDialogResult.Primary;
+        }
+        return false;
     }
 
     private static async Task ShowAdminRequiredDialogAsync(

@@ -95,7 +95,7 @@ class Utils
                 throw new Exception("No packages found for this product.");
 
             // ---------------------------------------------------------
-            // Architecture Selection (Reusing your Helpers)
+            // Architecture Selection
             // ---------------------------------------------------------
             var archRid = SystemInfo.GetOsArchRid();
             var priorities = GetArchPriorities(archRid, isPackaged: true);
@@ -103,8 +103,6 @@ class Utils
 
             foreach (var priority in priorities)
             {
-                // Filter packages that match the current priority architecture
-                // We check PackageFullName first, falling back to PackageIdentityName
                 var matches = packages
                     .Where(p =>
                         ParseArchString(
@@ -112,17 +110,16 @@ class Utils
                             isPackaged: true
                         ) == priority
                     )
-                    .OrderByDescending(p => p.AppVersion) // Always pick the highest version
+                    .OrderByDescending(p => p.AppVersion)
                     .ToList();
 
                 if (matches.Any())
                 {
                     best = matches.First();
-                    break; // Found the best match, stop searching
+                    break;
                 }
             }
 
-            // Fallback: If no specific architecture matched, default to the absolute highest version
             if (best == null)
             {
                 best = packages.OrderByDescending(p => p.AppVersion).FirstOrDefault();

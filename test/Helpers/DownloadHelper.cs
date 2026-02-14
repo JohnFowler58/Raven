@@ -228,11 +228,18 @@ public sealed class DownloadHelper
             {
                 if (localExists && !string.IsNullOrWhiteSpace(file.Sha256))
                 {
-                    var storedHash = downloadItem.DownloadedFiles.FirstOrDefault(f =>
-                        string.Equals(f.Path, destinationPath, StringComparison.OrdinalIgnoreCase)
-                    )?.Hash;
+                    var storedHash = downloadItem
+                        .DownloadedFiles.FirstOrDefault(f =>
+                            string.Equals(
+                                f.Path,
+                                destinationPath,
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                        )
+                        ?.Hash;
 
-                    localMatches = !string.IsNullOrWhiteSpace(storedHash) && HashMatches(storedHash);
+                    localMatches =
+                        !string.IsNullOrWhiteSpace(storedHash) && HashMatches(storedHash);
                     if (localMatches)
                     {
                         downloadManager.AddDownloadedFilePath(productId, destinationPath);
@@ -242,9 +249,11 @@ public sealed class DownloadHelper
             }
             else if (localExists && !string.IsNullOrWhiteSpace(file.Digest))
             {
-                var storedHash = downloadItem.DownloadedFiles.FirstOrDefault(f =>
-                    string.Equals(f.Path, destinationPath, StringComparison.OrdinalIgnoreCase)
-                )?.Hash;
+                var storedHash = downloadItem
+                    .DownloadedFiles.FirstOrDefault(f =>
+                        string.Equals(f.Path, destinationPath, StringComparison.OrdinalIgnoreCase)
+                    )
+                    ?.Hash;
 
                 localMatches =
                     !string.IsNullOrWhiteSpace(storedHash)
@@ -426,7 +435,8 @@ public sealed class DownloadHelper
                     {
                         var downloadConfig = new DownloadConfiguration
                         {
-                            ReserveStorageSpaceBeforeStartingDownload = config.ReserveStorageSpaceBeforeStartingDownload,
+                            ReserveStorageSpaceBeforeStartingDownload =
+                                config.ReserveStorageSpaceBeforeStartingDownload,
                             ParallelDownload = false,
                             ChunkCount = 1,
                             ParallelCount = 1,
@@ -470,13 +480,17 @@ public sealed class DownloadHelper
 
                                     if (
                                         !isComplete
-                                        && tickNow - Volatile.Read(ref lastUIUpdateMs) < UI_THROTTLE_MS
+                                        && tickNow - Volatile.Read(ref lastUIUpdateMs)
+                                            < UI_THROTTLE_MS
                                     )
                                         return;
 
                                     lastWholePercent = wholePercent;
                                     Volatile.Write(ref lastUIUpdateMs, tickNow);
-                                    Interlocked.Exchange(ref lastProgressTicks, tickNow - startTicks);
+                                    Interlocked.Exchange(
+                                        ref lastProgressTicks,
+                                        tickNow - startTicks
+                                    );
 
                                     var receivedText = FormatBytes(cachedItem.ReceivedBytes ?? 0);
                                     var totalText = FormatBytes(cachedItem.TotalBytes ?? 0);
@@ -484,7 +498,10 @@ public sealed class DownloadHelper
                                         $"{wholePercent}% • {receivedText} / {totalText}";
 
                                     downloadManager.UpdateDownloadProgress(productId, wholePercent);
-                                    downloadManager.UpdateDownloadDetailsText(productId, detailsString);
+                                    downloadManager.UpdateDownloadDetailsText(
+                                        productId,
+                                        detailsString
+                                    );
                                 }
                             )
                             .ConfigureAwait(false);
@@ -637,8 +654,8 @@ public sealed class DownloadHelper
         // Animated dots in the Downloads list during install
         animator.Start(downloadItem, "Installing");
 
-        var mainPackagePath = downloadItem.DownloadedFiles
-            .Select(f => f.Path)
+        var mainPackagePath = downloadItem
+            .DownloadedFiles.Select(f => f.Path)
             .FirstOrDefault(p =>
                 !string.IsNullOrWhiteSpace(p)
                 && string.Equals(
@@ -731,6 +748,7 @@ public sealed class DownloadHelper
         {
             animator.Stop(downloadItem);
             updateService.StopStatusAnimation();
+            downloadItem.LastInstallError = ex;
             downloadManager.UpdateDownloadStatusText(productId, $"Install failed: {ex.Message}");
             downloadManager.UpdateDownloadStatus(productId, test.Models.DownloadStatus.Failed);
         }

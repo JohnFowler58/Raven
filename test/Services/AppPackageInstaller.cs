@@ -24,6 +24,7 @@ public static class AppPackageInstaller
         PackageManager packageManager,
         string packagePath,
         IProgress<InstallProgress>? progress,
+        DeploymentOptions deploymentOptions,
         CancellationToken cancellationToken
     )
     {
@@ -32,7 +33,7 @@ public static class AppPackageInstaller
         var deploymentOperation = packageManager.AddPackageAsync(
             packageUri,
             Array.Empty<Uri>(),
-            DeploymentOptions.ForceApplicationShutdown
+            deploymentOptions
         );
 
         deploymentOperation.Progress = (_, p) =>
@@ -54,6 +55,7 @@ public static class AppPackageInstaller
         string packagePath,
         IEnumerable<string>? dependencyPackagePaths = null,
         IProgress<InstallProgress>? progress = null,
+        bool ignoreVersion = false,
         CancellationToken cancellationToken = default
     )
     {
@@ -74,10 +76,20 @@ public static class AppPackageInstaller
 
         var packageManager = new PackageManager();
 
+        var options = DeploymentOptions.ForceApplicationShutdown;
+        if (ignoreVersion)
+            options |= DeploymentOptions.ForceUpdateFromAnyVersion;
+
         // Install main package first. If this fails, the install fails.
         try
         {
-            await AddPackageAsync(packageManager, packagePath, progress, cancellationToken);
+            await AddPackageAsync(
+                packageManager,
+                packagePath,
+                progress,
+                options,
+                cancellationToken
+            );
         }
         catch (Exception ex)
         {
@@ -91,7 +103,7 @@ public static class AppPackageInstaller
         {
             try
             {
-                await AddPackageAsync(packageManager, dep, progress: null, cancellationToken);
+                await AddPackageAsync(packageManager, dep, progress: null, options, cancellationToken);
             }
             catch (Exception ex)
             {
