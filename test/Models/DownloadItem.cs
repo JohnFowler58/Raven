@@ -200,6 +200,12 @@ public partial class DownloadItem : INotifyPropertyChanged
 
     public InstallerType InstallerType { get; set; }
 
+    /// <summary>
+    /// True when the last user-initiated action for this item was "Download only".
+    /// Persisted so Retry can repeat the correct action after an app restart.
+    /// </summary>
+    public bool WasDownloadOnly { get; set; }
+
     public string? PackageFamilyName { get; set; }
 
     /// <summary>

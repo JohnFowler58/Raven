@@ -30,6 +30,7 @@ public sealed partial class CardViewControl : UserControl
         InitializeComponent();
         scrollViewer.ViewChanged += ScrollViewer_ViewChanged;
         scrollViewer.Loaded += ScrollViewer_Loaded;
+        Unloaded += CardViewControl_Unloaded;
     }
     #endregion
 
@@ -383,6 +384,17 @@ public sealed partial class CardViewControl : UserControl
                 scrollViewer.ChangeView(null, ViewModel.ScrollPosition, null, false);
             });
         }
+    }
+
+    private void CardViewControl_Unloaded(object sender, RoutedEventArgs e)
+    {
+        scrollViewer.ViewChanged -= ScrollViewer_ViewChanged;
+        scrollViewer.Loaded -= ScrollViewer_Loaded;
+        Unloaded -= CardViewControl_Unloaded;
+
+        LoadCardsMethod = null;
+        ViewModel = null;
+        ItemsSource = null;
     }
 
     public async void NavigateToProductOrBundle(string productId, InstallerType installerType)

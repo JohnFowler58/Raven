@@ -64,7 +64,8 @@ public sealed class DownloadHelper
         FileEntry entry,
         string productId,
         CancellationToken token,
-        UIUpdateService updateService
+        UIUpdateService updateService,
+        bool downloadOnly = false
     )
     {
         const int MAX_RETRIES_PER_FILE = 5;
@@ -628,14 +629,12 @@ public sealed class DownloadHelper
         // Persist the final download state.
         downloadManager.SaveDownloadsThrottled(force: true);
 
-        if (isUnpackaged)
+        // Download-only mode for packaged apps: skip install phase.
+        if (downloadOnly || isUnpackaged)
         {
             animator.Stop(downloadItem);
             updateService.StopStatusAnimation();
-            downloadManager.UpdateDownloadStatusText(
-                productId,
-                "Download completed. Open to install."
-            );
+            downloadManager.UpdateDownloadStatusText(productId, "Download completed.");
             downloadManager.UpdateDownloadStatus(productId, test.Models.DownloadStatus.Completed);
             return;
         }

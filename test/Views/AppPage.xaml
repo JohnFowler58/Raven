@@ -98,16 +98,20 @@
           </Grid>
         </StackPanel>
         <!--  install/open/update button  -->
-        <Button
+        <SplitButton
           x:Name="InstallButton"
-          Width="120"
+          MinWidth="120"
           Height="40"
           Background="{ThemeResource AccentFillColorDefaultBrush}"
           Click="InstallButton_Click"
           Content="Install"
           FontSize="16"
           Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
-        />
+        >
+          <SplitButton.Flyout>
+            <MenuFlyout x:Name="InstallButtonFlyout" />
+          </SplitButton.Flyout>
+        </SplitButton>
         <!--  Progress button Section  -->
         <Grid
           x:Name="ProgressSection"
@@ -315,20 +319,20 @@
               Margin="0,5"
               Text="{x:Bind AppData.Size, Mode=OneWay}"
             />
-             <!--  Version  -->
-             <TextBlock
-               Grid.Row="1"
-               Grid.Column="0"
-               Margin="0,5"
-               Style="{ThemeResource BodyStrongTextBlockStyle}"
-               Text="Version:"
-             />
-             <TextBlock
-               Grid.Row="1"
-               Grid.Column="1"
-               Margin="0,5"
-               Text="{x:Bind AppData.Version, Mode=OneWay}"
-             />
+            <!--  Version  -->
+            <TextBlock
+              Grid.Row="1"
+              Grid.Column="0"
+              Margin="0,5"
+              Style="{ThemeResource BodyStrongTextBlockStyle}"
+              Text="Version:"
+            />
+            <TextBlock
+              Grid.Row="1"
+              Grid.Column="1"
+              Margin="0,5"
+              Text="{x:Bind AppData.Version, Mode=OneWay}"
+            />
             <!--  Last Updated  -->
             <TextBlock
               Grid.Row="2"

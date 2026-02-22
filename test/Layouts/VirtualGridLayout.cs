@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Frozen;
+﻿using System.Collections.Frozen;
 using System.Collections.Specialized;
 using System.Runtime.CompilerServices;
 using Microsoft.UI.Xaml;

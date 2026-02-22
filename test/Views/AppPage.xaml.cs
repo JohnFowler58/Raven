@@ -21,6 +21,8 @@ public sealed partial class AppPage : Page
     private ProductData? _currentProductInfo;
     private DownloadItem? _activeDownloadItem;
     private bool _isForceInstalling;
+    private string _naturalAction = "Install";
+    private string? _overrideAction;
 
     private static readonly string[] UnpackagedExtensions = [".exe", ".msi"];
 
@@ -37,12 +39,14 @@ public sealed partial class AppPage : Page
         ViewModel = App.GetService<AppViewModel>();
         InitializeComponent();
         UpdateService = new UIUpdateService(this.DispatcherQueue);
+        InstallButtonFlyout.Opening += OnInstallButtonFlyoutOpening;
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
         _productLoadCts = new CancellationTokenSource();
+        _overrideAction = null;
 
         var (productInfo, productId, installerType) = e.Parameter switch
         {
@@ -77,6 +81,7 @@ public sealed partial class AppPage : Page
         _productLoadCts = null;
 
         _isForceInstalling = false;
+        _overrideAction = null;
         UpdateService.StopStatusAnimation();
         UnbindFromDownloadItem();
     }
@@ -192,8 +197,12 @@ public sealed partial class AppPage : Page
                 ? IsUnpackagedUpdateAvailable(downloadItem)
                 : isUpdateAvailable;
 
-            var content = shouldShowUpdate ? "Update" : "Open";
-            SetInstallButtonState(content: content, enabled: true, showProgress: false);
+            _naturalAction = shouldShowUpdate ? "Update" : "Open";
+            SetInstallButtonState(
+                content: _overrideAction ?? _naturalAction,
+                enabled: true,
+                showProgress: false
+            );
         }
         // Only show Retry when the last action itself failed/cancelled.
         // If the user simply uninstalled the app, show Install.
@@ -202,11 +211,21 @@ public sealed partial class AppPage : Page
             && !isInstalled
         )
         {
-            SetInstallButtonState(content: "Retry", enabled: true, showProgress: false);
+            _naturalAction = "Retry";
+            SetInstallButtonState(
+                content: _overrideAction ?? _naturalAction,
+                enabled: true,
+                showProgress: false
+            );
         }
         else
         {
-            SetInstallButtonState(content: "Install", enabled: true, showProgress: false);
+            _naturalAction = "Install";
+            SetInstallButtonState(
+                content: _overrideAction ?? _naturalAction,
+                enabled: true,
+                showProgress: false
+            );
         }
     }
 
@@ -386,6 +405,7 @@ public sealed partial class AppPage : Page
                     UpdateService.StopStatusAnimation();
                     StatusText.Text = item.StatusText;
                     UnbindFromDownloadItem();
+                    _overrideAction = null;
                     UpdateInstallButtonState();
                 }
                 else if (item.Status is DownloadStatus.Cancelled or DownloadStatus.Failed)
@@ -397,6 +417,7 @@ public sealed partial class AppPage : Page
                         _ = ShowInstallationFailedPopupIfAvailableAsync(item);
                     }
                     UnbindFromDownloadItem();
+                    _overrideAction = null;
                     UpdateInstallButtonState();
                 }
                 break;
@@ -524,6 +545,7 @@ public sealed partial class AppPage : Page
         finally
         {
             _isForceInstalling = false;
+            _overrideAction = null;
             UpdateInstallButtonState();
         }
     }
@@ -540,13 +562,120 @@ public sealed partial class AppPage : Page
         ProgressSection.Visibility = showProgress ? Visibility.Visible : Visibility.Collapsed;
 
         if (!showProgress)
+        {
             SetProgressIndeterminate(false);
+            UpdateInstallButtonFlyout();
+        }
 
         InstallButton.Background = enabled
             ? (Microsoft.UI.Xaml.Media.Brush)
                 Application.Current.Resources["AccentFillColorDefaultBrush"]
             : (Microsoft.UI.Xaml.Media.Brush)
                 Application.Current.Resources["ControlFillColorDisabledBrush"];
+    }
+
+    private void UpdateInstallButtonFlyout()
+    {
+        InstallButtonFlyout.Items.Clear();
+
+        var currentAction = InstallButton.Content?.ToString() ?? _naturalAction;
+        IEnumerable<string> options;
+
+        if (string.Equals(currentAction, "Download", StringComparison.OrdinalIgnoreCase))
+        {
+            // "Retry" is not a user-facing mode name; treat it as "Install" for the dropdown
+            // so the user sees actionable labels like "Install" instead of "Retry".
+            var naturalForDropdown = string.Equals(
+                _naturalAction,
+                "Retry",
+                StringComparison.OrdinalIgnoreCase
+            )
+                ? "Install"
+                : _naturalAction;
+
+            // Show the natural action itself plus its sub-options, excluding "Download"
+            options = new[] { naturalForDropdown }.Concat(
+                GetFlyoutItemsForAction(naturalForDropdown)
+                    .Where(o =>
+                        !string.Equals(o, "Download", StringComparison.OrdinalIgnoreCase)
+                    )
+            );
+        }
+        else if (string.Equals(currentAction, "Retry", StringComparison.OrdinalIgnoreCase))
+        {
+            // Retry IS the last action, so only offer the one alternative.
+            // WasDownloadOnly=false → retry = install → offer Download
+            // WasDownloadOnly=true  → retry = download → offer Install
+            var retryItem = _currentProductInfo != null
+                ? DownloadManagerService.Instance.GetDownload(_currentProductInfo.ProductId)
+                : null;
+            options = (retryItem?.WasDownloadOnly ?? false) ? ["Install"] : ["Download"];
+        }
+        else
+        {
+            options = GetFlyoutItemsForAction(currentAction);
+            // If Install is a force-reinstall override and the app is currently installed, also offer Open
+            if (
+                string.Equals(currentAction, "Install", StringComparison.OrdinalIgnoreCase)
+                && _naturalAction is "Open" or "Update"
+            )
+            {
+                options = options.Prepend("Open");
+            }
+        }
+
+        var optionList = options.ToList();
+        for (var i = 0; i < optionList.Count; i++)
+        {
+            if (i > 0)
+                InstallButtonFlyout.Items.Add(new MenuFlyoutSeparator());
+
+            var option = optionList[i];
+            var item = new MenuFlyoutItem
+            {
+                Text = option,
+                MinHeight = 44,
+                HorizontalContentAlignment = HorizontalAlignment.Center,
+                Padding = new Thickness(12, 8, 12, 8),
+                FontSize = InstallButton.FontSize,
+            };
+            var captured = option;
+            item.Click += (_, _) => OnInstallDropdownOptionSelected(captured);
+            InstallButtonFlyout.Items.Add(item);
+        }
+    }
+
+    private void OnInstallButtonFlyoutOpening(object? sender, object e)
+    {
+        // ActualWidth is now correct because layout has completed before the flyout opens.
+        var width = InstallButton.ActualWidth;
+        if (width <= 0)
+            return;
+        foreach (var item in InstallButtonFlyout.Items.OfType<MenuFlyoutItem>())
+            item.MinWidth = width;
+    }
+
+    private static IEnumerable<string> GetFlyoutItemsForAction(string action) =>
+        action switch
+        {
+            "Open" => ["Install", "Download"],
+            "Update" => ["Open", "Download"],
+            "Install" => ["Download"],
+            "Retry" => ["Download"],
+            _ => [],
+        };
+
+    private void OnInstallDropdownOptionSelected(string option)
+    {
+        _overrideAction = string.Equals(option, _naturalAction, StringComparison.OrdinalIgnoreCase)
+            ? null
+            : option;
+
+        SetInstallButtonState(
+            content: _overrideAction ?? _naturalAction,
+            enabled: true,
+            showProgress: false
+        );
     }
 
     private async Task ShowErrorDialogAsync(string title, string content)
@@ -612,7 +741,7 @@ public sealed partial class AppPage : Page
             .FirstOrDefault();
     }
 
-    private async void InstallButton_Click(object sender, RoutedEventArgs e)
+    private async void InstallButton_Click(SplitButton sender, SplitButtonClickEventArgs e)
     {
         if (_currentProductInfo == null)
             return;
@@ -634,6 +763,15 @@ public sealed partial class AppPage : Page
         var downloadManager = DownloadManagerService.Instance;
         var isUnpackaged = _currentProductInfo.InstallerType == InstallerType.Unpackaged;
         var action = InstallButton.Content?.ToString();
+
+        // For Retry, repeat whatever the user last attempted (persisted on the DownloadItem).
+        var existingItem = downloadManager.GetDownload(productId);
+        var isDownloadOnly =
+            string.Equals(action, "Download", StringComparison.OrdinalIgnoreCase)
+            || (
+                string.Equals(action, "Retry", StringComparison.OrdinalIgnoreCase)
+                && (existingItem?.WasDownloadOnly ?? false)
+            );
 
         // If the button is currently acting as "Open", don't ever start install/download.
         // If the user uninstalled the app while staying on this page, just refresh the UI to "Install".
@@ -662,6 +800,8 @@ public sealed partial class AppPage : Page
             {
                 _activeDownloadItem = downloadItem;
                 BindToDownloadItem(downloadItem);
+                // Persist the action mode so Retry survives an app restart.
+                downloadItem.WasDownloadOnly = isDownloadOnly;
             }
 
             // Always use a fresh CTS per download attempt
@@ -769,7 +909,8 @@ public sealed partial class AppPage : Page
                 urls,
                 productId,
                 _downloadCts.Token,
-                UpdateService
+                UpdateService,
+                downloadOnly: isDownloadOnly
             );
 
             downloadManager.UnregisterCancellationToken(productId);
@@ -779,7 +920,7 @@ public sealed partial class AppPage : Page
             var currentItem = downloadManager.GetDownload(productId);
             if (currentItem?.Status == DownloadStatus.Completed)
             {
-                if (isUnpackaged && currentItem != null)
+                if (isUnpackaged && !isDownloadOnly && currentItem != null)
                 {
                     await LaunchUnpackagedInstallerAsync(currentItem);
                 }
@@ -807,6 +948,7 @@ public sealed partial class AppPage : Page
         }
         finally
         {
+            _overrideAction = null;
             UpdateInstallButtonState();
         }
     }
