@@ -191,6 +191,19 @@ public sealed partial class AppPage : Page
                 UpdateProgressIndeterminate(downloadItem.Status);
             }
         }
+        // Only show Retry when the last action itself failed/cancelled — regardless of
+        // whether the app is installed (covers failed/cancelled update attempts too).
+        else if (
+            downloadItem is { Status: DownloadStatus.Cancelled or DownloadStatus.Failed }
+        )
+        {
+            _naturalAction = "Retry";
+            SetInstallButtonState(
+                content: _overrideAction ?? _naturalAction,
+                enabled: true,
+                showProgress: false
+            );
+        }
         else if (isInstalled)
         {
             var shouldShowUpdate = isUnpackaged
@@ -198,20 +211,6 @@ public sealed partial class AppPage : Page
                 : isUpdateAvailable;
 
             _naturalAction = shouldShowUpdate ? "Update" : "Open";
-            SetInstallButtonState(
-                content: _overrideAction ?? _naturalAction,
-                enabled: true,
-                showProgress: false
-            );
-        }
-        // Only show Retry when the last action itself failed/cancelled.
-        // If the user simply uninstalled the app, show Install.
-        else if (
-            downloadItem is { Status: DownloadStatus.Cancelled or DownloadStatus.Failed }
-            && !isInstalled
-        )
-        {
-            _naturalAction = "Retry";
             SetInstallButtonState(
                 content: _overrideAction ?? _naturalAction,
                 enabled: true,
@@ -583,14 +582,14 @@ public sealed partial class AppPage : Page
 
         if (string.Equals(currentAction, "Download", StringComparison.OrdinalIgnoreCase))
         {
-            // "Retry" is not a user-facing mode name; treat it as "Install" for the dropdown
-            // so the user sees actionable labels like "Install" instead of "Retry".
+            // "Retry" is not a user-facing mode name; resolve it to its real equivalent
+            // ("Update" if an update is available, otherwise "Install").
             var naturalForDropdown = string.Equals(
                 _naturalAction,
                 "Retry",
                 StringComparison.OrdinalIgnoreCase
             )
-                ? "Install"
+                ? ResolveRetryAction()
                 : _naturalAction;
 
             // Show the natural action itself plus its sub-options, excluding "Download"
@@ -600,27 +599,99 @@ public sealed partial class AppPage : Page
                         !string.Equals(o, "Download", StringComparison.OrdinalIgnoreCase)
                     )
             );
+
+            // When retrying and the app is still installed, ensure "Open" is offered
+            // (e.g. reinstall was cancelled but the old version is untouched).
+            if (
+                string.Equals(_naturalAction, "Retry", StringComparison.OrdinalIgnoreCase)
+                && _currentProductInfo != null
+            )
+            {
+                var isUnp = _currentProductInfo.InstallerType == InstallerType.Unpackaged;
+                var stillInstalled = isUnp
+                    ? IsUnpackagedInstalled(_currentProductInfo)
+                    : IsPackagedInstalled(_currentProductInfo);
+                if (
+                    stillInstalled
+                    && !options.Any(o =>
+                        string.Equals(o, "Open", StringComparison.OrdinalIgnoreCase)
+                    )
+                )
+                    options = options.Append("Open");
+            }
+        }
+        else if (
+            string.Equals(currentAction, "Open", StringComparison.OrdinalIgnoreCase)
+            && _overrideAction != null
+        )
+        {
+            // "Open" is an override (e.g. natural action is "Update"); show the natural action
+            // and its sub-options, excluding "Open" itself.
+            var naturalForDropdown = string.Equals(
+                _naturalAction,
+                "Retry",
+                StringComparison.OrdinalIgnoreCase
+            )
+                ? ResolveRetryAction()
+                : _naturalAction;
+
+            options = new[] { naturalForDropdown }.Concat(
+                GetFlyoutItemsForAction(naturalForDropdown)
+                    .Where(o =>
+                        !string.Equals(o, "Open", StringComparison.OrdinalIgnoreCase)
+                    )
+            );
         }
         else if (string.Equals(currentAction, "Retry", StringComparison.OrdinalIgnoreCase))
         {
-            // Retry IS the last action, so only offer the one alternative.
-            // WasDownloadOnly=false → retry = install → offer Download
-            // WasDownloadOnly=true  → retry = download → offer Install
+            // Retry IS the last action, so only offer alternatives.
+            // Always append "Open" when the app is still installed (e.g. failed update).
             var retryItem = _currentProductInfo != null
                 ? DownloadManagerService.Instance.GetDownload(_currentProductInfo.ProductId)
                 : null;
-            options = (retryItem?.WasDownloadOnly ?? false) ? ["Install"] : ["Download"];
+            var isUnpackaged = _currentProductInfo?.InstallerType == InstallerType.Unpackaged;
+            var isInstalled =
+                _currentProductInfo != null
+                && (
+                    isUnpackaged
+                        ? IsUnpackagedInstalled(_currentProductInfo)
+                        : IsPackagedInstalled(_currentProductInfo)
+                );
+
+            if (retryItem?.WasDownloadOnly ?? false)
+            {
+                // WasDownloadOnly=true → retry = download → offer Update/Install, plus Open if installed
+                var resolvedAction = ResolveRetryAction();
+                options = isInstalled
+                    ? new[] { resolvedAction, "Open" }
+                    : [resolvedAction];
+            }
+            else
+            {
+                // WasDownloadOnly=false → retry = install/update → offer Download, plus Open if installed
+                options = isInstalled ? ["Download", "Open"] : ["Download"];
+            }
         }
         else
         {
             options = GetFlyoutItemsForAction(currentAction);
-            // If Install is a force-reinstall override and the app is currently installed, also offer Open
-            if (
-                string.Equals(currentAction, "Install", StringComparison.OrdinalIgnoreCase)
-                && _naturalAction is "Open" or "Update"
-            )
+            // If Install is a force-reinstall/retry override and the app is currently installed, also offer Open
+            if (string.Equals(currentAction, "Install", StringComparison.OrdinalIgnoreCase))
             {
-                options = options.Prepend("Open");
+                var shouldOfferOpen = _naturalAction is "Open" or "Update";
+                if (
+                    !shouldOfferOpen
+                    && string.Equals(_naturalAction, "Retry", StringComparison.OrdinalIgnoreCase)
+                    && _currentProductInfo != null
+                )
+                {
+                    var isUnp = _currentProductInfo.InstallerType == InstallerType.Unpackaged;
+                    shouldOfferOpen = isUnp
+                        ? IsUnpackagedInstalled(_currentProductInfo)
+                        : IsPackagedInstalled(_currentProductInfo);
+                }
+                if (shouldOfferOpen)
+                    options = options.Prepend("Open");
             }
         }
 
@@ -643,6 +714,21 @@ public sealed partial class AppPage : Page
             item.Click += (_, _) => OnInstallDropdownOptionSelected(captured);
             InstallButtonFlyout.Items.Add(item);
         }
+    }
+
+    // Resolves the "Retry" natural action to its user-facing equivalent.
+    // Returns "Update" when an update is available for the installed app, otherwise "Install".
+    private string ResolveRetryAction()
+    {
+        if (_currentProductInfo == null)
+            return "Install";
+
+        var retryItem = DownloadManagerService.Instance.GetDownload(_currentProductInfo.ProductId);
+        var isUnpackaged = _currentProductInfo.InstallerType == InstallerType.Unpackaged;
+        var hasUpdate = isUnpackaged
+            ? IsUnpackagedUpdateAvailable(retryItem)
+            : IsUpdateAvailable(retryItem);
+        return hasUpdate ? "Update" : "Install";
     }
 
     private void OnInstallButtonFlyoutOpening(object? sender, object e)

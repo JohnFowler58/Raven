@@ -168,7 +168,7 @@ public static class GetDownloadUrl
                         var requiredDepUpdates = new List<FE3Handler.SyncUpdatesResponse.Update>();
                         var allDepsOk = true;
 
-                        if (dcatMain is not null && dcatMain.FrameworkDependencies.Any())
+                        if (dcatMain is not null && dcatMain.FrameworkDependencies?.Any() == true)
                         {
                             foreach (var dep in dcatMain.FrameworkDependencies)
                             {
