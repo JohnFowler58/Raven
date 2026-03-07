@@ -1,5 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+
 using Microsoft.UI.Xaml.Controls;
+
 using test.Contracts.Services;
 using test.ViewModels;
 using test.Views;
@@ -20,6 +22,7 @@ public class PageService : IPageService
         Configure<SettingsViewModel, SettingsPage>();
         Configure<DownloadsViewModel, DownloadsPage>();
         Configure<InstallationsViewModel, InstallationsPage>();
+        Configure<UpdatesViewModel, UpdatesPage>();
     }
 
     public Type GetPageType(string key)

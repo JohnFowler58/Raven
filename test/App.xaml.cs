@@ -1,7 +1,9 @@
 ﻿using System.Diagnostics;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
+
 using test.Activation;
 using test.Contracts.Services;
 using test.Core.Contracts.Services;
@@ -91,6 +93,8 @@ public partial class App : Application
 
                     services.AddTransient<InstallationsPage>();
                     services.AddSingleton<InstallationsViewModel>();
+                    services.AddTransient<UpdatesViewModel>();
+                    services.AddTransient<UpdatesPage>();
 
                     // Configuration
                     services.Configure<LocalSettingsOptions>(

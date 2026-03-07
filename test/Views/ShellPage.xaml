@@ -137,6 +137,14 @@
       </NavigationView.MenuItems>
       <NavigationView.FooterMenuItems>
         <NavigationViewItem
+          x:Uid="Shell_Updates"
+          helpers:NavigationHelper.NavigateTo="test.ViewModels.UpdatesViewModel"
+        >
+          <NavigationViewItem.Icon>
+            <FontIcon Glyph="" />
+          </NavigationViewItem.Icon>
+        </NavigationViewItem>
+        <NavigationViewItem
           helpers:NavigationHelper.NavigateTo="test.ViewModels.DownloadsViewModel"
           Content="Downloads"
         >
