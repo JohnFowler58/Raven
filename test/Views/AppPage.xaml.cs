@@ -808,14 +808,50 @@ public sealed partial class AppPage : Page
 
     private async void CheckUpdate_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new ContentDialog
+        if (_currentProductInfo == null)
+            return;
+
+        SetLoading(true);
+
+        try
         {
-            Title = "Check Update",
-            Content = "Checking for updates...",
-            CloseButtonText = "OK",
-            XamlRoot = this.Content.XamlRoot,
-        };
-        await dialog.ShowAsync();
+            var latestVersion = await VersionCheckService.GetLatestVersionAsync(
+                _currentProductInfo.ProductId,
+                _currentProductInfo.InstallerType
+            );
+
+            if (latestVersion != null)
+            {
+                AppData.Version = latestVersion;
+                _currentProductInfo.Version = latestVersion;
+
+                var downloadManager = DownloadManagerService.Instance;
+                if (downloadManager.GetDownload(_currentProductInfo.ProductId) != null)
+                {
+                    downloadManager.UpdateDownloadStoreVersion(
+                        _currentProductInfo.ProductId,
+                        latestVersion
+                    );
+                }
+
+                UpdateInstallButtonState();
+            }
+            else
+            {
+                await ShowErrorDialogAsync(
+                    "Check Updates",
+                    "Could not retrieve the latest version. The app may not be available or the check failed."
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorDialogAsync("Check Updates", $"Failed to check for updates: {ex.Message}");
+        }
+        finally
+        {
+            SetLoading(false);
+        }
     }
 
     private static bool IsInstallablePackage(string path)
