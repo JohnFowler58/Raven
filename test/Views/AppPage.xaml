@@ -7,11 +7,70 @@
   mc:Ignorable="d"
 >
   <Page.Resources>
-    <Style x:Key="TransparentButtonStyle" TargetType="Button">
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderBrush" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="0" />
-    </Style>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <AcrylicBrush x:Key="ScreenshotNavBtnBrush" TintColor="#F3F3F3" TintOpacity="0.05" FallbackColor="#0DF3F3F3" />
+          <AcrylicBrush x:Key="ScreenshotNavBtnHoverBrush" TintColor="#F3F3F3" TintOpacity="0.2" FallbackColor="#33F3F3F3" />
+          <AcrylicBrush x:Key="ScreenshotNavBtnPressedBrush" TintColor="#F3F3F3" TintOpacity="0.4" FallbackColor="#66F3F3F3" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <AcrylicBrush x:Key="ScreenshotNavBtnBrush" TintColor="#1C1C1C" TintOpacity="0.05" FallbackColor="#0D1C1C1C" />
+          <AcrylicBrush x:Key="ScreenshotNavBtnHoverBrush" TintColor="#1C1C1C" TintOpacity="0.2" FallbackColor="#331C1C1C" />
+          <AcrylicBrush x:Key="ScreenshotNavBtnPressedBrush" TintColor="#1C1C1C" TintOpacity="0.4" FallbackColor="#661C1C1C" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+      <Style x:Key="TransparentButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+      </Style>
+      <Style x:Key="ScreenshotNavBtnStyle" TargetType="Button">
+        <Setter Property="Background" Value="{ThemeResource ScreenshotNavBtnBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="Button">
+              <Border
+                x:Name="RootBorder"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{TemplateBinding CornerRadius}"
+              >
+                <ContentPresenter
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  Content="{TemplateBinding Content}"
+                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                />
+                <VisualStateManager.VisualStateGroups>
+                  <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="PointerOver">
+                      <VisualState.Setters>
+                        <Setter Target="RootBorder.Background" Value="{ThemeResource ScreenshotNavBtnHoverBrush}" />
+                      </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="Pressed">
+                      <VisualState.Setters>
+                        <Setter Target="RootBorder.Background" Value="{ThemeResource ScreenshotNavBtnPressedBrush}" />
+                      </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="Disabled">
+                      <VisualState.Setters>
+                        <Setter Target="RootBorder.Opacity" Value="0.4" />
+                      </VisualState.Setters>
+                    </VisualState>
+                  </VisualStateGroup>
+                </VisualStateManager.VisualStateGroups>
+              </Border>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+    </ResourceDictionary>
   </Page.Resources>
   <Grid>
   <ScrollViewer>
@@ -379,19 +438,17 @@
               Margin="8,0,0,0"
               HorizontalAlignment="Left"
               VerticalAlignment="Center"
-              Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-              BorderThickness="1"
               Canvas.ZIndex="10"
               Click="LeftArrowButton_Click"
               CornerRadius="26"
+              Style="{StaticResource ScreenshotNavBtnStyle}"
             >
               <FontIcon
                 Margin="0,0,1,0"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 FontSize="15"
-                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Foreground="{ThemeResource TextFillColorPrimaryBrush}"
                 Glyph=""
               />
             </Button>
@@ -437,19 +494,17 @@
               Margin="0,0,8,0"
               HorizontalAlignment="Right"
               VerticalAlignment="Center"
-              Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-              BorderThickness="1"
               Canvas.ZIndex="10"
               Click="RightArrowButton_Click"
               CornerRadius="26"
+              Style="{StaticResource ScreenshotNavBtnStyle}"
             >
               <FontIcon
                 Margin="1,0,0,0"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 FontSize="15"
-                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Foreground="{ThemeResource TextFillColorPrimaryBrush}"
                 Glyph=""
               />
             </Button>
