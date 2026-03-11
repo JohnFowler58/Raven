@@ -84,6 +84,10 @@ public sealed partial class AppPage : Page
         _productLoadCts?.Dispose();
         _productLoadCts = null;
 
+        _loadingDotsCts?.Cancel();
+        _loadingDotsCts?.Dispose();
+        _loadingDotsCts = null;
+
         _isForceInstalling = false;
         _overrideAction = null;
         LightboxOverlay.Visibility = Visibility.Collapsed;
