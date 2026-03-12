@@ -20,18 +20,18 @@ public static class InstallHelper
         return hresult switch
         {
             ERROR_INSTALL_CONFLICTING_PACKAGE =>
-                "A newer or the same version is already installed.",
+                "Install_Error_ConflictingVersion".GetLocalized(),
             ERROR_DEPLOYMENT_IN_PROGRESS =>
-                "Another installation is in progress. Wait for it to finish and try again.",
+                "Install_Error_DeploymentInProgress".GetLocalized(),
             ERROR_INVALID_PACKAGE =>
-                "Invalid or unsupported package. Ensure the package and dependencies are supported for your system.",
+                "Install_Error_InvalidPackage".GetLocalized(),
             ERROR_PACKAGE_NOT_FOUND =>
-                "Package not found. Check the selected/downloaded file path.",
+                "Install_Error_PackageNotFound".GetLocalized(),
             ERROR_DEPLOYMENT_FAILURE =>
-                "Windows deployment failed. Check system policies or try again.",
+                "Install_Error_DeploymentFailure".GetLocalized(),
             ERROR_PACKAGED_SERVICE_REQUIRES_ADMIN =>
-                "This package includes a packaged service and must be installed with administrator privileges. Relaunch the app as administrator and try again.",
-            _ => $"Windows deployment error (0x{hresult:X8}). {message}",
+                "Install_Error_AdminRequired".GetLocalized(),
+            _ => string.Format("Install_Error_GenericDeployment".GetLocalized(), hresult, message),
         };
     }
 
@@ -75,9 +75,8 @@ public static class InstallHelper
         {
             COMException comEx => GetFriendlyMsixError(comEx.HResult, comEx.Message),
             UnauthorizedAccessException ua =>
-                "Failed: Access denied. Try running as administrator or ensure sideloading policy allows app packages. "
-                    + ua.Message,
-            _ => $"Failed: {exception.Message}",
+                string.Format("Install_Error_AccessDenied".GetLocalized(), ua.Message),
+            _ => string.Format("Install_Error_Generic".GetLocalized(), exception.Message),
         };
 
         await ShowDialogAsync(xamlRoot, title, content);
@@ -95,8 +94,8 @@ public static class InstallHelper
             {
                 Title = title,
                 Content = GetFriendlyMsixError(comEx.HResult, comEx.Message),
-                PrimaryButtonText = "Force install",
-                CloseButtonText = "OK",
+                PrimaryButtonText = "Install_Btn_ForceInstall".GetLocalized(),
+                CloseButtonText = "Common_OK".GetLocalized(),
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = xamlRoot,
             };
@@ -117,8 +116,8 @@ public static class InstallHelper
         {
             Title = title,
             Content = GetFriendlyMsixError(cex.HResult, cex.Message),
-            PrimaryButtonText = "Run as administrator",
-            CloseButtonText = "OK",
+            PrimaryButtonText = "Install_Btn_RunAsAdmin".GetLocalized(),
+            CloseButtonText = "Common_OK".GetLocalized(),
             XamlRoot = xamlRoot,
             DefaultButton = ContentDialogButton.Primary,
         };
@@ -144,7 +143,7 @@ public static class InstallHelper
         {
             Title = title,
             Content = content,
-            CloseButtonText = "OK",
+            CloseButtonText = "Common_OK".GetLocalized(),
             XamlRoot = xamlRoot,
         };
         await dialog.ShowAsync();

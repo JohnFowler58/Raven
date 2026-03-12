@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using test.Contracts.Services;
+using test.Helpers;
 using test.Models;
 using test.Services;
 using test.ViewModels;
@@ -40,19 +41,19 @@ public sealed partial class DownloadsPage : Page
                 case DownloadStatus.Pending:
                     // Reset any stale override from other pages/flows so our animator can take over.
                     item.StatusTextOverride = null;
-                    StartOrUpdateAnimation(item, fallback: "Fetching download URLs");
+                    StartOrUpdateAnimation(item, fallback: "Download_Status_Fetching".GetLocalized());
                     break;
                 case DownloadStatus.Downloading:
                     item.StatusTextOverride = null;
-                    StartOrUpdateAnimation(item, fallback: "Downloading");
+                    StartOrUpdateAnimation(item, fallback: "Download_Status_Downloading".GetLocalized());
                     break;
                 case DownloadStatus.Installing:
                     item.StatusTextOverride = null;
-                    StartOrUpdateAnimation(item, fallback: "Installing");
+                    StartOrUpdateAnimation(item, fallback: "Download_Status_Installing".GetLocalized());
                     break;
                 case DownloadStatus.Cancelling:
                     item.StatusTextOverride = null;
-                    StartOrUpdateAnimation(item, fallback: "Cancelling");
+                    StartOrUpdateAnimation(item, fallback: "Download_Status_Cancelling".GetLocalized());
                     break;
                 default:
                     _animator.Stop(item);
@@ -89,16 +90,16 @@ public sealed partial class DownloadsPage : Page
             switch (item.Status)
             {
                 case DownloadStatus.Pending:
-                    StartOrUpdateAnimation(item, fallback: "Fetching download URLs");
+                    StartOrUpdateAnimation(item, fallback: "Download_Status_Fetching".GetLocalized());
                     break;
                 case DownloadStatus.Downloading:
-                    StartOrUpdateAnimation(item, fallback: "Downloading");
+                    StartOrUpdateAnimation(item, fallback: "Download_Status_Downloading".GetLocalized());
                     break;
                 case DownloadStatus.Installing:
-                    StartOrUpdateAnimation(item, fallback: "Installing");
+                    StartOrUpdateAnimation(item, fallback: "Download_Status_Installing".GetLocalized());
                     break;
                 case DownloadStatus.Cancelling:
-                    StartOrUpdateAnimation(item, fallback: "Cancelling");
+                    StartOrUpdateAnimation(item, fallback: "Download_Status_Cancelling".GetLocalized());
                     break;
                 default:
                     _animator?.Stop(item);

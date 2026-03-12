@@ -68,7 +68,7 @@ public sealed partial class InstallationsPage : Page
         UpdateLayoutForViewport(ActualHeight);
         UpdateDropZoneTypography(ActualWidth);
         // Reset to default content on load
-        InstallButton.Content = "Install";
+        InstallButton.Content = "InstallationsPage_InstallLabel".GetLocalized();
         InstallButton.IsEnabled = !string.IsNullOrWhiteSpace(SelectedFileText.Text);
         ProgressPercentText.Text = string.Empty;
         ProgressStatusText.Text = string.Empty;
@@ -117,8 +117,7 @@ public sealed partial class InstallationsPage : Page
     {
         _selectedPath = path;
         SelectedFileText.Text = string.IsNullOrWhiteSpace(path) ? string.Empty : path;
-        // Reset button content to Install on new selection or clearing
-        InstallButton.Content = "Install";
+        InstallButton.Content = "InstallationsPage_InstallLabel".GetLocalized();
         InstallButton.IsEnabled = !string.IsNullOrWhiteSpace(SelectedFileText.Text);
         ClearButton.Visibility = string.IsNullOrWhiteSpace(SelectedFileText.Text)
             ? Visibility.Collapsed
@@ -141,7 +140,7 @@ public sealed partial class InstallationsPage : Page
 
         // Filter must be pairs: display\0pattern\0 ... \0\0
         var filter =
-            "App packages (*.msix;*.appx;*.msixbundle;*.appxbundle)\0*.msix;*.appx;*.msixbundle;*.appxbundle\0All files (*.*)\0*.*\0\0";
+            $"{"InstallationsPage_Filter_AppPackages".GetLocalized()}\0*.msix;*.appx;*.msixbundle;*.appxbundle\0{"InstallationsPage_Filter_AllFiles".GetLocalized()}\0*.*\0\0";
 
         IntPtr filterPtr = IntPtr.Zero;
         IntPtr filePtr = IntPtr.Zero;
@@ -150,7 +149,7 @@ public sealed partial class InstallationsPage : Page
         try
         {
             filterPtr = Marshal.StringToHGlobalUni(filter);
-            titlePtr = Marshal.StringToHGlobalUni("Select an app package");
+            titlePtr = Marshal.StringToHGlobalUni("InstallationsPage_FilePicker_Title".GetLocalized());
 
             // Allocate buffer for selected file path
             filePtr = Marshal.AllocHGlobal(bufferChars * sizeof(char));
@@ -187,8 +186,8 @@ public sealed partial class InstallationsPage : Page
             {
                 _ = InstallHelper.ShowDialogAsync(
                     this.Content.XamlRoot,
-                    "File picker error",
-                    $"GetOpenFileName failed. CommDlgExtendedError=0x{err:X}"
+                    "InstallationsPage_FilePicker_Error".GetLocalized(),
+                    string.Format("InstallationsPage_FilePicker_CommDlgError".GetLocalized(), err)
                 );
             }
         }
@@ -196,7 +195,7 @@ public sealed partial class InstallationsPage : Page
         {
             _ = InstallHelper.ShowDialogAsync(
                 this.Content.XamlRoot,
-                "File picker error",
+                "InstallationsPage_FilePicker_Error".GetLocalized(),
                 ex.Message
             );
         }
@@ -214,7 +213,7 @@ public sealed partial class InstallationsPage : Page
     private void DropZone_DragOver(object sender, DragEventArgs e)
     {
         e.AcceptedOperation = Windows.ApplicationModel.DataTransfer.DataPackageOperation.Copy;
-        e.DragUIOverride.Caption = "Drop to select package";
+        e.DragUIOverride.Caption = "InstallationsPage_DragCaption".GetLocalized();
         e.DragUIOverride.IsCaptionVisible = true;
         e.Handled = true;
     }
@@ -256,7 +255,7 @@ public sealed partial class InstallationsPage : Page
         ProgressPanel.Visibility = Visibility.Visible;
         InstallProgressBar.Value = 0;
         ProgressPercentText.Text = "0%";
-        UpdateService.StartStatusAnimation("Installing");
+        UpdateService.StartStatusAnimation("Install_Status_Installing".GetLocalized());
         var shouldForceRetry = false;
 
         var progress = new Progress<AppPackageInstaller.InstallProgress>(p =>
@@ -279,7 +278,7 @@ public sealed partial class InstallationsPage : Page
                 ignoreVersion: ignoreVersion
             );
             UpdateService.StopStatusAnimation();
-            ProgressStatusText.Text = "Installed.";
+            ProgressStatusText.Text = "Install_Status_Installed".GetLocalized();
             ProgressPercentText.Text = "100%";
             succeeded = true;
         }
@@ -287,13 +286,13 @@ public sealed partial class InstallationsPage : Page
         {
             UpdateService.StopStatusAnimation();
             installException = ex;
-            ProgressStatusText.Text = "Error";
+            ProgressStatusText.Text = "Install_Status_Error".GetLocalized();
         }
         catch (Exception ex)
         {
             UpdateService.StopStatusAnimation();
             installException = ex;
-            ProgressStatusText.Text = "Error";
+            ProgressStatusText.Text = "Install_Status_Error".GetLocalized();
         }
         finally
         {
@@ -327,7 +326,7 @@ public sealed partial class InstallationsPage : Page
                         !ignoreVersion
                         && await InstallHelper.ShowInstallationErrorOrForceInstallDialogAsync(
                             this.Content.XamlRoot,
-                            "Installation failed",
+                            "Install_Dialog_Title".GetLocalized(),
                             installException
                         );
                 }

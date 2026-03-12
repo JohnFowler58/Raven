@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Dispatching;
 using test.Contracts.Services;
+using test.Helpers;
 using test.Models;
 using test.Services;
 
@@ -14,6 +15,7 @@ namespace test.ViewModels;
 public partial class UpdatesViewModel : ObservableObject
 {
     private readonly INavigationService _navigationService;
+    private readonly ILocaleService _localeService;
 
     public DispatcherQueue? DispatcherQueue { get; set; }
 
@@ -55,9 +57,9 @@ public partial class UpdatesViewModel : ObservableObject
     }
 
     public string ButtonText =>
-        IsChecking ? "Checking..."
-        : SelectedCount > 0 ? $"Update selected ({SelectedCount})"
-        : "Check for updates";
+        IsChecking ? "Updates_ButtonChecking".GetLocalized()
+        : SelectedCount > 0 ? string.Format("Updates_ButtonUpdate".GetLocalized(), SelectedCount)
+        : "Updates_ButtonCheck".GetLocalized();
 
     public bool ButtonEnabled => !IsChecking && (!IsUpdating || SelectedCount > 0);
 
@@ -70,9 +72,10 @@ public partial class UpdatesViewModel : ObservableObject
         "raven_completed_updates.json"
     );
 
-    public UpdatesViewModel(INavigationService navigationService)
+    public UpdatesViewModel(INavigationService navigationService, ILocaleService localeService)
     {
         _navigationService = navigationService;
+        _localeService = localeService;
 
         AvailableUpdates.CollectionChanged += (_, _) =>
         {
@@ -149,8 +152,8 @@ public partial class UpdatesViewModel : ObservableObject
         // Set text immediately — no waiting for the first HTTP response.
         // Dots initialise with punctuation spaces (U+2008) so the width is
         // already the same as "..." before the first tick fires.
-        _checkingBaseText = "Checking";
-        CheckingProgressBase = "Checking";
+        _checkingBaseText = "Updates_CheckingBase".GetLocalized();
+        CheckingProgressBase = "Updates_CheckingBase".GetLocalized();
         CheckingProgressDots = ".";
         var dotsCts = CancellationTokenSource.CreateLinkedTokenSource(_checkCts.Token);
         _ = AnimateCheckingDotsAsync(dotsCts.Token);
@@ -158,7 +161,7 @@ public partial class UpdatesViewModel : ObservableObject
         var progress = new Progress<(int completed, int total)>(p =>
         {
             // Update base text immediately; animation keeps running with dots.
-            _checkingBaseText = $"Checking ({p.completed}/{p.total})";
+            _checkingBaseText = string.Format("Updates_CheckingProgress".GetLocalized(), p.completed, p.total);
             CheckingProgressBase = _checkingBaseText;
             CheckingProgress = p.total > 0 ? (double)p.completed / p.total * 100.0 : 0;
         });
@@ -167,7 +170,7 @@ public partial class UpdatesViewModel : ObservableObject
 
         try
         {
-            updates = await UpdateCheckService.CheckForUpdatesAsync(progress, _checkCts.Token);
+            updates = await UpdateCheckService.CheckForUpdatesAsync(progress, _checkCts.Token, _localeService.Market, _localeService.Language);
         }
         catch (OperationCanceledException)
         {
@@ -251,7 +254,9 @@ public partial class UpdatesViewModel : ObservableObject
                 toUpdate,
                 DispatcherQueue!,
                 _updateCts.Token,
-                OnUpdateItemCompleted
+                OnUpdateItemCompleted,
+                _localeService.Market,
+                _localeService.Language
             );
         }
         catch (OperationCanceledException) { }

@@ -41,7 +41,7 @@
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
-      <TextBlock Grid.Column="0" Style="{ThemeResource TitleTextBlockStyle}" Text="Updates" />
+      <TextBlock x:Uid="UpdatesPage_Header" Grid.Column="0" Style="{ThemeResource TitleTextBlockStyle}" />
       <!--  Normal action button (hidden while checking)  -->
       <Button
         x:Name="ActionButton"
@@ -61,7 +61,7 @@
       >
         <StackPanel Orientation="Horizontal" Spacing="8">
           <FontIcon FontSize="12" Glyph="" />
-          <TextBlock Text="Stop" />
+          <TextBlock x:Uid="UpdatesPage_Stop" />
         </StackPanel>
       </Button>
     </Grid>
@@ -81,9 +81,9 @@
         Glyph=""
       />
       <TextBlock
+        x:Uid="UpdatesPage_NoUpdates"
         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
         Style="{ThemeResource SubtitleTextBlockStyle}"
-        Text="No new updates"
         TextAlignment="Center"
       />
     </StackPanel>
@@ -131,9 +131,9 @@
         <!--  Select All  -->
         <CheckBox
           x:Name="SelectAllCheckBox"
+          x:Uid="UpdatesPage_SelectAll"
           Margin="0,0,0,4"
           Click="SelectAll_Click"
-          Content="Select all"
           IsChecked="{x:Bind ViewModel.IsAllSelected, Mode=OneWay}"
           Visibility="{x:Bind ViewModel.HasUpdates, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
         />
@@ -258,12 +258,12 @@
                 </Grid>
                 <!--  Cancel button (visible while active but not yet cancelling)  -->
                 <Button
+                  x:Uid="UpdatesPage_CancelBtn"
                   Grid.Column="3"
                   VerticalAlignment="Center"
                   Click="CancelUpdateButton_Click"
                   Style="{StaticResource IconButtonStyle}"
                   Tag="{x:Bind ProductId}"
-                  ToolTipService.ToolTip="Cancel update"
                   Visibility="{x:Bind IsCancelButtonVisible, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
                 >
                   <FontIcon FontSize="12" Glyph="" />
@@ -274,9 +274,9 @@
         </ListView>
         <!--  Completed section header  -->
         <TextBlock
+          x:Uid="UpdatesPage_Completed"
           Margin="0,16,0,8"
           Style="{ThemeResource SubtitleTextBlockStyle}"
-          Text="Completed"
           Visibility="{x:Bind ViewModel.HasCompletedUpdates, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
         />
         <!--  Completed list  -->

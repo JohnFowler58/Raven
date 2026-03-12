@@ -20,17 +20,17 @@
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
       <TextBlock
+        x:Uid="InstallationsPage_Header"
         Grid.Column="0"
         Style="{ThemeResource TitleTextBlockStyle}"
-        Text="Install package"
       />
     </Grid>
     <!--  Progress (appears below title)  -->
     <StackPanel x:Name="ProgressPanel" Grid.Row="1" Spacing="6" Visibility="Collapsed">
       <TextBlock
         x:Name="ProgressStatusText"
+        x:Uid="InstallationsPage_Installing"
         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-        Text="Installing..."
       />
       <Grid>
         <Grid.ColumnDefinitions>
@@ -57,6 +57,7 @@
       <!--  TextBox with refined right padding to avoid overlap with ClearButton  -->
       <TextBox
         x:Name="SelectedFileText"
+        x:Uid="InstallationsPage_FileText"
         Grid.Column="0"
         MinHeight="40"
         Margin="0,0,8,0"
@@ -64,7 +65,6 @@
         VerticalAlignment="Center"
         VerticalContentAlignment="Center"
         IsReadOnly="True"
-        PlaceholderText="No file selected"
       />
       <!--  Clear button overlaid inside TextBox area  -->
       <Button
@@ -88,11 +88,11 @@
       <!--  Install button (greyed out when disabled)  -->
       <Button
         x:Name="InstallButton"
+        x:Uid="InstallationsPage_InstallBtn"
         Grid.Column="1"
         Height="40"
         MinWidth="100"
         Click="InstallButton_Click"
-        Content="Install"
         IsEnabled="False"
         Style="{ThemeResource AccentButtonStyle}"
       />
@@ -123,9 +123,9 @@
         />
         <TextBlock
           x:Name="DropZoneText"
+          x:Uid="InstallationsPage_DropZone"
           HorizontalAlignment="Center"
           FontSize="18"
-          Text="Select a package or drag it here"
         />
       </StackPanel>
     </Button>

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using test.Helpers;
 
 namespace test.Models;
 
@@ -168,16 +169,16 @@ public class UpdateItem : INotifyPropertyChanged
     {
         null => string.Empty,
         DownloadStatus.Pending => !string.IsNullOrWhiteSpace(StatusTextOverride)
-            ? StatusTextOverride : "Pending",
+            ? StatusTextOverride : "Status_Pending".GetLocalized(),
         DownloadStatus.Downloading => !string.IsNullOrWhiteSpace(StatusTextOverride)
-            ? StatusTextOverride : "Downloading",
+            ? StatusTextOverride : "Status_Downloading".GetLocalized(),
         DownloadStatus.Installing => !string.IsNullOrWhiteSpace(StatusTextOverride)
-            ? StatusTextOverride : "Installing",
-        DownloadStatus.Completed => "Updated",
+            ? StatusTextOverride : "Status_Installing".GetLocalized(),
+        DownloadStatus.Completed => "Status_Updated".GetLocalized(),
         DownloadStatus.Cancelling => !string.IsNullOrWhiteSpace(StatusTextOverride)
-            ? StatusTextOverride : "Cancelling",
-        DownloadStatus.Failed => "Failed",
-        DownloadStatus.Cancelled => "Cancelled",
+            ? StatusTextOverride : "Status_Cancelling".GetLocalized(),
+        DownloadStatus.Failed => "Status_Failed".GetLocalized(),
+        DownloadStatus.Cancelled => "Status_Cancelled".GetLocalized(),
         _ => string.Empty,
     };
 

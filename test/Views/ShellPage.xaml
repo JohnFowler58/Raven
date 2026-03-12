@@ -95,11 +95,11 @@
       <NavigationView.AutoSuggestBox>
         <AutoSuggestBox
           x:Name="SearchBox"
+          x:Uid="Shell_SearchBox"
           Grid.Column="4"
           MaxWidth="600"
           VerticalAlignment="Center"
           ItemTemplateSelector="{StaticResource SuggestionTemplateSelector}"
-          PlaceholderText="Search"
           QueryIcon="Find"
           QuerySubmitted="SearchBox_QuerySubmitted"
           TextChanged="SearchBox_TextChanged"
@@ -135,8 +135,8 @@
           </NavigationViewItem.Icon>
         </NavigationViewItem>
         <NavigationViewItem
+          x:Uid="Shell_Install"
           helpers:NavigationHelper.NavigateTo="test.ViewModels.InstallationsViewModel"
-          Content="Install"
         >
           <NavigationViewItem.Icon>
             <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="" />
@@ -153,8 +153,8 @@
           </NavigationViewItem.Icon>
         </NavigationViewItem>
         <NavigationViewItem
+          x:Uid="Shell_Downloads"
           helpers:NavigationHelper.NavigateTo="test.ViewModels.DownloadsViewModel"
-          Content="Downloads"
         >
           <NavigationViewItem.Icon>
             <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="" />

@@ -16,10 +16,12 @@ public sealed partial class ShellPage : Page
 {
     public ShellViewModel ViewModel { get; }
     private CancellationTokenSource? suggestionCancellationTokenSource;
+    private readonly ILocaleService _localeService;
 
     public ShellPage(ShellViewModel viewModel)
     {
         ViewModel = viewModel;
+        _localeService = App.GetService<ILocaleService>();
         InitializeComponent();
 
         ViewModel.NavigationService.Frame = NavigationFrame;
@@ -257,14 +259,14 @@ public sealed partial class ShellPage : Page
         }
     }
 
-    private static async Task<List<object>> GetCardSuggestionsAsync(
+    private async Task<List<object>> GetCardSuggestionsAsync(
         string query,
         CancellationToken cancellationToken
     )
     {
         DeviceFamily deviceFamily = DeviceFamily.Desktop;
-        Market market = Market.US;
-        Lang language = Lang.en;
+        Market market = _localeService.Market;
+        Lang language = _localeService.Language;
         var combined = new List<object>();
 
         try

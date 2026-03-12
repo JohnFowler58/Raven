@@ -15,7 +15,9 @@ public static class UpdateCheckService
 
     public static async Task<List<UpdateItem>> CheckForUpdatesAsync(
         IProgress<(int completed, int total)>? progress,
-        CancellationToken ct
+        CancellationToken ct,
+        Market market = Market.US,
+        Lang language = Lang.en
     )
     {
         var installedApps = PackagedAppDiscovery.GetAllInstalledStoreApps();
@@ -55,13 +57,13 @@ public static class UpdateCheckService
                         try
                         {
                             batchResult = await StoreEdgeFDProduct.GetProductsByIdTypeAsync(
-                                batch,
-                                StoreIdType.PackageFamilyName,
-                                DeviceFamily.Desktop,
-                                Market.US,
-                                Lang.en,
-                                ct
-                            );
+                                    batch,
+                                    StoreIdType.PackageFamilyName,
+                                    DeviceFamily.Desktop,
+                                    market,
+                                    language,
+                                    ct
+                                );
                         }
                         catch (OperationCanceledException)
                         {
@@ -118,8 +120,8 @@ public static class UpdateCheckService
                         var dcatResult =
                             await StoreListings.Library.DCATPackage.GetMultiplePackagesAsync(
                                 packagedIds,
-                                Market.US,
-                                Lang.en,
+                                market,
+                                language,
                                 true,
                                 ct
                             );
@@ -227,7 +229,9 @@ public static class UpdateCheckService
         IReadOnlyList<UpdateItem> items,
         DispatcherQueue dispatcher,
         CancellationToken ct,
-        Action<UpdateItem> onItemCompleted
+        Action<UpdateItem> onItemCompleted,
+        Market market = Market.US,
+        Lang language = Lang.en
     )
     {
         var downloadManager = DownloadManagerService.Instance;
@@ -249,7 +253,7 @@ public static class UpdateCheckService
 
             await Task.WhenAll(
                 batch.Select(item =>
-                    ProcessItemAsync(item, dispatcher, ct, downloadManager, onItemCompleted)
+                    ProcessItemAsync(item, dispatcher, ct, downloadManager, onItemCompleted, market, language)
                 )
             );
         }
@@ -260,7 +264,9 @@ public static class UpdateCheckService
         DispatcherQueue dispatcher,
         CancellationToken ct,
         DownloadManagerService downloadManager,
-        Action<UpdateItem> onItemCompleted
+        Action<UpdateItem> onItemCompleted,
+        Market market = Market.US,
+        Lang language = Lang.en
     )
     {
         var productData = new ProductData
@@ -295,7 +301,7 @@ public static class UpdateCheckService
         {
             downloadManager.UpdateDownloadStatus(item.ProductId, DownloadStatus.Pending);
             pendingAnimator = new DownloadItemStatusAnimator(dispatcher);
-            pendingAnimator.Start(downloadItem, "Fetching download URLs");
+            pendingAnimator.Start(downloadItem, "Download_Status_Fetching".GetLocalized());
         }
 
         var itemCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -306,7 +312,9 @@ public static class UpdateCheckService
             var fileEntry = await GetDownloadUrl.fetch(
                 item.ProductId,
                 InstallerType.Packaged,
-                itemCts.Token
+                itemCts.Token,
+                market: market,
+                language: language
             );
 
             // Stop pending animator before StartDownloadAsync starts its own.

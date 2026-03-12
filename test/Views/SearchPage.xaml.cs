@@ -2,6 +2,7 @@
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using StoreListings.Library;
+using test.Contracts.Services;
 using test.ViewModels;
 
 namespace test.Views;
@@ -11,10 +12,12 @@ public sealed partial class SearchPage : Page
     public ObservableCollection<Card> Cards { get; set; } = [];
 
     public SearchViewModel ViewModel { get; }
+    private readonly ILocaleService _localeService;
 
     public SearchPage()
     {
         ViewModel = App.GetService<SearchViewModel>();
+        _localeService = App.GetService<ILocaleService>();
         InitializeComponent();
         CardView.ViewModel = ViewModel;
         CardView.LoadCardsMethod = LoadCards;
@@ -25,8 +28,8 @@ public sealed partial class SearchPage : Page
         ViewModel.HasMoreItems = true;
 
         var deviceFamily = DeviceFamily.Desktop;
-        var market = Market.US;
-        var language = Lang.en;
+        var market = _localeService.Market;
+        var language = _localeService.Language;
 
         var result = await StoreEdgeFDQuery.GetSearchProduct(
             ViewModel.Query,

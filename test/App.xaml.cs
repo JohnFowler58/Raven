@@ -65,6 +65,7 @@ public partial class App : Application
                     // Services
                     services.AddSingleton<ILocalSettingsService, LocalSettingsService>();
                     services.AddSingleton<IThemeSelectorService, ThemeSelectorService>();
+                    services.AddSingleton<ILocaleService, LocaleService>();
                     services.AddTransient<INavigationViewService, NavigationViewService>();
 
                     services.AddSingleton<IActivationService, ActivationService>();
@@ -100,6 +101,8 @@ public partial class App : Application
                     services.AddTransient<UpdatesPage>();
                     services.AddSingleton<UpdatesViewModel>();
 
+                    services.AddSingleton<IStoreService, StoreService>();
+
                     // Configuration
                     services.Configure<LocalSettingsOptions>(
                         context.Configuration.GetSection(nameof(LocalSettingsOptions))
@@ -132,9 +135,5 @@ public partial class App : Application
         );
 
         await App.GetService<IActivationService>().ActivateAsync(args);
-        // Add other services
-        var services = new ServiceCollection();
-        services.AddSingleton<IStoreService, StoreService>();
-        Services = services.BuildServiceProvider();
     }
 }

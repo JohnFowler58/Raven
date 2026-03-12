@@ -124,7 +124,7 @@
             Orientation="Horizontal"
             Spacing="0"
           >
-            <TextBlock Style="{StaticResource BodyTextBlockStyle}" Text="Loading" />
+            <TextBlock x:Uid="AppPage_Loading" Style="{StaticResource BodyTextBlockStyle}" />
             <TextBlock
               x:Name="LoadingDotsText"
               Width="24"
@@ -209,7 +209,7 @@
                     <!--  Checkbox-style toggle: custom template for consistent height/margin  -->
                     <ToggleMenuFlyoutItem
                       x:Name="IgnoreDependencyFilterToggle"
-                      Text="Bypass Filters"
+                      x:Uid="AppPage_BypassFilters"
                     >
                       <ToggleMenuFlyoutItem.Style>
                         <Style TargetType="ToggleMenuFlyoutItem">
@@ -273,8 +273,8 @@
                     <!--  Button-style item: custom template removes icon column, centers text  -->
                     <MenuFlyoutItem
                       x:Name="CheckUpdate"
+                      x:Uid="AppPage_CheckUpdates"
                       Click="CheckUpdate_Click"
-                      Text="Check Updates"
                     >
                       <MenuFlyoutItem.Style>
                         <Style TargetType="MenuFlyoutItem">
@@ -480,10 +480,10 @@
             CornerRadius="10"
           >
             <TextBlock
+              x:Uid="AppPage_Screenshots"
               Margin="24,12"
               FontSize="18"
               Style="{ThemeResource SubtitleTextBlockStyle}"
-              Text="Screenshots"
             />
             <!--  Divider  -->
             <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
@@ -577,10 +577,10 @@
             CornerRadius="10"
           >
             <TextBlock
+              x:Uid="AppPage_Description"
               Margin="24,12"
               FontSize="18"
               Style="{ThemeResource SubtitleTextBlockStyle}"
-              Text="Description"
             />
             <!--  Divider  -->
             <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
@@ -600,10 +600,10 @@
             CornerRadius="10"
           >
             <TextBlock
+              x:Uid="AppPage_MoreDetails"
               Margin="24,12"
               FontSize="18"
               Style="{ThemeResource SubtitleTextBlockStyle}"
-              Text="More Details"
             />
             <!--  Divider  -->
             <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
@@ -620,11 +620,11 @@
               </Grid.ColumnDefinitions>
               <!--  App Size  -->
               <TextBlock
+                x:Uid="AppPage_AppSize"
                 Grid.Row="0"
                 Grid.Column="0"
                 Margin="0,5"
                 Style="{ThemeResource BodyStrongTextBlockStyle}"
-                Text="App Size:"
               />
               <TextBlock
                 Grid.Row="0"
@@ -634,11 +634,11 @@
               />
               <!--  Version  -->
               <TextBlock
+                x:Uid="AppPage_Version"
                 Grid.Row="1"
                 Grid.Column="0"
                 Margin="0,5"
                 Style="{ThemeResource BodyStrongTextBlockStyle}"
-                Text="Version:"
               />
               <TextBlock
                 Grid.Row="1"
@@ -648,11 +648,11 @@
               />
               <!--  Last Updated  -->
               <TextBlock
+                x:Uid="AppPage_LastUpdated"
                 Grid.Row="2"
                 Grid.Column="0"
                 Margin="0,5"
                 Style="{ThemeResource BodyStrongTextBlockStyle}"
-                Text="Last Updated:"
               />
               <TextBlock
                 Grid.Row="2"

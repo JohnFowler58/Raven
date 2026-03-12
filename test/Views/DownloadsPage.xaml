@@ -35,11 +35,11 @@
           <ColumnDefinition Width="*" />
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <TextBlock Grid.Column="0" Style="{ThemeResource TitleTextBlockStyle}" Text="Downloads" />
+        <TextBlock x:Uid="DownloadsPage_Header" Grid.Column="0" Style="{ThemeResource TitleTextBlockStyle}" />
         <Button
+          x:Uid="DownloadsPage_OpenFolder"
           Grid.Column="1"
           Click="OpenFolderButton_Click"
-          Content="Open folder"
           Style="{ThemeResource AccentButtonStyle}"
         />
       </Grid>
@@ -152,6 +152,7 @@
               </Grid>
               <!--  Right-side action buttons  -->
               <Button
+                x:Uid="DownloadsPage_CancelBtn"
                 Grid.Row="0"
                 Grid.Column="2"
                 VerticalAlignment="Center"
@@ -159,7 +160,6 @@
                 Click="CancelButton_Click"
                 Style="{StaticResource IconButtonStyle}"
                 Tag="{x:Bind ProductId}"
-                ToolTipService.ToolTip="Cancel download"
                 Visibility="{Binding Status, Converter={StaticResource DownloadStatusToVisibilityConverter}, Mode=OneWay}"
               >
                 <FontIcon FontSize="12" Glyph="" />
@@ -176,9 +176,9 @@
                 <Button.Flyout>
                   <MenuFlyout>
                     <MenuFlyoutItem
+                      x:Uid="DownloadsPage_Delete"
                       Click="DeleteMenuItem_Click"
                       Tag="{x:Bind ProductId}"
-                      Text="Delete"
                     >
                       <MenuFlyoutItem.Icon>
                         <FontIcon Glyph="" />

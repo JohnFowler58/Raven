@@ -14,6 +14,7 @@ namespace test.Views;
 public sealed partial class Advanced_SearchPage : Page
 {
     public Advanced_SearchViewModel ViewModel { get; }
+    private readonly ILocaleService _localeService;
 
     private CancellationTokenSource? _searchCts;
     private CancellationTokenSource? _loadingDotsCts;
@@ -24,6 +25,7 @@ public sealed partial class Advanced_SearchPage : Page
     public Advanced_SearchPage()
     {
         ViewModel = App.GetService<Advanced_SearchViewModel>();
+        _localeService = App.GetService<ILocaleService>();
         InitializeComponent();
     }
 
@@ -65,7 +67,7 @@ public sealed partial class Advanced_SearchPage : Page
         {
             ViewModel.ShowInfoCards = false;
             ViewModel.HasError = true;
-            ViewModel.ErrorMessage = "Please enter a value to search.";
+            ViewModel.ErrorMessage = "AdvancedSearch_Error_EmptyQuery".GetLocalized();
             return;
         }
 
@@ -90,7 +92,7 @@ public sealed partial class Advanced_SearchPage : Page
             if (productId == null)
                 return;
 
-            var product = await Utils.ProductOrBundle(productId, InstallerType.Unknown, token);
+            var product = await Utils.ProductOrBundle(productId, InstallerType.Unknown, token, _localeService.Market, _localeService.Language);
             var frame = App.GetService<INavigationService>().Frame;
             QueryBox.Text = string.Empty;
             if (product.IsBundle)
@@ -146,7 +148,7 @@ public sealed partial class Advanced_SearchPage : Page
                 {
                     ViewModel.IsLoading = false;
                     ViewModel.HasError = true;
-                    ViewModel.ErrorMessage = "Could not extract a product ID from this URL. Make sure it is a valid Microsoft Store URL.";
+                    ViewModel.ErrorMessage = "AdvancedSearch_Error_InvalidUrl".GetLocalized();
                     return null;
                 }
                 return match.Groups[1].Value;
@@ -157,12 +159,13 @@ public sealed partial class Advanced_SearchPage : Page
 
             case SearchType.PackageFamilyName:
             {
+                var localeService = _localeService;
                 var result = await StoreEdgeFDProduct.GetProductsByIdTypeAsync(
                     [query],
                     StoreIdType.PackageFamilyName,
                     DeviceFamily.Desktop,
-                    Market.US,
-                    Lang.en,
+                    localeService.Market,
+                    localeService.Language,
                     token
                 );
 
@@ -171,8 +174,8 @@ public sealed partial class Advanced_SearchPage : Page
                     ViewModel.IsLoading = false;
                     ViewModel.HasError = true;
                     ViewModel.ErrorMessage = result.IsSuccess
-                        ? "No product found for this Package Family Name."
-                        : $"Failed to find product: {result.Exception.Message}";
+                        ? "AdvancedSearch_Error_NoPfnResult".GetLocalized()
+                        : string.Format("AdvancedSearch_Error_FailedLookup".GetLocalized(), result.Exception.Message);
                     return null;
                 }
 

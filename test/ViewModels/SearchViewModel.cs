@@ -1,6 +1,8 @@
 ﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using StoreListings.Library;
+using test.Contracts.Services;
+using test.Helpers;
 
 namespace test.ViewModels;
 
@@ -59,16 +61,9 @@ public partial class SearchViewModel : ObservableRecipient, ICardViewModel
             }
         }
     }
-    public readonly List<string> ItemSourceFilter1 =
-    [
-        "All departments",
-        "Apps",
-        "Games",
-        "Fonts",
-        "Themes",
-    ];
+    public readonly List<string> ItemSourceFilter1;
 
-    public readonly List<string> ItemSourceFilter2 = ["All Types", "Free", "Paid"];
+    public readonly List<string> ItemSourceFilter2;
     private static readonly Dictionary<int, MediaTypeSearch> MediaTypePairs = new()
     {
         { 0, MediaTypeSearch.All },
@@ -85,5 +80,34 @@ public partial class SearchViewModel : ObservableRecipient, ICardViewModel
         { 2, PriceType.Paid },
     };
 
-    public SearchViewModel() { }
+    public SearchViewModel(ILocaleService localeService)
+    {
+        localeService.LocaleChanged += (_, _) => ClearCache();
+
+        ItemSourceFilter1 =
+        [
+            "Search_Filter_AllDepartments".GetLocalized(),
+            "Filter_Apps".GetLocalized(),
+            "Filter_Games".GetLocalized(),
+            "Search_Filter_Fonts".GetLocalized(),
+            "Search_Filter_Themes".GetLocalized(),
+        ];
+        ItemSourceFilter2 =
+        [
+            "Search_Filter_AllTypes".GetLocalized(),
+            "Search_Filter_Free".GetLocalized(),
+            "Search_Filter_Paid".GetLocalized(),
+        ];
+    }
+
+    private void ClearCache()
+    {
+        Cards.Clear();
+        HasCachedResults = false;
+        CurrentSkipItem = 0;
+        ScrollPosition = 0;
+        Query = string.Empty;
+        F1Index = 0;
+        F2Index = 0;
+    }
 }

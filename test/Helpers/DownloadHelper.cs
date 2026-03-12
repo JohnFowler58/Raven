@@ -149,7 +149,7 @@ public sealed class DownloadHelper
         // Track file index/total for consistent text in DownloadItem.StatusText
         int totalFiles = 1;
         int currentFileIndex = 1;
-        string FilesLabel() => $"file{(totalFiles == 1 ? string.Empty : "s")}";
+        string FilesLabel() => totalFiles == 1 ? "Download_File".GetLocalized() : "Download_Files".GetLocalized();
 
         // Flatten dependencies (dependencies first), skipping duplicates by URL
         var flattened = new List<FileEntry>();
@@ -173,7 +173,7 @@ public sealed class DownloadHelper
 
         var mainUrl = entry.Url;
 
-        var baseStatus = $"Downloading ({currentFileIndex}/{totalFiles}) {FilesLabel()}";
+        var baseStatus = string.Format("Download_Status_DownloadingFiles".GetLocalized(), currentFileIndex, totalFiles, FilesLabel());
 
         // Single continuous animation for the page status (AppPage only)
         updateService.StartStatusAnimation(baseStatus);
@@ -194,7 +194,7 @@ public sealed class DownloadHelper
 
             currentFileIndex = i + 1;
 
-            baseStatus = $"Downloading ({currentFileIndex}/{totalFiles}) {FilesLabel()}";
+            baseStatus = string.Format("Download_Status_DownloadingFiles".GetLocalized(), currentFileIndex, totalFiles, FilesLabel());
             updateService.UpdateAnimatedStatusBase(baseStatus);
             animator.UpdateBase(downloadItem, baseStatus);
 
@@ -300,7 +300,7 @@ public sealed class DownloadHelper
                 {
                     downloadManager.UpdateDownloadDetailsText(
                         productId,
-                        $"Retry {attempt}/{MAX_RETRIES_PER_FILE}"
+                        string.Format("Download_Status_Retry".GetLocalized(), attempt, MAX_RETRIES_PER_FILE)
                     );
                 }
 
@@ -308,7 +308,7 @@ public sealed class DownloadHelper
                 {
                     try
                     {
-                        updateService.UpdateAnimatedStatusBase("Cancelling");
+                        updateService.UpdateAnimatedStatusBase("Status_Cancelling".GetLocalized());
                         // Best-effort cancel; DownloadService is created per attempt in the actual download branch.
                     }
                     catch
@@ -329,7 +329,7 @@ public sealed class DownloadHelper
                             {
                                 downloadManager.UpdateDownloadDetailsText(
                                     productId,
-                                    "No progress detected. Restarting..."
+                                    "Download_Status_NoProgress".GetLocalized()
                                 );
                                 attemptCts.Cancel();
                             }
@@ -529,18 +529,18 @@ public sealed class DownloadHelper
                     if (attempt < MAX_RETRIES_PER_FILE)
                     {
                         var delayMs = GetRetryDelayMs(null, attempt, MAX_BACKOFF_MS);
-                        downloadManager.UpdateDownloadDetailsText(
-                            productId,
-                            $"Restarting... retrying in {delayMs / 1000.0:F1}s..."
-                        );
-                        await Task.Delay(delayMs, token).ConfigureAwait(false);
-                        continue;
-                    }
+                            downloadManager.UpdateDownloadDetailsText(
+                                productId,
+                                string.Format("Download_Status_RestartingIn".GetLocalized(), delayMs / 1000.0)
+                            );
+                            await Task.Delay(delayMs, token).ConfigureAwait(false);
+                            continue;
+                        }
 
                     hadError = true;
                     downloadManager.UpdateDownloadStatusText(
                         productId,
-                        "Error: Download stalled and exhausted retries."
+                        "Download_Status_Stalled".GetLocalized()
                     );
                     break;
                 }
@@ -554,7 +554,7 @@ public sealed class DownloadHelper
                     var delayMs = GetRetryDelayMs(ex, attempt, MAX_BACKOFF_MS);
                     downloadManager.UpdateDownloadDetailsText(
                         productId,
-                        $"Temporary network/server issue. Retrying in {delayMs / 1000.0:F1}s..."
+                        string.Format("Download_Status_NetworkIssue".GetLocalized(), delayMs / 1000.0)
                     );
                     await Task.Delay(delayMs, token).ConfigureAwait(false);
                 }
@@ -563,17 +563,17 @@ public sealed class DownloadHelper
                     var delayMs = GetRetryDelayMs(null, attempt, MAX_BACKOFF_MS);
                     downloadManager.UpdateDownloadDetailsText(
                         productId,
-                        $"Error: {ex.Message}. Retrying in {delayMs / 1000.0:F1}s..."
+                        string.Format("Download_Status_RetryError".GetLocalized(), ex.Message, delayMs / 1000.0)
                     );
                     await Task.Delay(delayMs, token).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
                     hadError = true;
-                    downloadManager.UpdateDownloadStatusText(productId, $"Error: {ex.Message}");
+                    downloadManager.UpdateDownloadStatusText(productId, string.Format("Download_Status_Error".GetLocalized(), ex.Message));
                     downloadManager.UpdateDownloadDetailsText(
                         productId,
-                        "Check network or disk space."
+                        "Download_Status_NetworkError".GetLocalized()
                     );
                     break;
                 }
@@ -587,7 +587,7 @@ public sealed class DownloadHelper
                 hadError = true;
                 downloadManager.UpdateDownloadStatusText(
                     productId,
-                    "Error: Download failed after retries."
+                    "Download_Status_FailedRetries".GetLocalized()
                 );
                 break;
             }
@@ -602,7 +602,7 @@ public sealed class DownloadHelper
 
         if (cancelled)
         {
-            downloadManager.UpdateDownloadStatusText(productId, "Download canceled.");
+            downloadManager.UpdateDownloadStatusText(productId, "Download_Status_Canceled".GetLocalized());
             try
             {
                 downloadManager.UpdateDownloadBytes(productId, null, null);
@@ -634,7 +634,7 @@ public sealed class DownloadHelper
         {
             animator.Stop(downloadItem);
             updateService.StopStatusAnimation();
-            downloadManager.UpdateDownloadStatusText(productId, "Download completed.");
+            downloadManager.UpdateDownloadStatusText(productId, "Download_Status_Completed".GetLocalized());
             downloadManager.UpdateDownloadStatus(productId, test.Models.DownloadStatus.Completed);
             return;
         }
@@ -642,16 +642,16 @@ public sealed class DownloadHelper
         // Begin install phase and reflect it in Downloads page.
         downloadManager.UpdateDownloadStatus(productId, test.Models.DownloadStatus.Installing);
         downloadManager.UpdateDownloadProgress(productId, 0);
-        downloadManager.UpdateDownloadStatusText(productId, "Installing");
+        downloadManager.UpdateDownloadStatusText(productId, "Status_Installing".GetLocalized());
         try
         {
             downloadManager.UpdateDownloadBytes(productId, null, null);
         }
         catch { }
-        updateService.StartStatusAnimation("Installing");
+        updateService.StartStatusAnimation("Status_Installing".GetLocalized());
 
         // Animated dots in the Downloads list during install
-        animator.Start(downloadItem, "Installing");
+        animator.Start(downloadItem, "Status_Installing".GetLocalized());
 
         var mainPackagePath = downloadItem
             .DownloadedFiles.Select(f => f.Path)
@@ -670,7 +670,7 @@ public sealed class DownloadHelper
             updateService.StopStatusAnimation();
             downloadManager.UpdateDownloadStatusText(
                 productId,
-                "Install failed: main package missing."
+                "Download_Status_MissingPackage".GetLocalized()
             );
             downloadManager.UpdateDownloadStatus(productId, test.Models.DownloadStatus.Failed);
             return;
@@ -748,7 +748,7 @@ public sealed class DownloadHelper
             animator.Stop(downloadItem);
             updateService.StopStatusAnimation();
             downloadItem.LastInstallError = ex;
-            downloadManager.UpdateDownloadStatusText(productId, $"Install failed: {ex.Message}");
+            downloadManager.UpdateDownloadStatusText(productId, string.Format("Download_Status_InstallFailed".GetLocalized(), ex.Message));
             downloadManager.UpdateDownloadStatus(productId, test.Models.DownloadStatus.Failed);
         }
     }

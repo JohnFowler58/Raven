@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using test.Helpers;
 
 namespace test.ViewModels;
 
@@ -37,10 +38,10 @@ public partial class Advanced_SearchViewModel : ObservableRecipient
 
     public string PlaceholderText => SelectedSearchType switch
     {
-        SearchType.Url => "https://apps.microsoft.com/detail/...",
-        SearchType.ProductId => "e.g. 9WZDNCRFHVJL",
-        SearchType.PackageFamilyName => "e.g. Microsoft.WindowsTerminal_8wekyb3d8bbwe",
-        _ => "Enter a value to search",
+        SearchType.Url => "AdvancedSearch_Placeholder_Url".GetLocalized(),
+        SearchType.ProductId => "AdvancedSearch_Placeholder_ProductId".GetLocalized(),
+        SearchType.PackageFamilyName => "AdvancedSearch_Placeholder_Pfn".GetLocalized(),
+        _ => "AdvancedSearch_Placeholder_Default".GetLocalized(),
     };
 
     public Advanced_SearchViewModel()

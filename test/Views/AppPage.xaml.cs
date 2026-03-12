@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using StoreListings.Library;
+using test.Contracts.Services;
 using test.Helpers;
 using test.Models;
 using test.Services;
@@ -15,6 +16,7 @@ public sealed partial class AppPage : Page
     public AppViewModel ViewModel { get; }
     public AppInfo AppData { get; set; } = new();
     public UIUpdateService UpdateService { get; }
+    private readonly ILocaleService _localeService;
 
     private CancellationTokenSource? _productLoadCts;
     private CancellationTokenSource? _downloadCts;
@@ -40,6 +42,7 @@ public sealed partial class AppPage : Page
     public AppPage()
     {
         ViewModel = App.GetService<AppViewModel>();
+        _localeService = App.GetService<ILocaleService>();
         InitializeComponent();
         UpdateService = new UIUpdateService(this.DispatcherQueue);
         InstallButtonFlyout.Opening += OnInstallButtonFlyoutOpening;
@@ -153,7 +156,9 @@ public sealed partial class AppPage : Page
             var product = await Utils.ProductOrBundle(
                 productId,
                 installerType,
-                _productLoadCts?.Token ?? default
+                _productLoadCts?.Token ?? default,
+                _localeService.Market,
+                _localeService.Language
             );
 
             var downloadItem = DownloadManagerService.Instance.GetDownload(productId);
@@ -172,8 +177,8 @@ public sealed partial class AppPage : Page
         {
             SetLoading(false);
             await ShowErrorDialogAsync(
-                "Error loading app",
-                $"Could not load app details: {ex.Message}"
+                "AppPage_Error_LoadTitle".GetLocalized(),
+                string.Format("AppPage_Error_LoadMessage".GetLocalized(), ex.Message)
             );
         }
     }
@@ -352,7 +357,7 @@ public sealed partial class AppPage : Page
         // Restart animation if installing
         if (item.Status == DownloadStatus.Installing)
         {
-            UpdateService.StartStatusAnimation("Installing");
+            UpdateService.StartStatusAnimation("Status_Installing".GetLocalized());
         }
 
         // Subscribe to property changes for download item
@@ -493,7 +498,7 @@ public sealed partial class AppPage : Page
             {
                 var force = await InstallHelper.ShowInstallationErrorOrForceInstallDialogAsync(
                     this.Content.XamlRoot,
-                    "Installation failed",
+                    "Install_Dialog_Title".GetLocalized(),
                     item.LastInstallError
                 );
 
@@ -533,7 +538,7 @@ public sealed partial class AppPage : Page
         downloadManager.UpdateDownloadStatus(productId, DownloadStatus.Installing);
         downloadManager.UpdateDownloadProgress(productId, 0);
         // Use the override for animated dots in the Downloads list.
-        downloadManager.UpdateDownloadStatusText(productId, "Installing");
+        downloadManager.UpdateDownloadStatusText(productId, "Status_Installing".GetLocalized());
         try
         {
             downloadManager.UpdateDownloadBytes(productId, null, null);
@@ -544,11 +549,11 @@ public sealed partial class AppPage : Page
 
         UpdateService.SetProgress(0);
         UpdateService.SetDetails(string.Empty);
-        StatusText.Text = "Installing";
+        StatusText.Text = "Status_Installing".GetLocalized();
         DetailsText.Text = "0%";
         SetInstallButtonState(showProgress: true);
         SetProgressIndeterminate(false);
-        UpdateService.StartStatusAnimation("Installing");
+        UpdateService.StartStatusAnimation("Status_Installing".GetLocalized());
 
         var depPaths = item
             .DownloadedFilePaths.Where(p =>
@@ -580,13 +585,13 @@ public sealed partial class AppPage : Page
         catch (Exception ex)
         {
             UpdateService.StopStatusAnimation();
-            downloadManager.UpdateDownloadStatusText(productId, $"Install failed: {ex.Message}");
+            downloadManager.UpdateDownloadStatusText(productId, string.Format("Download_Status_InstallFailed".GetLocalized(), ex.Message));
             downloadManager.UpdateDownloadStatus(productId, DownloadStatus.Failed);
 
             // Force install already failed: do not re-offer force install.
             await InstallHelper.ShowInstallationErrorDialogAsync(
                 this.Content.XamlRoot,
-                "Installation failed",
+                "Install_Dialog_Title".GetLocalized(),
                 ex
             );
         }
@@ -819,7 +824,7 @@ public sealed partial class AppPage : Page
         {
             Title = title,
             Content = content,
-            CloseButtonText = "OK",
+            CloseButtonText = "Common_OK".GetLocalized(),
             XamlRoot = this.Content.XamlRoot,
         };
         await dialog.ShowAsync();
@@ -870,7 +875,9 @@ public sealed partial class AppPage : Page
             var latestVersion = await VersionCheckService.GetLatestVersionAsync(
                 _currentProductInfo.ProductId,
                 _currentProductInfo.InstallerType,
-                cts.Token
+                cts.Token,
+                market: _localeService.Market,
+                language: _localeService.Language
             );
 
             if (latestVersion != null)
@@ -892,8 +899,8 @@ public sealed partial class AppPage : Page
             else if (!cts.IsCancellationRequested)
             {
                 await ShowErrorDialogAsync(
-                    "Check Updates",
-                    "Could not retrieve the latest version. The app may not be available or the check failed."
+                    "AppPage_Error_CheckUpdatesTitle".GetLocalized(),
+                    "AppPage_Error_VersionCheckMsg".GetLocalized()
                 );
             }
         }
@@ -904,7 +911,7 @@ public sealed partial class AppPage : Page
         catch (Exception ex)
         {
             if (!cts.IsCancellationRequested)
-                await ShowErrorDialogAsync("Check Updates", $"Failed to check for updates: {ex.Message}");
+                await ShowErrorDialogAsync("AppPage_Error_CheckUpdatesTitle".GetLocalized(), string.Format("AppPage_Error_UpdateCheckFailed".GetLocalized(), ex.Message));
         }
         finally
         {
@@ -1035,10 +1042,10 @@ public sealed partial class AppPage : Page
 
             // Show fetch phase on both AppPage and DownloadsPage
             SetProgressIndeterminate(true);
-            UpdateService.StartStatusAnimation("Fetching download URLs");
+            UpdateService.StartStatusAnimation("Download_Status_Fetching".GetLocalized());
             downloadManager.UpdateDownloadStatus(productId, DownloadStatus.Pending);
             downloadManager.UpdateDownloadProgress(productId, 0);
-            downloadManager.UpdateDownloadStatusText(productId, "Fetching download URLs");
+            downloadManager.UpdateDownloadStatusText(productId, "Download_Status_Fetching".GetLocalized());
 
             // Smooth dots animation in Downloads list during fetch.
             var fetchAnimator = new test.Helpers.DownloadItemStatusAnimator(
@@ -1046,7 +1053,7 @@ public sealed partial class AppPage : Page
             );
             if (downloadItem != null)
             {
-                fetchAnimator.Start(downloadItem, "Fetching download URLs");
+                fetchAnimator.Start(downloadItem, "Download_Status_Fetching".GetLocalized());
             }
 
             FileEntry? urls;
@@ -1057,6 +1064,8 @@ public sealed partial class AppPage : Page
                     productId,
                     _currentProductInfo.InstallerType,
                     _downloadCts.Token,
+                    market: _localeService.Market,
+                    language: _localeService.Language,
                     ignoreDependencyFilter: IgnoreDependencyFilterToggle.IsChecked
                 );
             }
@@ -1067,7 +1076,7 @@ public sealed partial class AppPage : Page
                 {
                     fetchAnimator.Stop(downloadItem);
                 }
-                HandleDownloadError(productId, "Operation canceled.", DownloadStatus.Cancelled);
+                HandleDownloadError(productId, "AppPage_Error_OperationCanceled".GetLocalized(), DownloadStatus.Cancelled);
                 return;
             }
 
@@ -1082,7 +1091,7 @@ public sealed partial class AppPage : Page
                 {
                     fetchAnimator.Stop(downloadItem);
                 }
-                HandleDownloadError(productId, "Operation canceled.", DownloadStatus.Cancelled);
+                HandleDownloadError(productId, "AppPage_Error_OperationCanceled".GetLocalized(), DownloadStatus.Cancelled);
                 return;
             }
 
@@ -1097,8 +1106,8 @@ public sealed partial class AppPage : Page
                 UnbindFromDownloadItem();
                 SetInstallButtonState(content: "Retry", enabled: true, showProgress: false);
                 await ShowErrorDialogAsync(
-                    "App not supported",
-                    "This app isn't supported. Try a different app or check again later"
+                    "AppPage_Error_NotSupportedTitle".GetLocalized(),
+                    "AppPage_Error_NotSupportedMsg".GetLocalized()
                 );
                 return;
             }
@@ -1145,13 +1154,13 @@ public sealed partial class AppPage : Page
         catch (OperationCanceledException)
         {
             UpdateService.StopStatusAnimation();
-            HandleDownloadError(productId, "Operation canceled.", DownloadStatus.Cancelled);
+            HandleDownloadError(productId, "AppPage_Error_OperationCanceled".GetLocalized(), DownloadStatus.Cancelled);
         }
         catch (Exception ex)
         {
             Debug.WriteLine(ex);
             UpdateService.StopStatusAnimation();
-            HandleDownloadError(productId, "Failed to install.", DownloadStatus.Failed);
+            HandleDownloadError(productId, "AppPage_Error_FailedToInstall".GetLocalized(), DownloadStatus.Failed);
         }
         finally
         {
@@ -1176,13 +1185,13 @@ public sealed partial class AppPage : Page
                 var msg = launch.FailureReason switch
                 {
                     PackagedAppDiscovery.LaunchFailureReason.NotInstalled =>
-                        "This app package was not found in the Windows package manager. It may not be installed.",
+                        "AppPage_Error_NotInstalledPackaged".GetLocalized(),
                     PackagedAppDiscovery.LaunchFailureReason.NoAppEntries =>
-                        "The app package is installed, but no launchable app entries were found.",
-                    _ => "The app couldn't be opened. Try reinstalling the app.",
+                        "AppPage_Error_NoAppEntries".GetLocalized(),
+                    _ => "AppPage_Error_CantOpen".GetLocalized(),
                 };
 
-                await ShowErrorDialogAsync("Unable to open app", msg);
+                await ShowErrorDialogAsync("AppPage_Error_UnableToOpenTitle".GetLocalized(), msg);
             }
 
             return;
@@ -1191,22 +1200,22 @@ public sealed partial class AppPage : Page
         var win32Launch = await Win32AppDiscovery.TryLaunchDetailedAsync(_currentProductInfo.Title);
         if (!win32Launch.Success)
         {
-            var title = "Unable to open app";
+            var title = "AppPage_Error_UnableToOpenTitle".GetLocalized();
             var msg = win32Launch.FailureReason switch
             {
                 Win32AppDiscovery.LaunchFailureReason.NotFoundInRegistry =>
-                    "This app was not found in the Windows uninstall registry. It may not be installed.",
+                    "AppPage_Error_NotInstalledWin32".GetLocalized(),
                 Win32AppDiscovery.LaunchFailureReason.MissingLaunchTarget =>
-                    "The app appears to be installed, but a launch target couldn't be found (Start Menu/DisplayIcon). The app may have been installed incorrectly.",
-                Win32AppDiscovery.LaunchFailureReason.LaunchTargetNotFoundOnDisk =>
-                    "The app appears to be installed, but its launch file couldn't be found on disk. The app may have been moved or installed incorrectly.",
-                _ => "The app couldn't be opened. Try reinstalling the app.",
-            };
+                    "AppPage_Error_MissingLaunchTarget".GetLocalized(),
+                    Win32AppDiscovery.LaunchFailureReason.LaunchTargetNotFoundOnDisk =>
+                        "AppPage_Error_MissingLaunchFile".GetLocalized(),
+                    _ => "AppPage_Error_CantOpen".GetLocalized(),
+                };
 
-            if (!string.IsNullOrWhiteSpace(win32Launch.InstalledVersion))
-            {
-                msg += $"\n\nInstalled version: {win32Launch.InstalledVersion}";
-            }
+                if (!string.IsNullOrWhiteSpace(win32Launch.InstalledVersion))
+                {
+                    msg += string.Format("AppPage_Error_InstalledVersion".GetLocalized(), win32Launch.InstalledVersion);
+                }
 
             await ShowErrorDialogAsync(title, msg);
         }
@@ -1227,19 +1236,19 @@ public sealed partial class AppPage : Page
         if (string.IsNullOrWhiteSpace(installerPath))
         {
             await ShowErrorDialogAsync(
-                "Installer missing",
-                "The unpackaged installer could not be found on disk."
+                "AppPage_Error_InstallerMissingTitle".GetLocalized(),
+                "AppPage_Error_InstallerMissingMsg".GetLocalized()
             );
             return false;
         }
 
         var dialog = new ContentDialog
         {
-            Title = "Manual installation required",
+            Title = "AppPage_Manual_Install_Title".GetLocalized(),
             Content =
-                "This app uses an unpackaged installer (EXE/MSI). It will open now and may require additional steps to finish installing.",
-            PrimaryButtonText = "Open installer",
-            CloseButtonText = "Cancel",
+                "AppPage_Manual_Install_Msg".GetLocalized(),
+            PrimaryButtonText = "AppPage_Btn_OpenInstaller".GetLocalized(),
+            CloseButtonText = "Common_Cancel".GetLocalized(),
             DefaultButton = ContentDialogButton.Primary,
             XamlRoot = this.Content.XamlRoot,
         };
@@ -1263,7 +1272,7 @@ public sealed partial class AppPage : Page
         }
         catch (Exception ex)
         {
-            await ShowErrorDialogAsync("Unable to open installer", ex.Message);
+            await ShowErrorDialogAsync("AppPage_Error_UnableToOpenInstallerTitle".GetLocalized(), ex.Message);
             return false;
         }
     }
@@ -1277,7 +1286,7 @@ public sealed partial class AppPage : Page
 
         // Show cancelling animation on the main status line
         SetProgressIndeterminate(true);
-        UpdateService.StartStatusAnimation("Cancelling");
+        UpdateService.StartStatusAnimation("Status_Cancelling".GetLocalized());
 
         // Cancel via manager so it works consistently across pages/phases.
         DownloadManagerService.Instance.CancelDownload(productId);

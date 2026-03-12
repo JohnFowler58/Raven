@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using StoreListings.Library;
+using test.Helpers;
 
 namespace test.Models;
 
@@ -244,20 +245,20 @@ public partial class DownloadItem : INotifyPropertyChanged
         {
             DownloadStatus.Pending => !string.IsNullOrWhiteSpace(StatusTextOverride)
                 ? StatusTextOverride
-                : "Pending",
+                : "Status_Pending".GetLocalized(),
             DownloadStatus.Downloading => !string.IsNullOrWhiteSpace(StatusTextOverride)
                 ? StatusTextOverride
-                : "Downloading",
+                : "Status_Downloading".GetLocalized(),
             DownloadStatus.Installing => !string.IsNullOrWhiteSpace(StatusTextOverride)
                 ? StatusTextOverride
-                : "Installing",
-            DownloadStatus.Completed => "Completed",
+                : "Status_Installing".GetLocalized(),
+            DownloadStatus.Completed => "Status_Completed".GetLocalized(),
             DownloadStatus.Cancelling => !string.IsNullOrWhiteSpace(StatusTextOverride)
                 ? StatusTextOverride
-                : "Cancelling",
-            DownloadStatus.Failed => "Failed",
-            DownloadStatus.Cancelled => "Cancelled",
-            _ => "Unknown",
+                : "Status_Cancelling".GetLocalized(),
+            DownloadStatus.Failed => "Status_Failed".GetLocalized(),
+            DownloadStatus.Cancelled => "Status_Cancelled".GetLocalized(),
+            _ => "Status_Unknown".GetLocalized(),
         };
 
     private long? _receivedBytes;

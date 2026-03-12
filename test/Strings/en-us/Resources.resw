@@ -117,11 +117,52 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+
+  <!-- ================================================================
+       APP METADATA
+       ================================================================ -->
   <data name="AppDisplayName" xml:space="preserve">
-    <value>test</value>
+    <value>Raven</value>
   </data>
   <data name="AppDescription" xml:space="preserve">
-    <value>test</value>
+    <value>A Windows Store app browser and package manager.</value>
+  </data>
+
+  <!-- ================================================================
+       SHELL / NAVIGATION
+       x:Uid keys: set NavigationViewItem.Content and AutoSuggestBox.PlaceholderText
+       ================================================================ -->
+  <data name="Shell_Main.Content" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Shell_Advanced_Search.Content" xml:space="preserve">
+    <value>Advanced Search</value>
+  </data>
+  <data name="Shell_Install.Content" xml:space="preserve">
+    <value>Install</value>
+  </data>
+  <data name="Shell_Updates.Content" xml:space="preserve">
+    <value>Updates</value>
+  </data>
+  <data name="Shell_Downloads.Content" xml:space="preserve">
+    <value>Downloads</value>
+  </data>
+  <data name="Shell_App.Content" xml:space="preserve">
+    <value>Apps</value>
+  </data>
+  <data name="Shell_Bundles.Content" xml:space="preserve">
+    <value>Bundles</value>
+  </data>
+  <data name="Shell_SearchBox.PlaceholderText" xml:space="preserve">
+    <value>Search</value>
+  </data>
+
+  <!-- ================================================================
+       SETTINGS PAGE
+       x:Uid keys: Settings_* and SettingsPage_*
+       ================================================================ -->
+  <data name="Settings_Title.Text" xml:space="preserve">
+    <value>Settings</value>
   </data>
   <data name="Settings_Personalization.Text" xml:space="preserve">
     <value>Personalization</value>
@@ -138,11 +179,20 @@
   <data name="Settings_Theme_Default.Content" xml:space="preserve">
     <value>Default</value>
   </data>
+  <data name="Settings_LocaleAndRegion.Text" xml:space="preserve">
+    <value>Language &amp; Region</value>
+  </data>
+  <data name="Settings_Language.Text" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Settings_Market.Text" xml:space="preserve">
+    <value>Market (Region)</value>
+  </data>
   <data name="Settings_About.Text" xml:space="preserve">
     <value>About this application</value>
   </data>
   <data name="Settings_AboutDescription.Text" xml:space="preserve">
-    <value>TODO: Replace with your app description.</value>
+    <value>A fast, open-source Windows Store app browser and package downloader.</value>
   </data>
   <data name="SettingsPage_PrivacyTermsLink.Content" xml:space="preserve">
     <value>Privacy Statement</value>
@@ -150,25 +200,552 @@
   <data name="SettingsPage_PrivacyTermsLink.NavigateUri" xml:space="preserve">
     <value>https://YourPrivacyUrlGoesHere/</value>
   </data>
-  <data name="Shell_App.Content" xml:space="preserve">
+
+  <!-- ================================================================
+       CARD VIEW CONTROL  (Shared/CardViewControl.xaml)
+       x:Uid keys: CardView_*
+       ================================================================ -->
+  <data name="CardView_Loading.Text" xml:space="preserve">
+    <value>Loading</value>
+  </data>
+  <data name="CardView_Filters.Text" xml:space="preserve">
+    <value>Filters</value>
+  </data>
+  <data name="CardView_ApplyBtn.Content" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="CardView_NoResults_Title.Text" xml:space="preserve">
+    <value>No results found</value>
+  </data>
+  <data name="CardView_NoResults_Subtitle.Text" xml:space="preserve">
+    <value>Try different keywords or remove search filters</value>
+  </data>
+
+  <!-- MainViewModel — filter ComboBox items (code: "Filter_*".GetLocalized()) -->
+  <data name="Filter_Apps" xml:space="preserve">
     <value>Apps</value>
   </data>
-  <data name="Shell_test.Content" xml:space="preserve">
-    <value>test</value>
+  <data name="Filter_Games" xml:space="preserve">
+    <value>Games</value>
   </data>
-  <data name="Shell_Bundles.Content" xml:space="preserve">
-    <value>Bundles</value>
+  <data name="Filter_TopFree" xml:space="preserve">
+    <value>Top Free</value>
   </data>
-  <data name="Shell_Main.Content" xml:space="preserve">
-    <value>Home</value>
+  <data name="Filter_TopPaid" xml:space="preserve">
+    <value>Top Paid</value>
   </data>
-  <data name="Settings_Title.Text" xml:space="preserve">
-    <value>Settings</value>
+  <data name="Filter_TopTrending" xml:space="preserve">
+    <value>Top Trending</value>
   </data>
-  <data name="Shell_Updates.Content" xml:space="preserve">
-    <value>Updates</value>
+  <data name="Filter_Specials" xml:space="preserve">
+    <value>Specials</value>
   </data>
-  <data name="Shell_Advanced_Search.Content" xml:space="preserve">
+  <data name="Filter_BestSelling" xml:space="preserve">
+    <value>Best Selling</value>
+  </data>
+
+  <!-- ================================================================
+       ADVANCED SEARCH PAGE  (Views/Advanced_SearchPage.xaml)
+       x:Uid keys: AdvancedSearch_*
+       ================================================================ -->
+  <data name="AdvancedSearch_Header.Text" xml:space="preserve">
     <value>Advanced Search</value>
   </data>
+  <data name="AdvancedSearch_SearchHint.Text" xml:space="preserve">
+    <value>Search by URL, product ID, or package family name</value>
+  </data>
+  <!-- Search type ComboBox items -->
+  <data name="AdvancedSearch_TypeUrl.Content" xml:space="preserve">
+    <value>URL</value>
+  </data>
+  <data name="AdvancedSearch_TypeProductId.Content" xml:space="preserve">
+    <value>Product ID</value>
+  </data>
+  <data name="AdvancedSearch_TypePfn.Content" xml:space="preserve">
+    <value>Package Family Name</value>
+  </data>
+  <!-- Search button and loading state -->
+  <data name="AdvancedSearch_SearchBtn.Text" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="AdvancedSearch_LookingUp.Text" xml:space="preserve">
+    <value>Looking up product</value>
+  </data>
+  <!-- Info card: URL -->
+  <data name="AdvancedSearch_UrlCard_Title.Text" xml:space="preserve">
+    <value>URL</value>
+  </data>
+  <data name="AdvancedSearch_UrlCard_Desc.Text" xml:space="preserve">
+    <value>Paste a Microsoft Store product URL to automatically extract and look up the product.</value>
+  </data>
+  <data name="AdvancedSearch_UrlCard_Example.Text" xml:space="preserve">
+    <value>e.g. https://apps.microsoft.com/detail/9WZDNCRFHVJL</value>
+  </data>
+  <!-- Info card: Product ID -->
+  <data name="AdvancedSearch_ProductIdCard_Title.Text" xml:space="preserve">
+    <value>Product ID</value>
+  </data>
+  <data name="AdvancedSearch_ProductIdCard_Desc.Text" xml:space="preserve">
+    <value>Enter the product's alphanumeric store ID to navigate directly to its page.</value>
+  </data>
+  <data name="AdvancedSearch_ProductIdCard_Example.Text" xml:space="preserve">
+    <value>e.g. 9WZDNCRFHVJL</value>
+  </data>
+  <!-- Info card: Package Family Name -->
+  <data name="AdvancedSearch_PfnCard_Title.Text" xml:space="preserve">
+    <value>Package Family Name</value>
+  </data>
+  <data name="AdvancedSearch_PfnCard_Desc.Text" xml:space="preserve">
+    <value>Enter the app's package family name to look up its store page.</value>
+  </data>
+  <data name="AdvancedSearch_PfnCard_Example.Text" xml:space="preserve">
+    <value>e.g. Microsoft.WindowsTerminal_8wekyb3d8bbwe</value>
+  </data>
+  <!-- TextBox placeholder text (code: AdvancedSearch_Placeholder_*.GetLocalized()) -->
+  <data name="AdvancedSearch_Placeholder_Url" xml:space="preserve">
+    <value>https://apps.microsoft.com/detail/...</value>
+  </data>
+  <data name="AdvancedSearch_Placeholder_ProductId" xml:space="preserve">
+    <value>e.g. 9WZDNCRFHVJL</value>
+  </data>
+  <data name="AdvancedSearch_Placeholder_Pfn" xml:space="preserve">
+    <value>e.g. Microsoft.WindowsTerminal_8wekyb3d8bbwe</value>
+  </data>
+  <data name="AdvancedSearch_Placeholder_Default" xml:space="preserve">
+    <value>Enter a value to search</value>
+  </data>
+  <!-- Error messages (code: AdvancedSearch_Error_*.GetLocalized()) -->
+  <data name="AdvancedSearch_Error_EmptyQuery" xml:space="preserve">
+    <value>Please enter a value to search.</value>
+  </data>
+  <data name="AdvancedSearch_Error_InvalidUrl" xml:space="preserve">
+    <value>Could not extract a product ID from this URL. Make sure it is a valid Microsoft Store URL.</value>
+  </data>
+  <data name="AdvancedSearch_Error_NoPfnResult" xml:space="preserve">
+    <value>No product found for this Package Family Name.</value>
+  </data>
+  <data name="AdvancedSearch_Error_FailedLookup" xml:space="preserve">
+    <value>Failed to find product: {0}</value>
+  </data>
+
+  <!-- ================================================================
+       APP PAGE DIALOGS AND STATUS  (Views/AppPage.xaml + .xaml.cs)
+       x:Uid keys: AppPage_*  |  Code keys (GetLocalized): AppPage_Error_*, AppPage_Manual_*, AppPage_Btn_*
+       ================================================================ -->
+  <data name="AppPage_Loading.Text" xml:space="preserve">
+    <value>Loading</value>
+  </data>
+  <!-- Options menu -->
+  <data name="AppPage_BypassFilters.Text" xml:space="preserve">
+    <value>Bypass Filters</value>
+  </data>
+  <data name="AppPage_CheckUpdates.Text" xml:space="preserve">
+    <value>Check Updates</value>
+  </data>
+  <!-- Section headers -->
+  <data name="AppPage_Screenshots.Text" xml:space="preserve">
+    <value>Screenshots</value>
+  </data>
+  <data name="AppPage_Description.Text" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="AppPage_MoreDetails.Text" xml:space="preserve">
+    <value>More Details</value>
+  </data>
+  <!-- Detail labels -->
+  <data name="AppPage_AppSize.Text" xml:space="preserve">
+    <value>App Size:</value>
+  </data>
+  <data name="AppPage_Version.Text" xml:space="preserve">
+    <value>Version:</value>
+  </data>
+  <data name="AppPage_LastUpdated.Text" xml:space="preserve">
+    <value>Last Updated:</value>
+  </data>
+  <!-- Loading error dialog -->
+  <data name="AppPage_Error_LoadTitle" xml:space="preserve">
+    <value>Error loading app</value>
+  </data>
+  <data name="AppPage_Error_LoadMessage" xml:space="preserve">
+    <value>Could not load app details: {0}</value>
+  </data>
+  <!-- Check for updates dialog (plain code key — different from x:Uid AppPage_CheckUpdates.Text) -->
+  <data name="AppPage_Error_CheckUpdatesTitle" xml:space="preserve">
+    <value>Check Updates</value>
+  </data>
+  <data name="AppPage_Error_VersionCheckMsg" xml:space="preserve">
+    <value>Could not retrieve the latest version. The app may not be available or the check failed.</value>
+  </data>
+  <data name="AppPage_Error_UpdateCheckFailed" xml:space="preserve">
+    <value>Failed to check for updates: {0}</value>
+  </data>
+  <!-- Download/install errors -->
+  <data name="AppPage_Error_OperationCanceled" xml:space="preserve">
+    <value>Operation canceled.</value>
+  </data>
+  <data name="AppPage_Error_NotSupportedTitle" xml:space="preserve">
+    <value>App not supported</value>
+  </data>
+  <data name="AppPage_Error_NotSupportedMsg" xml:space="preserve">
+    <value>This app isn't supported. Try a different app or check again later.</value>
+  </data>
+  <data name="AppPage_Error_FailedToInstall" xml:space="preserve">
+    <value>Failed to install.</value>
+  </data>
+  <!-- Open app errors — packaged -->
+  <data name="AppPage_Error_UnableToOpenTitle" xml:space="preserve">
+    <value>Unable to open app</value>
+  </data>
+  <data name="AppPage_Error_NotInstalledPackaged" xml:space="preserve">
+    <value>This app package was not found in the Windows package manager. It may not be installed.</value>
+  </data>
+  <data name="AppPage_Error_NoAppEntries" xml:space="preserve">
+    <value>The app package is installed, but no launchable app entries were found.</value>
+  </data>
+  <data name="AppPage_Error_CantOpen" xml:space="preserve">
+    <value>The app couldn't be opened. Try reinstalling the app.</value>
+  </data>
+  <!-- Open app errors — Win32 -->
+  <data name="AppPage_Error_NotInstalledWin32" xml:space="preserve">
+    <value>This app was not found in the Windows uninstall registry. It may not be installed.</value>
+  </data>
+  <data name="AppPage_Error_MissingLaunchTarget" xml:space="preserve">
+    <value>The app appears to be installed, but a launch target couldn't be found (Start Menu/DisplayIcon). The app may have been installed incorrectly.</value>
+  </data>
+  <data name="AppPage_Error_MissingLaunchFile" xml:space="preserve">
+    <value>The app appears to be installed, but its launch file couldn't be found on disk. The app may have been moved or installed incorrectly.</value>
+  </data>
+  <data name="AppPage_Error_InstalledVersion" xml:space="preserve">
+    <value>&#x0A;&#x0A;Installed version: {0}</value>
+  </data>
+  <!-- Unpackaged installer dialog -->
+  <data name="AppPage_Error_InstallerMissingTitle" xml:space="preserve">
+    <value>Installer missing</value>
+  </data>
+  <data name="AppPage_Error_InstallerMissingMsg" xml:space="preserve">
+    <value>The unpackaged installer could not be found on disk.</value>
+  </data>
+  <data name="AppPage_Manual_Install_Title" xml:space="preserve">
+    <value>Manual installation required</value>
+  </data>
+  <data name="AppPage_Manual_Install_Msg" xml:space="preserve">
+    <value>This app uses an unpackaged installer (EXE/MSI). It will open now and may require additional steps to finish installing.</value>
+  </data>
+  <data name="AppPage_Btn_OpenInstaller" xml:space="preserve">
+    <value>Open installer</value>
+  </data>
+  <data name="AppPage_Error_UnableToOpenInstallerTitle" xml:space="preserve">
+    <value>Unable to open installer</value>
+  </data>
+
+  <!-- ================================================================
+       COMMON  (shared across pages)
+       ================================================================ -->
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+
+  <!-- ================================================================
+       DOWNLOAD / UPDATE STATUS STRINGS
+       Used by DownloadItem.StatusText and UpdateItem.StatusText (code: "Status_*".GetLocalized())
+       ================================================================ -->
+  <data name="Status_Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="Status_Downloading" xml:space="preserve">
+    <value>Downloading</value>
+  </data>
+  <data name="Status_Installing" xml:space="preserve">
+    <value>Installing</value>
+  </data>
+  <data name="Status_Cancelling" xml:space="preserve">
+    <value>Cancelling</value>
+  </data>
+  <data name="Status_Failed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="Status_Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <!-- DownloadItem-specific -->
+  <data name="Status_Completed" xml:space="preserve">
+    <value>Completed</value>
+  </data>
+  <data name="Status_Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <!-- UpdateItem-specific (Completed shown as "Updated") -->
+  <data name="Status_Updated" xml:space="preserve">
+    <value>Updated</value>
+  </data>
+
+  <!-- ================================================================
+       DOWNLOAD HELPER  (Helpers/DownloadHelper.cs + Services/UpdateCheckService.cs)
+       Code keys (GetLocalized): Download_*
+       ================================================================ -->
+  <!-- Downloading progress status ({0}=current file, {1}=total files, {2}=file/files) -->
+  <data name="Download_File" xml:space="preserve">
+    <value>file</value>
+  </data>
+  <data name="Download_Files" xml:space="preserve">
+    <value>files</value>
+  </data>
+  <data name="Download_Status_DownloadingFiles" xml:space="preserve">
+    <value>Downloading ({0}/{1}) {2}</value>
+  </data>
+  <!-- Retry/stall messages -->
+  <data name="Download_Status_Retry" xml:space="preserve">
+    <value>Retry {0}/{1}</value>
+  </data>
+  <data name="Download_Status_NoProgress" xml:space="preserve">
+    <value>No progress detected. Restarting...</value>
+  </data>
+  <data name="Download_Status_RestartingIn" xml:space="preserve">
+    <value>Restarting... retrying in {0:F1}s...</value>
+  </data>
+  <data name="Download_Status_Stalled" xml:space="preserve">
+    <value>Error: Download stalled and exhausted retries.</value>
+  </data>
+  <data name="Download_Status_NetworkIssue" xml:space="preserve">
+    <value>Temporary network/server issue. Retrying in {0:F1}s...</value>
+  </data>
+  <data name="Download_Status_RetryError" xml:space="preserve">
+    <value>Error: {0}. Retrying in {1:F1}s...</value>
+  </data>
+  <data name="Download_Status_Error" xml:space="preserve">
+    <value>Error: {0}</value>
+  </data>
+  <data name="Download_Status_NetworkError" xml:space="preserve">
+    <value>Check network or disk space.</value>
+  </data>
+  <data name="Download_Status_FailedRetries" xml:space="preserve">
+    <value>Error: Download failed after retries.</value>
+  </data>
+  <!-- Final states -->
+  <data name="Download_Status_Canceled" xml:space="preserve">
+    <value>Download canceled.</value>
+  </data>
+  <data name="Download_Status_Completed" xml:space="preserve">
+    <value>Download completed.</value>
+  </data>
+  <data name="Download_Status_MissingPackage" xml:space="preserve">
+    <value>Install failed: main package missing.</value>
+  </data>
+  <data name="Download_Status_InstallFailed" xml:space="preserve">
+    <value>Install failed: {0}</value>
+  </data>
+
+  <!-- ================================================================
+       INSTALL HELPER DIALOGS  (Helpers/InstallHelper.cs)
+       Code keys (GetLocalized): Install_Error_*, Install_Btn_*, Common_*
+       ================================================================ -->
+  <!-- Friendly MSIX/deployment error messages -->
+  <data name="Install_Error_ConflictingVersion" xml:space="preserve">
+    <value>A newer or the same version is already installed.</value>
+  </data>
+  <data name="Install_Error_DeploymentInProgress" xml:space="preserve">
+    <value>Another installation is in progress. Wait for it to finish and try again.</value>
+  </data>
+  <data name="Install_Error_InvalidPackage" xml:space="preserve">
+    <value>Invalid or unsupported package. Ensure the package and dependencies are supported for your system.</value>
+  </data>
+  <data name="Install_Error_PackageNotFound" xml:space="preserve">
+    <value>Package not found. Check the selected/downloaded file path.</value>
+  </data>
+  <data name="Install_Error_DeploymentFailure" xml:space="preserve">
+    <value>Windows deployment failed. Check system policies or try again.</value>
+  </data>
+  <data name="Install_Error_AdminRequired" xml:space="preserve">
+    <value>This package includes a packaged service and must be installed with administrator privileges. Relaunch the app as administrator and try again.</value>
+  </data>
+  <!-- Format strings: {0} = hresult hex, {1} = message -->
+  <data name="Install_Error_GenericDeployment" xml:space="preserve">
+    <value>Windows deployment error (0x{0:X8}). {1}</value>
+  </data>
+  <!-- Format strings: {0} = exception message -->
+  <data name="Install_Error_AccessDenied" xml:space="preserve">
+    <value>Failed: Access denied. Try running as administrator or ensure sideloading policy allows app packages. {0}</value>
+  </data>
+  <data name="Install_Error_Generic" xml:space="preserve">
+    <value>Failed: {0}</value>
+  </data>
+  <!-- Dialog button labels -->
+  <data name="Install_Btn_ForceInstall" xml:space="preserve">
+    <value>Force install</value>
+  </data>
+  <data name="Install_Btn_RunAsAdmin" xml:space="preserve">
+    <value>Run as administrator</value>
+  </data>
+  <data name="Common_OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+
+  <!-- ================================================================
+       DOWNLOADS PAGE  (Views/DownloadsPage.xaml + .xaml.cs)
+       x:Uid keys: DownloadsPage_*
+       Code keys (GetLocalized): Download_Status_*
+       ================================================================ -->
+  <data name="DownloadsPage_Header.Text" xml:space="preserve">
+    <value>Downloads</value>
+  </data>
+  <data name="DownloadsPage_OpenFolder.Content" xml:space="preserve">
+    <value>Open folder</value>
+  </data>
+  <data name="DownloadsPage_Delete.Text" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <!-- Cancel button tooltip in download item DataTemplate -->
+  <data name="DownloadsPage_CancelBtn.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Cancel download</value>
+  </data>
+  <!-- Status animation base strings -->
+  <data name="Download_Status_Fetching" xml:space="preserve">
+    <value>Fetching download URLs</value>
+  </data>
+  <data name="Download_Status_Downloading" xml:space="preserve">
+    <value>Downloading</value>
+  </data>
+  <data name="Download_Status_Installing" xml:space="preserve">
+    <value>Installing</value>
+  </data>
+  <data name="Download_Status_Cancelling" xml:space="preserve">
+    <value>Cancelling</value>
+  </data>
+
+  <!-- ================================================================
+       INSTALLATIONS PAGE  (Views/InstallationsPage.xaml + .xaml.cs)
+       x:Uid keys: InstallationsPage_*
+       Code keys (GetLocalized): InstallationsPage_FilePicker_Title, InstallationsPage_DragCaption
+       ================================================================ -->
+  <data name="InstallationsPage_Header.Text" xml:space="preserve">
+    <value>Install package</value>
+  </data>
+  <data name="InstallationsPage_Installing.Text" xml:space="preserve">
+    <value>Installing...</value>
+  </data>
+  <data name="InstallationsPage_FileText.PlaceholderText" xml:space="preserve">
+    <value>No file selected</value>
+  </data>
+  <data name="InstallationsPage_InstallBtn.Content" xml:space="preserve">
+    <value>Install</value>
+  </data>
+  <!-- plain key for code-behind use (ResourceLoader cannot resolve dot-notation keys) -->
+  <data name="InstallationsPage_InstallLabel" xml:space="preserve">
+    <value>Install</value>
+  </data>
+  <data name="InstallationsPage_DropZone.Text" xml:space="preserve">
+    <value>Select a package or drag it here</value>
+  </data>
+  <data name="InstallationsPage_FilePicker_Title" xml:space="preserve">
+    <value>Select an app package</value>
+  </data>
+  <data name="InstallationsPage_DragCaption" xml:space="preserve">
+    <value>Drop to select package</value>
+  </data>
+  <!-- Status text and dialog strings used from code -->
+  <data name="Install_Status_Installing" xml:space="preserve">
+    <value>Installing</value>
+  </data>
+  <data name="Install_Status_Installed" xml:space="preserve">
+    <value>Installed.</value>
+  </data>
+  <data name="Install_Status_Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Install_Dialog_Title" xml:space="preserve">
+    <value>Installation failed</value>
+  </data>
+  <!-- File picker dialog -->
+  <data name="InstallationsPage_FilePicker_Error" xml:space="preserve">
+    <value>File picker error</value>
+  </data>
+  <data name="InstallationsPage_FilePicker_CommDlgError" xml:space="preserve">
+    <value>GetOpenFileName failed. CommDlgExtendedError=0x{0:X}</value>
+  </data>
+  <data name="InstallationsPage_Filter_AppPackages" xml:space="preserve">
+    <value>App packages (*.msix;*.appx;*.msixbundle;*.appxbundle)</value>
+  </data>
+  <data name="InstallationsPage_Filter_AllFiles" xml:space="preserve">
+    <value>All files (*.*)</value>
+  </data>
+
+  <!-- ================================================================
+       UPDATES PAGE  (Views/UpdatesPage.xaml + UpdatesViewModel.cs)
+       x:Uid keys: UpdatesPage_*
+       Code keys (GetLocalized): Updates_*
+       ================================================================ -->
+  <data name="UpdatesPage_Header.Text" xml:space="preserve">
+    <value>Updates</value>
+  </data>
+  <data name="UpdatesPage_Stop.Text" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="UpdatesPage_SelectAll.Content" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="UpdatesPage_NoUpdates.Text" xml:space="preserve">
+    <value>No new updates</value>
+  </data>
+  <data name="UpdatesPage_Completed.Text" xml:space="preserve">
+    <value>Completed</value>
+  </data>
+  <!-- Cancel button tooltip in update item DataTemplate -->
+  <data name="UpdatesPage_CancelBtn.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Cancel update</value>
+  </data>
+  <!-- UpdatesViewModel — button label and progress text (code: "Updates_*".GetLocalized()) -->
+  <data name="Updates_ButtonCheck" xml:space="preserve">
+    <value>Check for updates</value>
+  </data>
+  <data name="Updates_ButtonChecking" xml:space="preserve">
+    <value>Checking...</value>
+  </data>
+  <data name="Updates_ButtonUpdate" xml:space="preserve">
+    <value>Update selected ({0})</value>
+  </data>
+  <data name="Updates_CheckingBase" xml:space="preserve">
+    <value>Checking</value>
+  </data>
+  <data name="Updates_CheckingProgress" xml:space="preserve">
+    <value>Checking ({0}/{1})</value>
+  </data>
+
+  <!-- ================================================================
+       SEARCH PAGE  (Views/SearchPage.xaml + SearchViewModel.cs)
+       Code keys (GetLocalized): Search_Filter_*
+       Note: Filter_Apps and Filter_Games are shared with the main page.
+       ================================================================ -->
+  <data name="Search_Filter_AllDepartments" xml:space="preserve">
+    <value>All departments</value>
+  </data>
+  <data name="Search_Filter_Fonts" xml:space="preserve">
+    <value>Fonts</value>
+  </data>
+  <data name="Search_Filter_Themes" xml:space="preserve">
+    <value>Themes</value>
+  </data>
+  <data name="Search_Filter_AllTypes" xml:space="preserve">
+    <value>All Types</value>
+  </data>
+  <data name="Search_Filter_Free" xml:space="preserve">
+    <value>Free</value>
+  </data>
+  <data name="Search_Filter_Paid" xml:space="preserve">
+    <value>Paid</value>
+  </data>
+
+  <!-- ================================================================
+       BUNDLES PAGE
+       x:Uid keys: BundlesPage_*
+       ================================================================ -->
+  <data name="BundlesPage_Loading.Text" xml:space="preserve">
+    <value>Loading...</value>
+  </data>
+  <data name="BundlesPage_Error.Text" xml:space="preserve">
+    <value>An Unexpected Error Occured!</value>
+  </data>
+  <data name="BundlesPage_InBundle.Text" xml:space="preserve">
+    <value>In this bundle</value>
+  </data>
+
 </root>

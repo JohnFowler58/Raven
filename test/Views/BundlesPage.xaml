@@ -108,9 +108,9 @@
       >
         <ProgressRing Width="50" Height="50" Background="LightGray" IsActive="True" />
         <TextBlock
+          x:Uid="BundlesPage_Loading"
           Margin="0,12,0,0"
           Style="{StaticResource BodyTextBlockStyle}"
-          Text="Loading..."
         />
       </StackPanel>
       <StackPanel x:Name="ErrorIcon" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -121,10 +121,10 @@
         />
         <TextBlock
           x:Name="ErrorIconText"
+          x:Uid="BundlesPage_Error"
           Margin="0,12,0,0"
           FontSize="16"
           Style="{StaticResource BodyStrongTextBlockStyle}"
-          Text="An Unexpected Error Occured!"
         />
       </StackPanel>
       <StackPanel
@@ -177,9 +177,9 @@
         </StackPanel>
         <!--  Sub heading Section  -->
         <TextBlock
+          x:Uid="BundlesPage_InBundle"
           Margin="0,25"
           Style="{ThemeResource SubtitleTextBlockStyle}"
-          Text="In this bundle"
         />
         <!--  ItemRepeater Section  -->
         <ItemsRepeater

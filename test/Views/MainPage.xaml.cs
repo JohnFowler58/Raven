@@ -1,6 +1,7 @@
 ﻿using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using StoreListings.Library;
+using test.Contracts.Services;
 using test.ViewModels;
 
 namespace test.Views;
@@ -8,10 +9,12 @@ namespace test.Views;
 public sealed partial class MainPage : Page
 {
     public MainViewModel ViewModel { get; }
+    private readonly ILocaleService _localeService;
 
     public MainPage()
     {
         ViewModel = App.GetService<MainViewModel>();
+        _localeService = App.GetService<ILocaleService>();
         InitializeComponent();
         CardView.ViewModel = ViewModel;
         CardView.LoadCardsMethod = LoadCards;
@@ -22,8 +25,8 @@ public sealed partial class MainPage : Page
         ViewModel.HasMoreItems = true;
 
         var deviceFamily = DeviceFamily.Desktop;
-        var market = Market.US;
-        var language = Lang.en;
+        var market = _localeService.Market;
+        var language = _localeService.Language;
 
         var result = await StoreEdgeFDQuery.GetRecommendations(
             ViewModel.Category,

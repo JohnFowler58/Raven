@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using StoreListings.Library;
 using test.Contracts.Services;
 using test.Contracts.ViewModels;
+using test.Helpers;
 
 namespace test.ViewModels;
 
@@ -53,16 +54,9 @@ public partial class MainViewModel : ObservableRecipient, INavigationAware, ICar
         }
     }
 
-    public readonly List<string> ItemSourceFilter1 = ["Apps", "Games"];
+    public readonly List<string> ItemSourceFilter1;
 
-    public readonly List<string> ItemSourceFilter2 =
-    [
-        "Top Free",
-        "Top Paid",
-        "Top Trending",
-        "Specials",
-        "Best Selling",
-    ];
+    public readonly List<string> ItemSourceFilter2;
 
     private static readonly Dictionary<int, MediaTypeRecommendation> MediaTypePairs = new()
     {
@@ -79,7 +73,34 @@ public partial class MainViewModel : ObservableRecipient, INavigationAware, ICar
         { 4, Category.TopGrossing },
     };
 
-    public MainViewModel() { }
+    public MainViewModel(ILocaleService localeService)
+    {
+        localeService.LocaleChanged += (_, _) => ClearCache();
+
+        ItemSourceFilter1 =
+        [
+            "Filter_Apps".GetLocalized(),
+            "Filter_Games".GetLocalized(),
+        ];
+        ItemSourceFilter2 =
+        [
+            "Filter_TopFree".GetLocalized(),
+            "Filter_TopPaid".GetLocalized(),
+            "Filter_TopTrending".GetLocalized(),
+            "Filter_Specials".GetLocalized(),
+            "Filter_BestSelling".GetLocalized(),
+        ];
+    }
+
+    private void ClearCache()
+    {
+        Cards.Clear();
+        HasCachedResults = false;
+        CurrentSkipItem = 0;
+        ScrollPosition = 0;
+        F1Index = 0;
+        F2Index = 0;
+    }
 
     public void OnNavigatedTo(object parameter)
     {

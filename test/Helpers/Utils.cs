@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using StoreListings.Library;
+using test.Contracts.Services;
 using test.Models;
 using test.Views;
 
@@ -70,12 +71,11 @@ class Utils
     public static async Task<Product> ProductOrBundle(
         string productId,
         InstallerType installerType,
-        CancellationToken cancellationToken = default
+        CancellationToken cancellationToken = default,
+        Market market = Market.US,
+        Lang language = Lang.en
     )
     {
-        var market = Market.US;
-        var language = Lang.en;
-
         if (installerType == InstallerType.Packaged)
         {
             var dcatResult = await DCATPackage.GetPackagesAsync(
@@ -229,7 +229,8 @@ class Utils
         loadingOverlay.Visibility = Visibility.Visible;
         try
         {
-            var product = await Utils.ProductOrBundle(productId, installerType);
+            var localeService = App.GetService<ILocaleService>();
+            var product = await Utils.ProductOrBundle(productId, installerType, market: localeService.Market, language: localeService.Language);
 
             loadingOverlay.Visibility = Visibility.Collapsed;
 

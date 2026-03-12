@@ -124,17 +124,17 @@ public sealed class DownloadStatusToTextConverter : IValueConverter
         {
             return status switch
             {
-                DownloadStatus.Pending => "Pending...",
-                DownloadStatus.Downloading => "Downloading...",
-                DownloadStatus.Installing => "Installing...",
-                DownloadStatus.Completed => "Completed",
-                DownloadStatus.Failed => "Failed",
-                DownloadStatus.Cancelling => "Cancelling...",
-                DownloadStatus.Cancelled => "Cancelled",
-                _ => "Unknown"
+                DownloadStatus.Pending => "Status_Pending".GetLocalized() + "...",
+                DownloadStatus.Downloading => "Status_Downloading".GetLocalized() + "...",
+                DownloadStatus.Installing => "Status_Installing".GetLocalized() + "...",
+                DownloadStatus.Completed => "Status_Completed".GetLocalized(),
+                DownloadStatus.Failed => "Status_Failed".GetLocalized(),
+                DownloadStatus.Cancelling => "Status_Cancelling".GetLocalized() + "...",
+                DownloadStatus.Cancelled => "Status_Cancelled".GetLocalized(),
+                _ => "Status_Unknown".GetLocalized()
             };
         }
-        return "Unknown";
+        return "Status_Unknown".GetLocalized();
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, string language) =>

@@ -23,11 +23,13 @@ public sealed partial class CardViewControl : UserControl
     private bool filterBtnActive = false;
     private bool isLoadingMore = false;
     private CancellationTokenSource? _loadingDotsCts;
+    private readonly ILocaleService _localeService;
     #endregion
 
     #region Constructor
     public CardViewControl()
     {
+        _localeService = App.GetService<ILocaleService>();
         InitializeComponent();
         scrollViewer.ViewChanged += ScrollViewer_ViewChanged;
         scrollViewer.Loaded += ScrollViewer_Loaded;
@@ -451,7 +453,7 @@ public sealed partial class CardViewControl : UserControl
         var NavigationFrame = App.GetService<INavigationService>().Frame;
         try
         {
-            var product = await Utils.ProductOrBundle(productId, installerType);
+            var product = await Utils.ProductOrBundle(productId, installerType, market: _localeService.Market, language: _localeService.Language);
 
             LoadingOverlay.Visibility = Visibility.Collapsed;
 

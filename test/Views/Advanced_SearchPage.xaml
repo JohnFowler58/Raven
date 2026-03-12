@@ -18,7 +18,7 @@
     </Grid.RowDefinitions>
     <!--  Header  -->
     <Grid Grid.Row="0" Margin="0,24">
-      <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="Advanced Search" />
+      <TextBlock x:Uid="AdvancedSearch_Header" Style="{ThemeResource TitleTextBlockStyle}" />
     </Grid>
     <!--  Content area  -->
     <Grid Grid.Row="1">
@@ -39,10 +39,10 @@
               <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <TextBlock
+              x:Uid="AdvancedSearch_SearchHint"
               Grid.Row="0"
               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
               Style="{ThemeResource BodyTextBlockStyle}"
-              Text="Search by URL, product ID, or package family name"
             />
             <Grid Grid.Row="1" ColumnSpacing="8">
               <Grid.ColumnDefinitions>
@@ -58,9 +58,9 @@
                 SelectedIndex="{x:Bind ViewModel.SelectedTypeIndex, Mode=OneWay}"
                 SelectionChanged="SearchTypeComboBox_SelectionChanged"
               >
-                <ComboBoxItem Content="URL" />
-                <ComboBoxItem Content="Product ID" />
-                <ComboBoxItem Content="Package Family Name" />
+                <ComboBoxItem x:Uid="AdvancedSearch_TypeUrl" />
+                <ComboBoxItem x:Uid="AdvancedSearch_TypeProductId" />
+                <ComboBoxItem x:Uid="AdvancedSearch_TypePfn" />
               </ComboBox>
               <!--  Query input  -->
               <TextBox
@@ -77,7 +77,7 @@
               >
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <FontIcon FontSize="14" Glyph="" />
-                  <TextBlock Text="Search" />
+                  <TextBlock x:Uid="AdvancedSearch_SearchBtn" />
                 </StackPanel>
               </Button>
             </Grid>
@@ -146,24 +146,24 @@
               />
               <TextBlock
                 Grid.Row="1"
+                x:Uid="AdvancedSearch_UrlCard_Title"
                 FontWeight="SemiBold"
                 Style="{ThemeResource BodyTextBlockStyle}"
-                Text="URL"
               />
               <TextBlock
+                x:Uid="AdvancedSearch_UrlCard_Desc"
                 Grid.Row="2"
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                 Style="{ThemeResource CaptionTextBlockStyle}"
-                Text="Paste a Microsoft Store product URL to automatically extract and look up the product."
                 TextWrapping="Wrap"
               />
               <TextBlock
+                x:Uid="AdvancedSearch_UrlCard_Example"
                 Grid.Row="3"
                 Margin="0,8,0,0"
                 FontStyle="Italic"
                 Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                 Style="{ThemeResource CaptionTextBlockStyle}"
-                Text="e.g. https://apps.microsoft.com/detail/9WZDNCRFHVJL"
                 TextTrimming="CharacterEllipsis"
               />
             </Grid>
@@ -193,24 +193,24 @@
               />
               <TextBlock
                 Grid.Row="1"
+                x:Uid="AdvancedSearch_ProductIdCard_Title"
                 FontWeight="SemiBold"
                 Style="{ThemeResource BodyTextBlockStyle}"
-                Text="Product ID"
               />
               <TextBlock
+                x:Uid="AdvancedSearch_ProductIdCard_Desc"
                 Grid.Row="2"
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                 Style="{ThemeResource CaptionTextBlockStyle}"
-                Text="Enter the product's alphanumeric store ID to navigate directly to its page."
                 TextWrapping="Wrap"
               />
               <TextBlock
+                x:Uid="AdvancedSearch_ProductIdCard_Example"
                 Grid.Row="3"
                 Margin="0,8,0,0"
                 FontStyle="Italic"
                 Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                 Style="{ThemeResource CaptionTextBlockStyle}"
-                Text="e.g. 9WZDNCRFHVJL"
                 TextTrimming="CharacterEllipsis"
               />
             </Grid>
@@ -240,24 +240,24 @@
               />
               <TextBlock
                 Grid.Row="1"
+                x:Uid="AdvancedSearch_PfnCard_Title"
                 FontWeight="SemiBold"
                 Style="{ThemeResource BodyTextBlockStyle}"
-                Text="Package Family Name"
               />
               <TextBlock
+                x:Uid="AdvancedSearch_PfnCard_Desc"
                 Grid.Row="2"
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                 Style="{ThemeResource CaptionTextBlockStyle}"
-                Text="Enter the app's package family name to look up its store page."
                 TextWrapping="Wrap"
               />
               <TextBlock
+                x:Uid="AdvancedSearch_PfnCard_Example"
                 Grid.Row="3"
                 Margin="0,8,0,0"
                 FontStyle="Italic"
                 Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                 Style="{ThemeResource CaptionTextBlockStyle}"
-                Text="e.g. Microsoft.WindowsTerminal_8wekyb3d8bbwe"
                 TextTrimming="CharacterEllipsis"
               />
             </Grid>
@@ -287,7 +287,7 @@
           <TextBlock
             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
             Style="{ThemeResource BodyTextBlockStyle}"
-            Text="Looking up product"
+            x:Uid="AdvancedSearch_LookingUp"
           />
           <TextBlock
             x:Name="LoadingDotsText"

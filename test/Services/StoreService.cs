@@ -1,11 +1,19 @@
 ﻿using System.Threading.Tasks;
 using StoreListings.Library;
+using test.Contracts.Services;
 using test.Services;
 
 namespace test.Services
 {
     public class StoreService : IStoreService
     {
+        private readonly ILocaleService _localeService;
+
+        public StoreService(ILocaleService localeService)
+        {
+            _localeService = localeService;
+        }
+
         public async Task<SearchResult> SearchProducts(
             string query,
             MediaTypeSearch mediaType,
@@ -19,8 +27,8 @@ namespace test.Services
                 var result = await StoreEdgeFDQuery.GetSearchProduct(
                     query,
                     DeviceFamily.Desktop,
-                    Market.US,
-                    Lang.en,
+                    _localeService.Market,
+                    _localeService.Language,
                     skip,
                     mediaType
                 );
