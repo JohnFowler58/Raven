@@ -69,6 +69,7 @@
       <!--  Clear button overlaid inside TextBox area  -->
       <Button
         x:Name="ClearButton"
+        x:Uid="InstallationsPage_ClearBtn"
         Grid.Column="0"
         Width="40"
         Height="40"
@@ -80,7 +81,6 @@
         BorderThickness="0"
         Canvas.ZIndex="1"
         Click="ClearButton_Click"
-        ToolTipService.ToolTip="Clear"
         Visibility="Collapsed"
       >
         <FontIcon Glyph="" />

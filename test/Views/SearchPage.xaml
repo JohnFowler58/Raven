@@ -9,7 +9,7 @@
     <shared:CardViewControl
         x:Name="CardView"
         HeaderText="{x:Bind ViewModel.HeaderText, Mode=OneWay}"
-        ItemSourceFilter1="{x:Bind ViewModel.ItemSourceFilter1}"
-        ItemSourceFilter2="{x:Bind ViewModel.ItemSourceFilter2}"
+        ItemSourceFilter1="{x:Bind ViewModel.ItemSourceFilter1, Mode=OneWay}"
+        ItemSourceFilter2="{x:Bind ViewModel.ItemSourceFilter2, Mode=OneWay}"
         ItemsSource="{x:Bind ViewModel.Cards, Mode=OneWay}" />
 </Page>

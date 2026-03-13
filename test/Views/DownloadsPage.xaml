@@ -165,6 +165,7 @@
                 <FontIcon FontSize="12" Glyph="" />
               </Button>
               <Button
+                x:Uid="DownloadsPage_MoreOptionsBtn"
                 Grid.Row="0"
                 Grid.Column="2"
                 VerticalAlignment="Center"

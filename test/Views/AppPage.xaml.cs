@@ -29,6 +29,21 @@ public sealed partial class AppPage : Page
     private string _naturalAction = "Install";
     private string? _overrideAction;
 
+    // The current logical action key — always one of the fixed English identifiers.
+    // Used for branching logic. Never read InstallButton.Content for comparisons.
+    private string CurrentActionKey => _overrideAction ?? _naturalAction;
+
+    // Maps an internal action key to its localised display string.
+    private static string GetLocalizedAction(string key) => key switch
+    {
+        "Install"  => "AppPage_Btn_Install".GetLocalized(),
+        "Update"   => "AppPage_Btn_Update".GetLocalized(),
+        "Open"     => "AppPage_Btn_Open".GetLocalized(),
+        "Retry"    => "AppPage_Btn_Retry".GetLocalized(),
+        "Download" => "AppPage_Btn_Download".GetLocalized(),
+        _          => key,
+    };
+
     private static readonly string[] UnpackagedExtensions = [".exe", ".msi"];
 
     private static readonly string[] InstallableExtensions =
@@ -609,7 +624,7 @@ public sealed partial class AppPage : Page
         bool showProgress = false
     )
     {
-        InstallButton.Content = content;
+        InstallButton.Content = GetLocalizedAction(content);
         InstallButton.IsEnabled = enabled;
         InstallButton.Visibility = showProgress ? Visibility.Collapsed : Visibility.Visible;
         ProgressSection.Visibility = showProgress ? Visibility.Visible : Visibility.Collapsed;
@@ -631,7 +646,7 @@ public sealed partial class AppPage : Page
     {
         InstallButtonFlyout.Items.Clear();
 
-        var currentAction = InstallButton.Content?.ToString() ?? _naturalAction;
+        var currentAction = _overrideAction ?? _naturalAction;
         IEnumerable<string> options;
 
         if (string.Equals(currentAction, "Download", StringComparison.OrdinalIgnoreCase))
@@ -758,7 +773,7 @@ public sealed partial class AppPage : Page
             var option = optionList[i];
             var item = new MenuFlyoutItem
             {
-                Text = option,
+                Text = GetLocalizedAction(option),
                 MinHeight = 44,
                 HorizontalContentAlignment = HorizontalAlignment.Center,
                 Padding = new Thickness(12, 8, 12, 8),
@@ -959,14 +974,14 @@ public sealed partial class AppPage : Page
         if (_currentProductInfo == null)
             return;
 
-        var beforeAction = InstallButton.Content?.ToString();
+        var beforeActionKey = CurrentActionKey;
 
         // Always re-evaluate the current state first.
         // Users can install/uninstall or downloads can complete while staying on this page.
         UpdateInstallButtonState();
 
-        var afterAction = InstallButton.Content?.ToString();
-        if (!string.Equals(beforeAction, afterAction, StringComparison.OrdinalIgnoreCase))
+        var afterActionKey = CurrentActionKey;
+        if (beforeActionKey != afterActionKey)
         {
             // State changed while the user stayed on this page; only refresh the UI.
             return;
@@ -975,7 +990,7 @@ public sealed partial class AppPage : Page
         var productId = _currentProductInfo.ProductId;
         var downloadManager = DownloadManagerService.Instance;
         var isUnpackaged = _currentProductInfo.InstallerType == InstallerType.Unpackaged;
-        var action = InstallButton.Content?.ToString();
+        var action = CurrentActionKey;
 
         // For Retry, repeat whatever the user last attempted (persisted on the DownloadItem).
         var existingItem = downloadManager.GetDownload(productId);
@@ -1032,7 +1047,11 @@ public sealed partial class AppPage : Page
                 || _downloadCts.Token.IsCancellationRequested
             )
             {
-                HandleDownloadError(productId, "Operation canceled.", DownloadStatus.Cancelled);
+                HandleDownloadError(
+                    productId,
+                    "AppPage_Error_OperationCanceled".GetLocalized(),
+                    DownloadStatus.Cancelled
+                );
                 return;
             }
 
@@ -1345,7 +1364,11 @@ public sealed partial class AppPage : Page
             );
         }
 
-        LightboxCounter.Text = $"{_lightboxIndex + 1} / {screenshots.Count}";
+        LightboxCounter.Text = string.Format(
+            "AppPage_LightboxCounter_Format".GetLocalized(),
+            _lightboxIndex + 1,
+            screenshots.Count
+        );
         LightboxLeftButton.IsEnabled = _lightboxIndex > 0;
         LightboxRightButton.IsEnabled = _lightboxIndex < screenshots.Count - 1;
     }

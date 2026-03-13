@@ -66,6 +66,7 @@
         Source="/Assets/WindowIcon.ico"
       />
       <TextBlock
+        x:Uid="Shell_AppTitleBarText"
         x:Name="AppTitleBarText"
         Grid.Column="2"
         VerticalAlignment="Center"

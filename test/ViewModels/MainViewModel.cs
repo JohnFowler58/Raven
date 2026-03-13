@@ -48,15 +48,21 @@ public partial class MainViewModel : ObservableRecipient, INavigationAware, ICar
             if (value is int index)
             {
                 Category = CategoryTypePairs[index];
-                HeaderText = ItemSourceFilter2[index];
                 F2Index = index;
+
+                if (index >= 0 && index < ItemSourceFilter2.Count)
+                {
+                    HeaderText = ItemSourceFilter2[index];
+                }
             }
         }
     }
 
-    public readonly List<string> ItemSourceFilter1;
+    [ObservableProperty]
+    private List<string> itemSourceFilter1 = [];
 
-    public readonly List<string> ItemSourceFilter2;
+    [ObservableProperty]
+    private List<string> itemSourceFilter2 = [];
 
     private static readonly Dictionary<int, MediaTypeRecommendation> MediaTypePairs = new()
     {
@@ -75,8 +81,17 @@ public partial class MainViewModel : ObservableRecipient, INavigationAware, ICar
 
     public MainViewModel(ILocaleService localeService)
     {
-        localeService.LocaleChanged += (_, _) => ClearCache();
+        localeService.LocaleChanged += (_, _) =>
+        {
+            RefreshLocalizedFilters();
+            ClearCache();
+        };
 
+        RefreshLocalizedFilters();
+    }
+
+    private void RefreshLocalizedFilters()
+    {
         ItemSourceFilter1 =
         [
             "Filter_Apps".GetLocalized(),
@@ -90,6 +105,12 @@ public partial class MainViewModel : ObservableRecipient, INavigationAware, ICar
             "Filter_Specials".GetLocalized(),
             "Filter_BestSelling".GetLocalized(),
         ];
+
+        if (ItemSourceFilter2.Count > 0)
+        {
+            var selectedIndex = Math.Clamp(F2Index, 0, ItemSourceFilter2.Count - 1);
+            HeaderText = ItemSourceFilter2[selectedIndex];
+        }
     }
 
     private void ClearCache()
@@ -100,6 +121,8 @@ public partial class MainViewModel : ObservableRecipient, INavigationAware, ICar
         ScrollPosition = 0;
         F1Index = 0;
         F2Index = 0;
+        MediaType = MediaTypeRecommendation.Apps;
+        Category = Category.TopFree;
     }
 
     public void OnNavigatedTo(object parameter)

@@ -34,7 +34,6 @@ public sealed partial class ShellPage : Page
         App.MainWindow.AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
         App.MainWindow.SetTitleBar(AppTitleBar);
         App.MainWindow.Activated += Window_Activated;
-        AppTitleBarText.Text = "AppDisplayName".GetLocalized();
         Loaded += OnLoaded;
     }
 

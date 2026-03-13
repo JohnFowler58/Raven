@@ -65,7 +65,7 @@ public partial class UpdatesViewModel : ObservableObject
 
     private CancellationTokenSource? _checkCts;
     private CancellationTokenSource? _updateCts;
-    private volatile string _checkingBaseText = "Checking";
+    private volatile string _checkingBaseText = "Updates_CheckingBase".GetLocalized();
 
     private static readonly string CompletedUpdatesPath = Path.Combine(
         Path.GetTempPath(),

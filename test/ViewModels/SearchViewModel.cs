@@ -61,9 +61,11 @@ public partial class SearchViewModel : ObservableRecipient, ICardViewModel
             }
         }
     }
-    public readonly List<string> ItemSourceFilter1;
+    [ObservableProperty]
+    private List<string> itemSourceFilter1 = [];
 
-    public readonly List<string> ItemSourceFilter2;
+    [ObservableProperty]
+    private List<string> itemSourceFilter2 = [];
     private static readonly Dictionary<int, MediaTypeSearch> MediaTypePairs = new()
     {
         { 0, MediaTypeSearch.All },
@@ -82,8 +84,17 @@ public partial class SearchViewModel : ObservableRecipient, ICardViewModel
 
     public SearchViewModel(ILocaleService localeService)
     {
-        localeService.LocaleChanged += (_, _) => ClearCache();
+        localeService.LocaleChanged += (_, _) =>
+        {
+            RefreshLocalizedFilters();
+            ClearCache();
+        };
 
+        RefreshLocalizedFilters();
+    }
+
+    private void RefreshLocalizedFilters()
+    {
         ItemSourceFilter1 =
         [
             "Search_Filter_AllDepartments".GetLocalized(),

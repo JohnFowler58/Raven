@@ -203,15 +203,27 @@
                   <!--  Row 1: version info OR progress  -->
                   <Grid Grid.Row="1">
                     <!--  Version text (visible when not active)  -->
-                    <TextBlock
-                      Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                      Style="{ThemeResource CaptionTextBlockStyle}"
+                    <StackPanel
+                      Orientation="Horizontal"
+                      Spacing="4"
                       Visibility="{x:Bind IsVersionVisible, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
                     >
-                      <Run Text="{x:Bind InstalledVersion, Mode=OneWay}" />
-                      <Run Text="→" />
-                      <Run Text="{x:Bind StoreVersion, Mode=OneWay}" />
-                    </TextBlock>
+                      <TextBlock
+                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                        Style="{ThemeResource CaptionTextBlockStyle}"
+                        Text="{x:Bind InstalledVersion, Mode=OneWay}"
+                      />
+                      <TextBlock
+                        x:Uid="UpdatesPage_VersionSeparator"
+                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                        Style="{ThemeResource CaptionTextBlockStyle}"
+                      />
+                      <TextBlock
+                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                        Style="{ThemeResource CaptionTextBlockStyle}"
+                        Text="{x:Bind StoreVersion, Mode=OneWay}"
+                      />
+                    </StackPanel>
                     <!--  Progress area (visible when active)  -->
                     <StackPanel
                       Spacing="4"

@@ -1,4 +1,4 @@
-﻿<Page
+<Page
   x:Class="test.Views.AppPage"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -188,6 +188,7 @@
               <!--  More Options Button  -->
               <Button
                 x:Name="MoreOptionsButton"
+                x:Uid="AppPage_MoreOptionsBtn"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Top"
                 Background="Transparent"
@@ -406,7 +407,6 @@
             MinWidth="120"
             Background="{ThemeResource AccentFillColorDefaultBrush}"
             Click="InstallButton_Click"
-            Content="Install"
             FontSize="16"
             Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
           >
@@ -463,6 +463,7 @@
             </StackPanel>
             <Button
               x:Name="StopButton"
+              x:Uid="AppPage_StopBtn"
               Grid.Column="1"
               VerticalAlignment="Center"
               Click="StopButton_Click"
@@ -491,6 +492,7 @@
               <!--  Left Arrow Button - Fixed with correct Glyph and ZIndex  -->
               <Button
                 x:Name="LeftArrowButton"
+                x:Uid="AppPage_ScreenshotsPrev"
                 Width="40"
                 Height="40"
                 Margin="8,0,0,0"
@@ -547,6 +549,7 @@
               <!--  Right Arrow Button - Fixed with correct Glyph  -->
               <Button
                 x:Name="RightArrowButton"
+                x:Uid="AppPage_ScreenshotsNext"
                 Width="40"
                 Height="40"
                 Margin="0,0,8,0"
@@ -679,6 +682,7 @@
       </Rectangle>
       <Button
         x:Name="LightboxCloseButton"
+        x:Uid="AppPage_LightboxClose"
         Margin="16"
         HorizontalAlignment="Right"
         VerticalAlignment="Top"
@@ -706,6 +710,7 @@
       >
         <Button
           x:Name="LightboxLeftButton"
+          x:Uid="AppPage_LightboxPrev"
           Width="48"
           Height="48"
           Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
@@ -729,6 +734,7 @@
       >
         <Button
           x:Name="LightboxRightButton"
+          x:Uid="AppPage_LightboxNext"
           Width="48"
           Height="48"
           Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"

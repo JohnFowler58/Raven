@@ -156,6 +156,9 @@
   <data name="Shell_SearchBox.PlaceholderText" xml:space="preserve">
     <value>Search</value>
   </data>
+  <data name="Shell_AppTitleBarText.Text" xml:space="preserve">
+    <value>Raven</value>
+  </data>
 
   <!-- ================================================================
        SETTINGS PAGE
@@ -219,6 +222,12 @@
   </data>
   <data name="CardView_NoResults_Subtitle.Text" xml:space="preserve">
     <value>Try different keywords or remove search filters</value>
+  </data>
+  <data name="CardView_Error_LoadFailed" xml:space="preserve">
+    <value>Failed to load cards: {0}</value>
+  </data>
+  <data name="CardView_Error_OpenFailed" xml:space="preserve">
+    <value>Failed to open item: {0}</value>
   </data>
 
   <!-- MainViewModel — filter ComboBox items (code: "Filter_*".GetLocalized()) -->
@@ -689,6 +698,9 @@
   <data name="UpdatesPage_Completed.Text" xml:space="preserve">
     <value>Completed</value>
   </data>
+  <data name="UpdatesPage_VersionSeparator.Text" xml:space="preserve">
+    <value>→</value>
+  </data>
   <!-- Cancel button tooltip in update item DataTemplate -->
   <data name="UpdatesPage_CancelBtn.ToolTipService.ToolTip" xml:space="preserve">
     <value>Cancel update</value>
@@ -746,6 +758,72 @@
   </data>
   <data name="BundlesPage_InBundle.Text" xml:space="preserve">
     <value>In this bundle</value>
+  </data>
+
+  <!-- ================================================================
+       APP PAGE — icon-only button tooltips
+       x:Uid keys: AppPage_StopBtn, AppPage_MoreOptionsBtn,
+                   AppPage_LightboxClose, AppPage_LightboxPrev, AppPage_LightboxNext
+       ================================================================ -->
+  <data name="AppPage_StopBtn.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="AppPage_MoreOptionsBtn.ToolTipService.ToolTip" xml:space="preserve">
+    <value>More options</value>
+  </data>
+  <data name="AppPage_LightboxClose.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="AppPage_LightboxPrev.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Previous</value>
+  </data>
+  <data name="AppPage_LightboxNext.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="AppPage_ScreenshotsPrev.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Previous screenshot</value>
+  </data>
+  <data name="AppPage_ScreenshotsNext.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Next screenshot</value>
+  </data>
+  <data name="AppPage_LightboxCounter_Format" xml:space="preserve">
+    <value>{0} / {1}</value>
+  </data>
+
+  <!-- ================================================================
+       DOWNLOADS PAGE — icon-only button tooltips
+       x:Uid key: DownloadsPage_MoreOptionsBtn
+       ================================================================ -->
+  <data name="DownloadsPage_MoreOptionsBtn.ToolTipService.ToolTip" xml:space="preserve">
+    <value>More options</value>
+  </data>
+
+  <!-- ================================================================
+       APP PAGE — install button action labels
+       Code keys (GetLocalized): AppPage_Btn_*
+       ================================================================ -->
+  <data name="AppPage_Btn_Install" xml:space="preserve">
+    <value>Install</value>
+  </data>
+  <data name="AppPage_Btn_Update" xml:space="preserve">
+    <value>Update</value>
+  </data>
+  <data name="AppPage_Btn_Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="AppPage_Btn_Retry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="AppPage_Btn_Download" xml:space="preserve">
+    <value>Download</value>
+  </data>
+
+  <!-- ================================================================
+       INSTALLATIONS PAGE — clear button tooltip
+       x:Uid key: InstallationsPage_ClearBtn
+       ================================================================ -->
+  <data name="InstallationsPage_ClearBtn.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Clear</value>
   </data>
 
 </root>
