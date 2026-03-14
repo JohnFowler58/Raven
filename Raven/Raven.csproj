@@ -81,6 +81,9 @@
     <WebView2LoaderPreference>Dynamic</WebView2LoaderPreference>
     <WebView2DispatchAdapterNamespace>Raven</WebView2DispatchAdapterNamespace>
     <SignAssembly>False</SignAssembly>
+    <Copyright></Copyright>
+    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
     <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>

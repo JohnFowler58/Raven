@@ -1,18 +1,13 @@
 ﻿using System.Globalization;
 using System.Reflection;
 using System.Windows.Input;
-
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-
 using Microsoft.UI.Xaml;
-
-using StoreListings.Library;
-
 using Raven.Contracts.Services;
 using Raven.Helpers;
 using Raven.Services;
-
+using StoreListings.Library;
 using Windows.ApplicationModel;
 
 namespace Raven.ViewModels;
@@ -41,12 +36,12 @@ public partial class SettingsViewModel : ObservableRecipient
     public IReadOnlyList<string> AllMarketNames { get; }
     public IReadOnlyList<string> AllLanguageNames { get; }
 
-    public ICommand SwitchThemeCommand
-    {
-        get;
-    }
+    public ICommand SwitchThemeCommand { get; }
 
-    public SettingsViewModel(IThemeSelectorService themeSelectorService, ILocaleService localeService)
+    public SettingsViewModel(
+        IThemeSelectorService themeSelectorService,
+        ILocaleService localeService
+    )
     {
         _themeSelectorService = themeSelectorService;
         _localeService = localeService;
@@ -58,14 +53,20 @@ public partial class SettingsViewModel : ObservableRecipient
             .OrderBy(x => x.Item1, StringComparer.OrdinalIgnoreCase)
             .ToList();
         AllMarketNames = _marketItems.Select(x => x.DisplayName).ToList();
-        _selectedMarketIndex = Math.Max(0, _marketItems.FindIndex(x => x.Value == _localeService.Market));
+        _selectedMarketIndex = Math.Max(
+            0,
+            _marketItems.FindIndex(x => x.Value == _localeService.Market)
+        );
 
         _languageItems = Enum.GetValues<Lang>()
             .Select(l => (GetLanguageDisplayName(l), l))
             .OrderBy(x => x.Item1, StringComparer.OrdinalIgnoreCase)
             .ToList();
         AllLanguageNames = _languageItems.Select(x => x.DisplayName).ToList();
-        _selectedLanguageIndex = Math.Max(0, _languageItems.FindIndex(x => x.Value == _localeService.Language));
+        _selectedLanguageIndex = Math.Max(
+            0,
+            _languageItems.FindIndex(x => x.Value == _localeService.Language)
+        );
 
         SwitchThemeCommand = new RelayCommand<ElementTheme>(
             async (param) =>
@@ -75,7 +76,8 @@ public partial class SettingsViewModel : ObservableRecipient
                     ElementTheme = param;
                     await _themeSelectorService.SetThemeAsync(param);
                 }
-            });
+            }
+        );
 
         _isInitialized = true;
     }
@@ -131,24 +133,19 @@ public partial class SettingsViewModel : ObservableRecipient
 
         await _localeService.ResetToDefaultAsync();
 
-        SelectedMarketIndex = Math.Max(0, _marketItems.FindIndex(x => x.Value == _localeService.Market));
-        SelectedLanguageIndex = Math.Max(0, _languageItems.FindIndex(x => x.Value == _localeService.Language));
+        SelectedMarketIndex = Math.Max(
+            0,
+            _marketItems.FindIndex(x => x.Value == _localeService.Market)
+        );
+        SelectedLanguageIndex = Math.Max(
+            0,
+            _languageItems.FindIndex(x => x.Value == _localeService.Language)
+        );
     }
 
     private static string GetVersionDescription()
     {
-        System.Version version;
-
-        if (RuntimeHelper.IsMSIX)
-        {
-            var packageVersion = Package.Current.Id.Version;
-
-            version = new(packageVersion.Major, packageVersion.Minor, packageVersion.Build, packageVersion.Revision);
-        }
-        else
-        {
-            version = Assembly.GetExecutingAssembly().GetName().Version!;
-        }
+        System.Version version = Assembly.GetExecutingAssembly().GetName().Version!;
 
         return $"{"AppDisplayName".GetLocalized()} - {version.Major}.{version.Minor}.{version.Build}.{version.Revision}";
     }
