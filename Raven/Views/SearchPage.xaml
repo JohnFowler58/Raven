@@ -1,0 +1,15 @@
+﻿<Page
+    x:Class="Raven.Views.SearchPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:model="using:StoreListings.Library"
+    xmlns:shared="using:Raven.Views.Shared"
+    xmlns:vm="using:Raven.ViewModels">
+
+    <shared:CardViewControl
+        x:Name="CardView"
+        HeaderText="{x:Bind ViewModel.HeaderText, Mode=OneWay}"
+        ItemSourceFilter1="{x:Bind ViewModel.ItemSourceFilter1, Mode=OneWay}"
+        ItemSourceFilter2="{x:Bind ViewModel.ItemSourceFilter2, Mode=OneWay}"
+        ItemsSource="{x:Bind ViewModel.Cards, Mode=OneWay}" />
+</Page>

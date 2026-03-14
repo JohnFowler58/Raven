@@ -1,0 +1,197 @@
+<Page
+  x:Class="Raven.Views.DownloadsPage"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:models="using:Raven.Models"
+  mc:Ignorable="d"
+>
+  <Page.Resources>
+    <Style x:Key="TransparentButtonStyle" TargetType="Button">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="8" />
+    </Style>
+    <Style
+      x:Key="IconButtonStyle"
+      BasedOn="{StaticResource TransparentButtonStyle}"
+      TargetType="Button"
+    >
+      <Setter Property="MinWidth" Value="32" />
+      <Setter Property="MinHeight" Value="32" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+  </Page.Resources>
+  <ScrollViewer>
+    <StackPanel Margin="{StaticResource NavigationViewPageContentMargin}" Spacing="12">
+      <!--  Header (scrolls with content)  -->
+      <Grid Margin="0,24">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBlock x:Uid="DownloadsPage_Header" Grid.Column="0" Style="{ThemeResource TitleTextBlockStyle}" />
+        <Button
+          x:Uid="DownloadsPage_OpenFolder"
+          Grid.Column="1"
+          Click="OpenFolderButton_Click"
+          Style="{ThemeResource AccentButtonStyle}"
+        />
+      </Grid>
+      <ListView
+        x:Name="DownloadsList"
+        IsItemClickEnabled="True"
+        ItemClick="DownloadsList_ItemClick"
+        ItemsSource="{x:Bind ViewModel.Downloads, Mode=OneWay}"
+        SelectionMode="None"
+      >
+        <ListView.ItemContainerStyle>
+          <Style TargetType="ListViewItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,4" />
+          </Style>
+        </ListView.ItemContainerStyle>
+        <ListView.ItemTemplate>
+          <DataTemplate x:DataType="models:DownloadItem">
+            <Grid
+              Padding="16"
+              Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+              BorderThickness="1"
+              ColumnSpacing="12"
+              CornerRadius="8"
+            >
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="60" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+              </Grid.RowDefinitions>
+              <!--  Icon  -->
+              <Border
+                Grid.Row="0"
+                Grid.Column="0"
+                Width="60"
+                Height="60"
+                VerticalAlignment="Top"
+                CornerRadius="8"
+              >
+                <Image Source="{Binding LogoUrl, Mode=OneWay}" Stretch="UniformToFill" />
+              </Border>
+              <!--  Title + status / progress  -->
+              <Grid Grid.Row="0" Grid.Column="1" VerticalAlignment="Top" RowSpacing="6">
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock
+                  Grid.Row="0"
+                  FontWeight="SemiBold"
+                  Text="{x:Bind Title, Mode=OneWay}"
+                  TextTrimming="CharacterEllipsis"
+                />
+                <Grid Grid.Row="1">
+                  <!--  Non-downloading status (Completed/Failed/Canceled/etc.)  -->
+                  <TextBlock
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    Style="{ThemeResource CaptionTextBlockStyle}"
+                    Text="{Binding StatusText, Mode=OneWay}"
+                    Visibility="{Binding Status, Converter={StaticResource NotDownloadingStatusToVisibilityConverter}, Mode=OneWay}"
+                  />
+                  <!--  Downloading/Installing status + percent + size  -->
+                  <StackPanel
+                    Spacing="4"
+                    Visibility="{Binding Status, Converter={StaticResource DownloadStatusToVisibilityConverter}, Mode=OneWay}"
+                  >
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                      </Grid.ColumnDefinitions>
+                      <TextBlock
+                        Grid.Column="0"
+                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                        Style="{ThemeResource CaptionTextBlockStyle}"
+                        Text="{Binding StatusText, Mode=OneWay}"
+                      />
+                      <!--  Downloading: show percent + size during active download (hide during Pending(fetch) and Installing)  -->
+                      <TextBlock
+                        Grid.Column="1"
+                        HorizontalAlignment="Right"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{ThemeResource CaptionTextBlockStyle}"
+                        Text="{Binding DisplayDetailsText, Mode=OneWay}"
+                        Visibility="{Binding Status, Converter={StaticResource DownloadDetailsStatusToVisibilityConverter}, Mode=OneWay}"
+                      />
+                      <!--  Installing: show only percent  -->
+                      <TextBlock
+                        Grid.Column="1"
+                        HorizontalAlignment="Right"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{ThemeResource CaptionTextBlockStyle}"
+                        Visibility="{Binding Status, Converter={StaticResource InstallingStatusToVisibilityConverter}, Mode=OneWay}"
+                      >
+                        <Run Text="{Binding Progress, Mode=OneWay, Converter={StaticResource ProgressToPercentTextConverter}}" />
+                      </TextBlock>
+                    </Grid>
+                    <ProgressBar
+                      Maximum="100"
+                      IsIndeterminate="{Binding Status, Converter={StaticResource DownloadStatusToIndeterminateConverter}, Mode=OneWay}"
+                      Value="{Binding Progress, Mode=OneWay}"
+                    />
+                  </StackPanel>
+                </Grid>
+              </Grid>
+              <!--  Right-side action buttons  -->
+              <Button
+                x:Uid="DownloadsPage_CancelBtn"
+                Grid.Row="0"
+                Grid.Column="2"
+                VerticalAlignment="Center"
+                VerticalContentAlignment="Center"
+                Click="CancelButton_Click"
+                Style="{StaticResource IconButtonStyle}"
+                Tag="{x:Bind ProductId}"
+                Visibility="{Binding Status, Converter={StaticResource DownloadStatusToVisibilityConverter}, Mode=OneWay}"
+              >
+                <FontIcon FontSize="12" Glyph="" />
+              </Button>
+              <Button
+                x:Uid="DownloadsPage_MoreOptionsBtn"
+                Grid.Row="0"
+                Grid.Column="2"
+                VerticalAlignment="Center"
+                VerticalContentAlignment="Center"
+                Style="{StaticResource IconButtonStyle}"
+                Visibility="{Binding Status, Converter={StaticResource NotDownloadingStatusToVisibilityConverter}, Mode=OneWay}"
+              >
+                <FontIcon FontSize="16" Glyph="" />
+                <Button.Flyout>
+                  <MenuFlyout>
+                    <MenuFlyoutItem
+                      x:Uid="DownloadsPage_Delete"
+                      Click="DeleteMenuItem_Click"
+                      Tag="{x:Bind ProductId}"
+                    >
+                      <MenuFlyoutItem.Icon>
+                        <FontIcon Glyph="" />
+                      </MenuFlyoutItem.Icon>
+                    </MenuFlyoutItem>
+                  </MenuFlyout>
+                </Button.Flyout>
+              </Button>
+            </Grid>
+          </DataTemplate>
+        </ListView.ItemTemplate>
+      </ListView>
+    </StackPanel>
+  </ScrollViewer>
+</Page>

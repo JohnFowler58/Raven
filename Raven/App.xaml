@@ -1,0 +1,28 @@
+﻿<Application
+  x:Class="Raven.App"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:helper="using:Raven.Helpers"
+>
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+        <ResourceDictionary Source="/Styles/FontSizes.xaml" />
+        <ResourceDictionary Source="/Styles/Thickness.xaml" />
+        <ResourceDictionary Source="/Styles/TextBlock.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <helper:HideElementConverter x:Key="HideElementConverter" />
+      <helper:OneDecimalPlaceConverter x:Key="OneDecimalPlaceConverter" />
+      <helper:ProgressToPercentTextConverter x:Key="ProgressToPercentTextConverter" />
+      <helper:DownloadStatusToVisibilityConverter x:Key="DownloadStatusToVisibilityConverter" />
+      <helper:DownloadingOnlyStatusToVisibilityConverter x:Key="DownloadingOnlyStatusToVisibilityConverter" />
+      <helper:DownloadDetailsStatusToVisibilityConverter x:Key="DownloadDetailsStatusToVisibilityConverter" />
+      <helper:CompletedStatusToVisibilityConverter x:Key="CompletedStatusToVisibilityConverter" />
+      <helper:NotDownloadingStatusToVisibilityConverter x:Key="NotDownloadingStatusToVisibilityConverter" />
+      <helper:InstallingStatusToVisibilityConverter x:Key="InstallingStatusToVisibilityConverter" />
+      <helper:DownloadStatusToTextConverter x:Key="DownloadStatusToTextConverter" />
+      <helper:DownloadStatusToIndeterminateConverter x:Key="DownloadStatusToIndeterminateConverter" />
+    </ResourceDictionary>
+  </Application.Resources>
+</Application>

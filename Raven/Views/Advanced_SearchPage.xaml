@@ -1,0 +1,304 @@
+﻿<Page
+  x:Class="Raven.Views.Advanced_SearchPage"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:helper="using:Raven.Helpers"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+>
+  <Page.Resources>
+    <helper:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    <helper:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
+  </Page.Resources>
+  <Grid Margin="{StaticResource NavigationViewPageContentMargin}">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+    <!--  Header  -->
+    <Grid Grid.Row="0" Margin="0,24">
+      <TextBlock x:Uid="AdvancedSearch_Header" Style="{ThemeResource TitleTextBlockStyle}" />
+    </Grid>
+    <!--  Content area  -->
+    <Grid Grid.Row="1">
+      <!--  Scrollable content (search card + error + info cards)  -->
+      <ScrollViewer Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+        <StackPanel Padding="0,0,0,32" Spacing="16">
+          <!--  Search card  -->
+          <Grid
+            Padding="20"
+            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="8"
+            RowSpacing="12"
+          >
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock
+              x:Uid="AdvancedSearch_SearchHint"
+              Grid.Row="0"
+              Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+              Style="{ThemeResource BodyTextBlockStyle}"
+            />
+            <Grid Grid.Row="1" ColumnSpacing="8">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <!--  Search type selector  -->
+              <ComboBox
+                x:Name="SearchTypeComboBox"
+                Grid.Column="0"
+                MinWidth="196"
+                SelectedIndex="{x:Bind ViewModel.SelectedTypeIndex, Mode=OneWay}"
+                SelectionChanged="SearchTypeComboBox_SelectionChanged"
+              >
+                <ComboBoxItem x:Uid="AdvancedSearch_TypeUrl" />
+                <ComboBoxItem x:Uid="AdvancedSearch_TypeProductId" />
+                <ComboBoxItem x:Uid="AdvancedSearch_TypePfn" />
+              </ComboBox>
+              <!--  Query input  -->
+              <TextBox
+                x:Name="QueryBox"
+                Grid.Column="1"
+                KeyDown="QueryBox_KeyDown"
+                PlaceholderText="{x:Bind ViewModel.PlaceholderText, Mode=OneWay}"
+              />
+              <!--  Search button  -->
+              <Button
+                Grid.Column="2"
+                Click="SearchButton_Click"
+                Style="{ThemeResource AccentButtonStyle}"
+              >
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <FontIcon FontSize="14" Glyph="" />
+                  <TextBlock x:Uid="AdvancedSearch_SearchBtn" />
+                </StackPanel>
+              </Button>
+            </Grid>
+          </Grid>
+          <!--  Error banner  -->
+          <Grid
+            Padding="16"
+            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            ColumnSpacing="12"
+            CornerRadius="8"
+            Visibility="{x:Bind ViewModel.HasError, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+          >
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <FontIcon
+              Grid.Column="0"
+              VerticalAlignment="Top"
+              FontSize="16"
+              Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+              Glyph=""
+            />
+            <TextBlock
+              Grid.Column="1"
+              VerticalAlignment="Center"
+              Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+              TextWrapping="Wrap"
+            />
+          </Grid>
+          <!--  Info cards: shown on page load and after type change  -->
+          <Grid
+            ColumnSpacing="12"
+            Visibility="{x:Bind ViewModel.ShowInfoCards, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+          >
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <!--  URL card  -->
+            <Grid
+              Grid.Column="0"
+              Padding="16"
+              Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+              BorderThickness="1"
+              CornerRadius="8"
+              RowSpacing="6"
+            >
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+              <FontIcon
+                Grid.Row="0"
+                Margin="0,0,0,4"
+                HorizontalAlignment="Left"
+                FontSize="28"
+                Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                Glyph=""
+              />
+              <TextBlock
+                Grid.Row="1"
+                x:Uid="AdvancedSearch_UrlCard_Title"
+                FontWeight="SemiBold"
+                Style="{ThemeResource BodyTextBlockStyle}"
+              />
+              <TextBlock
+                x:Uid="AdvancedSearch_UrlCard_Desc"
+                Grid.Row="2"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Style="{ThemeResource CaptionTextBlockStyle}"
+                TextWrapping="Wrap"
+              />
+              <TextBlock
+                x:Uid="AdvancedSearch_UrlCard_Example"
+                Grid.Row="3"
+                Margin="0,8,0,0"
+                FontStyle="Italic"
+                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                Style="{ThemeResource CaptionTextBlockStyle}"
+                TextTrimming="CharacterEllipsis"
+              />
+            </Grid>
+            <!--  Product ID card  -->
+            <Grid
+              Grid.Column="1"
+              Padding="16"
+              Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+              BorderThickness="1"
+              CornerRadius="8"
+              RowSpacing="6"
+            >
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+              <FontIcon
+                Grid.Row="0"
+                Margin="0,0,0,4"
+                HorizontalAlignment="Left"
+                FontSize="28"
+                Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                Glyph=""
+              />
+              <TextBlock
+                Grid.Row="1"
+                x:Uid="AdvancedSearch_ProductIdCard_Title"
+                FontWeight="SemiBold"
+                Style="{ThemeResource BodyTextBlockStyle}"
+              />
+              <TextBlock
+                x:Uid="AdvancedSearch_ProductIdCard_Desc"
+                Grid.Row="2"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Style="{ThemeResource CaptionTextBlockStyle}"
+                TextWrapping="Wrap"
+              />
+              <TextBlock
+                x:Uid="AdvancedSearch_ProductIdCard_Example"
+                Grid.Row="3"
+                Margin="0,8,0,0"
+                FontStyle="Italic"
+                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                Style="{ThemeResource CaptionTextBlockStyle}"
+                TextTrimming="CharacterEllipsis"
+              />
+            </Grid>
+            <!--  Package Family Name card  -->
+            <Grid
+              Grid.Column="2"
+              Padding="16"
+              Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+              BorderThickness="1"
+              CornerRadius="8"
+              RowSpacing="6"
+            >
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+              <FontIcon
+                Grid.Row="0"
+                Margin="0,0,0,4"
+                HorizontalAlignment="Left"
+                FontSize="28"
+                Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                Glyph=""
+              />
+              <TextBlock
+                Grid.Row="1"
+                x:Uid="AdvancedSearch_PfnCard_Title"
+                FontWeight="SemiBold"
+                Style="{ThemeResource BodyTextBlockStyle}"
+              />
+              <TextBlock
+                x:Uid="AdvancedSearch_PfnCard_Desc"
+                Grid.Row="2"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Style="{ThemeResource CaptionTextBlockStyle}"
+                TextWrapping="Wrap"
+              />
+              <TextBlock
+                x:Uid="AdvancedSearch_PfnCard_Example"
+                Grid.Row="3"
+                Margin="0,8,0,0"
+                FontStyle="Italic"
+                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                Style="{ThemeResource CaptionTextBlockStyle}"
+                TextTrimming="CharacterEllipsis"
+              />
+            </Grid>
+          </Grid>
+        </StackPanel>
+      </ScrollViewer>
+      <!--  Loading state  -->
+      <StackPanel
+        Margin="0,0,0,70"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center"
+        Spacing="16"
+        Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+      >
+        <ProgressRing Width="48" Height="48" Background="LightGray" IsActive="True" />
+        <!--
+                    Base text and dots in separate blocks so only dots animate;
+                    the base never shifts. Fixed Width on the dots block reserves
+                    space for exactly three periods so layout never moves.
+                -->
+        <StackPanel
+          Margin="12,0,0,0"
+          HorizontalAlignment="Center"
+          Orientation="Horizontal"
+          Spacing="0"
+        >
+          <TextBlock
+            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+            Style="{ThemeResource BodyTextBlockStyle}"
+            x:Uid="AdvancedSearch_LookingUp"
+          />
+          <TextBlock
+            x:Name="LoadingDotsText"
+            Width="20"
+            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+            HorizontalTextAlignment="Left"
+            Style="{ThemeResource BodyTextBlockStyle}"
+            Text="."
+          />
+        </StackPanel>
+      </StackPanel>
+    </Grid>
+  </Grid>
+</Page>

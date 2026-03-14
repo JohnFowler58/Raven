@@ -1,0 +1,10 @@
+﻿{
+    "profiles": {
+      "Raven (Unpackaged)": {
+        "commandName": "Project"
+      },
+      "Raven (Package)": {
+        "commandName": "MsixPackage"
+      }
+    }
+}
