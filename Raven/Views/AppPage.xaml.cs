@@ -637,6 +637,7 @@ public sealed partial class AppPage : Page
         InstallButton.Content = GetLocalizedAction(content);
         InstallButton.IsEnabled = enabled;
         InstallButton.Visibility = showProgress ? Visibility.Collapsed : Visibility.Visible;
+        ShareButton.Visibility = showProgress ? Visibility.Collapsed : Visibility.Visible;
         ProgressSection.Visibility = showProgress ? Visibility.Visible : Visibility.Collapsed;
 
         if (!showProgress)
