@@ -101,6 +101,7 @@ internal sealed class Updater
             {
                 var relativePath = Path.GetRelativePath(_options.SourceDirectory, sourceFile);
                 var targetFile = Path.Combine(_options.TargetDirectory, relativePath);
+
                 var targetDirectory = Path.GetDirectoryName(targetFile);
                 if (!string.IsNullOrWhiteSpace(targetDirectory))
                 {

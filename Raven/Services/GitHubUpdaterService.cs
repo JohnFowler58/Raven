@@ -9,7 +9,7 @@ namespace Raven.Services;
 public sealed class GitHubUpdaterService
 {
     private const string Owner = "mjishnu";
-    private const string Repository = "sample";
+    private const string Repository = "raven";
 
     private static readonly HttpClient HttpClient = CreateHttpClient();
 
@@ -66,27 +66,39 @@ public sealed class GitHubUpdaterService
             throw new InvalidOperationException("Failed to locate the current executable.");
 
         var applicationDirectory = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        var updaterExecutablePath = Path.Combine(applicationDirectory, "Raven.Updater.exe");
-        if (!File.Exists(updaterExecutablePath))
-            throw new FileNotFoundException("Updater executable was not found.", updaterExecutablePath);
+        var installedUpdaterExecutablePath = Path.Combine(applicationDirectory, "Raven.Updater.exe");
+        if (!File.Exists(installedUpdaterExecutablePath))
+            throw new FileNotFoundException("Updater executable was not found.", installedUpdaterExecutablePath);
 
         var updateRoot = Path.Combine(Path.GetTempPath(), "RavenUpdater", Guid.NewGuid().ToString("N"));
         var zipPath = Path.Combine(updateRoot, release.AssetName);
         var extractPath = Path.Combine(updateRoot, "extract");
+        var runnerRoot = Path.Combine(updateRoot, "runner");
 
         Directory.CreateDirectory(updateRoot);
         Directory.CreateDirectory(extractPath);
+        Directory.CreateDirectory(runnerRoot);
 
         await DownloadAssetAsync(release.DownloadUrl, zipPath, progress, cancellationToken);
         ZipFile.ExtractToDirectory(zipPath, extractPath, overwriteFiles: true);
 
         var sourceDirectory = ResolveSourceDirectory(extractPath);
 
+        foreach (var updaterFile in Directory.EnumerateFiles(applicationDirectory, "Raven.Updater*", SearchOption.TopDirectoryOnly))
+        {
+            var destination = Path.Combine(runnerRoot, Path.GetFileName(updaterFile));
+            File.Copy(updaterFile, destination, overwrite: true);
+        }
+
+        var updaterExecutablePath = Path.Combine(runnerRoot, "Raven.Updater.exe");
+        if (!File.Exists(updaterExecutablePath))
+            throw new FileNotFoundException("Temporary updater executable was not found.", updaterExecutablePath);
+
         var startInfo = new ProcessStartInfo
         {
             FileName = updaterExecutablePath,
             UseShellExecute = true,
-            WorkingDirectory = applicationDirectory,
+            WorkingDirectory = runnerRoot,
         };
 
         startInfo.ArgumentList.Add("--pid");
