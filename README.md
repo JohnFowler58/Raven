@@ -74,6 +74,9 @@ Raven.sln
 │   ├── Styles/               # XAML resource dictionaries
 │   └── Strings/              # Localized string resources (en-us)
 │
+├── Raven.Updater/            # Self-update helper executable
+│   └── Program.cs            # Copies update payload and relaunches Raven
+│
 └── StoreListings/            # Git submodule — Microsoft Store API wrapper
     └── StoreListings.Library/
         ├── StoreEdgeFDProduct.cs   # Store product queries
