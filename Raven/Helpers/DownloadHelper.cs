@@ -359,15 +359,14 @@ public sealed class DownloadHelper
                     downloadManager.ClearDownloadedFileHash(productId, destinationPath);
                     downloadManager.RemoveDownloadedFileEntry(productId, destinationPath);
 
-                    // Delta: only when there is an existing local file, it doesn't match the expected digest,
-                    // and we have the blockmap CAB URL + digest.
-                    if (
-                        localExists
-                        && !localMatches
-                        && !string.IsNullOrWhiteSpace(file.Digest)
+                    var canUseBlockmapDelta =
+                        !localMatches
                         && !string.IsNullOrWhiteSpace(file.BlockmapUrl)
-                        && !string.IsNullOrWhiteSpace(file.BlockmapCabFileDigest)
-                    )
+                        && !string.IsNullOrWhiteSpace(file.BlockmapCabFileDigest);
+
+                    // Delta helper is also used as the fallback full-download path when no local file exists yet.
+                    // This ensures blockmap/cab cache is written to temp and allows retries to resume.
+                    if (canUseBlockmapDelta)
                     {
                         using var http = new HttpClient();
 

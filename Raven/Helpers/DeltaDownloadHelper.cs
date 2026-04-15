@@ -26,12 +26,16 @@ public static class DeltaDownloadHelper
         HttpClient http,
         string url,
         string destinationPath,
-        CancellationToken token
+        CancellationToken token,
+        IProgress<(long bytesDownloaded, long totalBytes)>? progress = null
     )
     {
         using var resp = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token)
             .ConfigureAwait(false);
         resp.EnsureSuccessStatusCode();
+
+        var totalBytes = resp.Content.Headers.ContentLength ?? 0;
+        long downloadedBytes = 0;
 
         await using var src = await resp.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
         await using var dst = new FileStream(
@@ -42,7 +46,15 @@ public static class DeltaDownloadHelper
             bufferSize: 81920,
             useAsync: true
         );
-        await src.CopyToAsync(dst, token).ConfigureAwait(false);
+
+        var buffer = new byte[81920];
+        int read;
+        while ((read = await src.ReadAsync(buffer.AsMemory(0, buffer.Length), token).ConfigureAwait(false)) > 0)
+        {
+            await dst.WriteAsync(buffer.AsMemory(0, read), token).ConfigureAwait(false);
+            downloadedBytes += read;
+            progress?.Report((downloadedBytes, totalBytes));
+        }
     }
 
     public static async Task ApplyDeltaUsingBlockmapAsync(
@@ -111,7 +123,7 @@ public static class DeltaDownloadHelper
         // Verify server supports range requests. If not, full download.
         if (!await SupportsRangesAsync(http, packageUrl, token).ConfigureAwait(false))
         {
-            await DownloadToFileAsync(http, packageUrl, destinationPath, token)
+            await DownloadToFileAsync(http, packageUrl, destinationPath, token, progress)
                 .ConfigureAwait(false);
             return;
         }
@@ -122,7 +134,7 @@ public static class DeltaDownloadHelper
         var fileInfo = new FileInfo(destinationPath);
         if (!fileInfo.Exists)
         {
-            await DownloadToFileAsync(http, packageUrl, destinationPath, token)
+            await DownloadToFileAsync(http, packageUrl, destinationPath, token, progress)
                 .ConfigureAwait(false);
             return;
         }
