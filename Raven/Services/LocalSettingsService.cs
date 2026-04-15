@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Text;
+using System.Text.Json;
 
 using Microsoft.Extensions.Options;
 
@@ -17,6 +18,7 @@ public class LocalSettingsService : ILocalSettingsService
     private readonly string _localApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
     private readonly string _applicationDataFolder;
     private readonly string _localsettingsFile;
+    private readonly SemaphoreSlim _syncLock = new(1, 1);
 
     private Dictionary<string, string> _settings;
 
@@ -32,7 +34,7 @@ public class LocalSettingsService : ILocalSettingsService
         _settings = new Dictionary<string, string>();
     }
 
-    private async Task InitializeAsync()
+    private async Task InitializeCoreAsync()
     {
         if (_isInitialized)
         {
@@ -42,8 +44,10 @@ public class LocalSettingsService : ILocalSettingsService
         var path = Path.Combine(_applicationDataFolder, _localsettingsFile);
         if (File.Exists(path))
         {
-            var json = await File.ReadAllTextAsync(path);
-            _settings = JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? new Dictionary<string, string>();
+            var json = await File.ReadAllTextAsync(path, Encoding.UTF8);
+            _settings = string.IsNullOrWhiteSpace(json)
+                ? new Dictionary<string, string>()
+                : JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? new Dictionary<string, string>();
         }
 
         _isInitialized = true;
@@ -51,26 +55,50 @@ public class LocalSettingsService : ILocalSettingsService
 
     public async Task<T?> ReadSettingAsync<T>(string key)
     {
-        await InitializeAsync();
-
-        if (_settings.TryGetValue(key, out var obj))
+        await _syncLock.WaitAsync();
+        try
         {
-            return JsonSerializer.Deserialize<T>(obj);
-        }
+            await InitializeCoreAsync();
 
-        return default;
+            if (_settings.TryGetValue(key, out var obj))
+            {
+                return JsonSerializer.Deserialize<T>(obj);
+            }
+
+            return default;
+        }
+        finally
+        {
+            _syncLock.Release();
+        }
     }
 
     public async Task SaveSettingAsync<T>(string key, T value)
     {
-        await InitializeAsync();
+        await _syncLock.WaitAsync();
+        try
+        {
+            await InitializeCoreAsync();
 
-        _settings[key] = JsonSerializer.Serialize(value);
+            _settings[key] = JsonSerializer.Serialize(value);
 
+            var path = Path.Combine(_applicationDataFolder, _localsettingsFile);
+            await PersistSettingsCoreAsync(path);
+        }
+        finally
+        {
+            _syncLock.Release();
+        }
+    }
+
+    private async Task PersistSettingsCoreAsync(string path)
+    {
         Directory.CreateDirectory(_applicationDataFolder);
-        await File.WriteAllTextAsync(
-            Path.Combine(_applicationDataFolder, _localsettingsFile),
-            JsonSerializer.Serialize(_settings)
-        );
+
+        var serializedSettings = JsonSerializer.Serialize(_settings);
+        var tempPath = $"{path}.tmp";
+
+        await File.WriteAllTextAsync(tempPath, serializedSettings, new UTF8Encoding(false));
+        File.Move(tempPath, path, true);
     }
 }
