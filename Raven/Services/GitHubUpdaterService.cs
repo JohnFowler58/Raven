@@ -13,7 +13,7 @@ public sealed class GitHubUpdaterService
     public async Task<GitHubReleaseInfo> GetLatestReleaseAsync(CancellationToken cancellationToken = default)
     {
         using var response = await HttpClient.GetAsync(
-            $"https://api.github.com/repos/mjishnu/raven/releases/latest",
+            $"https://api.github.com/repos/mjishnu/sample/releases/latest",
             cancellationToken
         );
 
