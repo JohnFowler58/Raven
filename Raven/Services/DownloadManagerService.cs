@@ -5,6 +5,7 @@ using System.Text.Json;
 using Microsoft.UI.Dispatching;
 using StoreListings.Library;
 using Raven.Models;
+using Raven.Services.FilePermissions;
 
 namespace Raven.Services;
 
@@ -15,6 +16,7 @@ public class DownloadManagerService
     );
     public static DownloadManagerService Instance => _instance.Value;
 
+    private readonly IPersistentListStore<DownloadItem> _fileStore;
     private readonly string _downloadDataPath;
     private readonly object _lock = new();
     private DispatcherQueue? _dispatcherQueue;
@@ -142,6 +144,7 @@ public class DownloadManagerService
         Directory.CreateDirectory(appDataDir);
         _downloadDataPath = Path.Combine(appDataDir, "Downloads.json");
 
+        _fileStore = new PersistentListStore<DownloadItem>(_downloadDataPath);
         LoadDownloads();
     }
 
@@ -671,88 +674,7 @@ public class DownloadManagerService
     {
         try
         {
-            if (File.Exists(_downloadDataPath))
-            {
-                var json = File.ReadAllText(_downloadDataPath);
-                var items = JsonSerializer.Deserialize<List<DownloadItem>>(json);
-                if (items != null)
-                {
-                    Downloads.Clear();
-                    DownloadedProductIds.Clear();
-                    foreach (var item in items)
-                    {
-                        if (item.LastAccessedAt == default)
-                        {
-                            item.LastAccessedAt = DateTime.Now;
-                        }
-
-                        // Migrate legacy states.
-                        // - Older builds used "Downloaded" for "files present on disk".
-                        // - Some builds used "Completed".
-                        var statusText = item.Status.ToString();
-                        if (
-                            statusText.Equals("Downloaded", StringComparison.OrdinalIgnoreCase)
-                            || statusText.Equals("Completed", StringComparison.OrdinalIgnoreCase)
-                        )
-                        {
-                            item.Status = DownloadStatus.Completed;
-                        }
-
-                        // Helper to detect if files are present (legacy list or new folder path)
-                        bool HasFiles()
-                        {
-                            if (item.DownloadedFiles.Count > 0)
-                                return true;
-                            if (
-                                !string.IsNullOrWhiteSpace(item.DownloadPath)
-                                && Directory.Exists(item.DownloadPath)
-                            )
-                            {
-                                return Directory
-                                    .EnumerateFileSystemEntries(item.DownloadPath)
-                                    .Any();
-                            }
-                            return false;
-                        }
-
-                        // Reset any "Downloading" status to "Cancelled" on app restart
-                        // since the download won't continue
-                        if (
-                            item.Status == DownloadStatus.Downloading
-                            || item.Status == DownloadStatus.Pending
-                        )
-                        {
-                            item.Status = DownloadStatus.Cancelled;
-                        }
-                        else if (item.Status == DownloadStatus.Cancelling && HasFiles())
-                        {
-                            item.Status = DownloadStatus.Completed;
-                        }
-                        else if (item.Status == DownloadStatus.Cancelling)
-                        {
-                            item.Status = DownloadStatus.Cancelled;
-                        }
-                        else if (item.Status == DownloadStatus.Installing)
-                        {
-                            item.Status = HasFiles()
-                                ? DownloadStatus.Completed
-                                : DownloadStatus.Cancelled;
-                        }
-                        Downloads.Add(item);
-                        if (item.Status is DownloadStatus.Completed)
-                        {
-                            DownloadedProductIds.Add(item.ProductId);
-                        }
-                    }
-
-                    var sorted = Downloads.OrderByDescending(d => d.LastAccessedAt).ToList();
-                    Downloads.Clear();
-                    foreach (var d in sorted)
-                    {
-                        Downloads.Add(d);
-                    }
-                }
-            }
+            Task.Run(LoadDownloadsAsync).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -760,40 +682,96 @@ public class DownloadManagerService
         }
     }
 
+    private async Task LoadDownloadsAsync()
+    {
+        var items = await _fileStore.LoadAsync();
+        
+        Downloads.Clear();
+        DownloadedProductIds.Clear();
+        
+        foreach (var item in items)
+        {
+            if (item.LastAccessedAt == default)
+            {
+                item.LastAccessedAt = DateTime.Now;
+            }
+
+            // Migrate legacy states.
+            // - Older builds used "Downloaded" for "files present on disk".
+            // - Some builds used "Completed".
+            var statusText = item.Status.ToString();
+            if (
+                statusText.Equals("Downloaded", StringComparison.OrdinalIgnoreCase)
+                || statusText.Equals("Completed", StringComparison.OrdinalIgnoreCase)
+            )
+            {
+                item.Status = DownloadStatus.Completed;
+            }
+
+            // Helper to detect if files are present (legacy list or new folder path)
+            bool HasFiles()
+            {
+                if (item.DownloadedFiles.Count > 0)
+                    return true;
+                if (
+                    !string.IsNullOrWhiteSpace(item.DownloadPath)
+                    && Directory.Exists(item.DownloadPath)
+                )
+                {
+                    return Directory
+                        .EnumerateFileSystemEntries(item.DownloadPath)
+                        .Any();
+                }
+                return false;
+            }
+
+            // Reset any "Downloading" status to "Cancelled" on app restart
+            // since the download won't continue
+            if (
+                item.Status == DownloadStatus.Downloading
+                || item.Status == DownloadStatus.Pending
+            )
+            {
+                item.Status = DownloadStatus.Cancelled;
+            }
+            else if (item.Status == DownloadStatus.Cancelling && HasFiles())
+            {
+                item.Status = DownloadStatus.Completed;
+            }
+            else if (item.Status == DownloadStatus.Cancelling)
+            {
+                item.Status = DownloadStatus.Cancelled;
+            }
+            else if (item.Status == DownloadStatus.Installing)
+            {
+                item.Status = HasFiles()
+                    ? DownloadStatus.Completed
+                    : DownloadStatus.Cancelled;
+            }
+            Downloads.Add(item);
+            if (item.Status is DownloadStatus.Completed)
+            {
+                DownloadedProductIds.Add(item.ProductId);
+            }
+        }
+
+        var sorted = Downloads.OrderByDescending(d => d.LastAccessedAt).ToList();
+        Downloads.Clear();
+        foreach (var d in sorted)
+        {
+            Downloads.Add(d);
+        }
+    }
+
     private async Task SaveDownloadsAsync()
     {
-        try
+        List<DownloadItem> itemsToSave;
+        lock (_lock)
         {
-            List<DownloadItem> itemsToSave;
-            lock (_lock)
-            {
-                itemsToSave = Downloads.ToList();
-            }
-
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            var json = JsonSerializer.Serialize(itemsToSave, options);
-
-            // Write to temp file then replace to avoid partial/corrupt writes.
-            var tmpPath = _downloadDataPath + ".tmp";
-            await File.WriteAllTextAsync(tmpPath, json).ConfigureAwait(false);
-
-            try
-            {
-                File.Copy(tmpPath, _downloadDataPath, overwrite: true);
-            }
-            finally
-            {
-                try
-                {
-                    File.Delete(tmpPath);
-                }
-                catch { }
-            }
+            itemsToSave = Downloads.ToList();
         }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Error saving downloads: {ex.Message}");
-        }
+
+        await _fileStore.SaveAsync(itemsToSave);
     }
 
     // Keep sync API for existing callers.
