@@ -30,7 +30,10 @@ public sealed class AppUpdatePromptService
 
     public async Task ShowManualUpdateDialogAsync(
         XamlRoot xamlRoot,
-        CancellationToken cancellationToken = default
+        CancellationToken cancellationToken = default,
+        bool startCheckImmediately = true,
+        string? initialTitle = null,
+        string? initialStatusMessage = null
     )
     {
         var dialogContent = new UpdateDialogContent();
@@ -301,19 +304,32 @@ public sealed class AppUpdatePromptService
             StartManualUpdateAsync();
         };
 
-        var checkTask = StartManualCheckAsync();
+        Task? checkTask = null;
+        if (startCheckImmediately)
+        {
+            checkTask = StartManualCheckAsync();
+        }
+        else
+        {
+            dialog.Title = initialTitle ?? "Settings_UpdaterCheckingTitle".GetLocalized();
+            SetCheckActionState(initialStatusMessage);
+        }
+
         await dialog.ShowAsync();
 
         isClosing = true;
         checkCts?.Cancel();
         downloadCts?.Cancel();
 
-        try
+        if (checkTask is not null)
         {
-            await checkTask;
-        }
-        catch
-        {
+            try
+            {
+                await checkTask;
+            }
+            catch
+            {
+            }
         }
 
         checkCts?.Dispose();
@@ -350,9 +366,24 @@ public sealed class AppUpdatePromptService
             );
             await ShowAvailableUpdateDialogAsync(release, xamlRoot, cancellationToken);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Startup update check failed");
+
+            await ShowManualUpdateDialogAsync(
+                xamlRoot,
+                cancellationToken,
+                startCheckImmediately: false,
+                initialTitle: "Settings_UpdaterErrorTitle".GetLocalized(),
+                initialStatusMessage: string.Format(
+                    "Settings_UpdaterErrorContent".GetLocalized(),
+                    ex.Message
+                )
+            );
         }
     }
 
