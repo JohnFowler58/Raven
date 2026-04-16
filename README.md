@@ -60,6 +60,14 @@ Built with **WinUI 3** and **.NET 10**, Raven delivers a clean, fluent UI that f
 - [**.NET 10**](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
 - [**Windows App SDK Runtime**](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads)
 
+## 🌐 How to Run
+
+- Install all [system requirements](#-system-requirements)
+- Download the latest version of Raven from [releases](https://github.com/mjishnu/Raven/releases) according to your system architecture.
+- If you encounter a false antivirus positive, install `RavenCert.cer` or use `auto_install_cert` (extract `auto_install_cert.zip` and run the `.bat` file).
+- Extract the contents of the zip file to a folder and run `raven.exe`.
+- Enjoy!
+
 ## 🏗️ Architecture
 
 Raven follows the **MVVM pattern** and uses dependency injection via `Microsoft.Extensions.Hosting`.
