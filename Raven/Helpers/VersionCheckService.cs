@@ -32,7 +32,6 @@ public static class VersionCheckService
         {
             "arm64" => FE3OSArch.ARM64,
             "x86" => FE3OSArch.X86,
-            "arm" => FE3OSArch.ARM,
             _ => FE3OSArch.AMD64,
         };
 

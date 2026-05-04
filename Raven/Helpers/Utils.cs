@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Numerics;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
@@ -24,10 +24,9 @@ class Utils
         {
             return arch switch
             {
-                "arm64" => new[] { "arm64", "arm", "x64", "x86", "neutral" },
+                "arm64" => new[] { "arm64", "x64", "x86", "neutral" },
                 "x64" => new[] { "x64", "x86", "neutral" },
                 "x86" => new[] { "x86", "neutral" },
-                "arm" => new[] { "arm", "neutral" },
                 _ => new[] { arch, "neutral" },
             };
         }
@@ -35,10 +34,9 @@ class Utils
         {
             return arch switch
             {
-                "arm64" => new[] { "arm64", "arm", "x64", "x86" },
+                "arm64" => new[] { "arm64", "x64", "x86" },
                 "x64" => new[] { "x64", "x86" },
                 "x86" => new[] { "x86" },
-                "arm" => new[] { "arm" },
                 _ => new[] { arch },
             };
         }
@@ -56,8 +54,7 @@ class Utils
 
         if (lower.Contains("arm64"))
             return "arm64";
-        if (lower.Contains("arm"))
-            return "arm";
+
         if (lower.Contains("x64") || lower.Contains("amd64"))
             return "x64";
         if (lower.Contains("x86") || lower.Contains("x32"))

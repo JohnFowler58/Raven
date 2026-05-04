@@ -53,7 +53,7 @@ public class ArchitectureSelectorService : IArchitectureSelectorService
     {
         normalized = archRid?.Trim().ToLowerInvariant() ?? string.Empty;
 
-        if (normalized is "x64" or "x86" or "arm" or "arm64")
+        if (normalized is "x64" or "x86" or "arm64")
             return true;
 
         normalized = string.Empty;

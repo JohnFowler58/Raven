@@ -166,7 +166,6 @@ public sealed class GitHubUpdaterService
             Architecture.X64 => "x64",
             Architecture.X86 => "x86",
             Architecture.Arm64 => "arm64",
-            Architecture.Arm => "arm",
             _ => string.Empty,
         };
 

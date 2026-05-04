@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using Raven.Contracts.Services;
 using StoreListings.Library;
 using Windows.System.Profile;
@@ -32,7 +32,6 @@ static class SystemInfo
             Architecture.X64 => "x64",
             Architecture.Arm64 => "arm64",
             Architecture.X86 => "x86",
-            Architecture.Arm => "arm",
             _ => "x64",
         };
     }
@@ -42,7 +41,6 @@ static class SystemInfo
         return architecture switch
         {
             StoreEdgeFDArch.ARM64 => "arm64",
-            StoreEdgeFDArch.ARM => "arm",
             StoreEdgeFDArch.X86 => "x86",
             _ => "x64",
         };
@@ -53,7 +51,6 @@ static class SystemInfo
         return archRid.ToLowerInvariant() switch
         {
             "arm64" => StoreEdgeFDArch.ARM64,
-            "arm" => StoreEdgeFDArch.ARM,
             "x86" => StoreEdgeFDArch.X86,
             _ => StoreEdgeFDArch.X64,
         };
