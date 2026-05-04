@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Input;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -20,12 +21,14 @@ public sealed partial class ShellPage : Page
     private CancellationTokenSource? suggestionCancellationTokenSource;
     private readonly ILocaleService _localeService;
     private readonly AppUpdatePromptService _appUpdatePromptService;
+    private readonly ILogger<ShellPage> _logger;
 
-    public ShellPage(ShellViewModel viewModel, AppUpdatePromptService appUpdatePromptService)
+    public ShellPage(ShellViewModel viewModel, AppUpdatePromptService appUpdatePromptService, ILogger<ShellPage> logger)
     {
         ViewModel = viewModel;
         _localeService = App.GetService<ILocaleService>();
         _appUpdatePromptService = appUpdatePromptService;
+        _logger = logger;
         InitializeComponent();
 
         ViewModel.NavigationService.Frame = NavigationFrame;
@@ -138,7 +141,31 @@ public sealed partial class ShellPage : Page
         if (XamlRoot is null)
             return;
 
+        await CheckSideloadingAsync(XamlRoot);
         await _appUpdatePromptService.CheckForUpdatesOnStartupAsync(XamlRoot);
+    }
+
+    private async Task CheckSideloadingAsync(XamlRoot xamlRoot)
+    {
+        if (SideloadingCheckService.IsSideloadingEnabled(_logger))
+            return;
+
+        _logger.LogWarning("Sideloading is disabled on this device");
+
+        var dialog = new ContentDialog
+        {
+            Title = "Sideloading_DisabledTitle".GetLocalized(),
+            Content = "Sideloading_DisabledMessage".GetLocalized(),
+            PrimaryButtonText = "Sideloading_EnableButton".GetLocalized(),
+            CloseButtonText = "Sideloading_CancelButton".GetLocalized(),
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = xamlRoot,
+        };
+
+        var result = await dialog.ShowAsync();
+
+        if (result == ContentDialogResult.Primary)
+            await Launcher.LaunchUriAsync(new Uri("ms-settings:developers"));
     }
 
     private void OnPagePointerPressed(object sender, PointerRoutedEventArgs e)

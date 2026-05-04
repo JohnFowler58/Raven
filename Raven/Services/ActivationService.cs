@@ -1,4 +1,4 @@
-﻿using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
 using Raven.Activation;
@@ -16,7 +16,12 @@ public class ActivationService : IActivationService
     private readonly IArchitectureSelectorService _architectureSelectorService;
     private UIElement? _shell = null;
 
-    public ActivationService(ActivationHandler<LaunchActivatedEventArgs> defaultHandler, IEnumerable<IActivationHandler> activationHandlers, IThemeSelectorService themeSelectorService, ILocaleService localeService, IArchitectureSelectorService architectureSelectorService)
+    public ActivationService(
+        ActivationHandler<LaunchActivatedEventArgs> defaultHandler,
+        IEnumerable<IActivationHandler> activationHandlers,
+        IThemeSelectorService themeSelectorService,
+        ILocaleService localeService,
+        IArchitectureSelectorService architectureSelectorService)
     {
         _defaultHandler = defaultHandler;
         _activationHandlers = activationHandlers;
@@ -52,14 +57,10 @@ public class ActivationService : IActivationService
         var activationHandler = _activationHandlers.FirstOrDefault(h => h.CanHandle(activationArgs));
 
         if (activationHandler != null)
-        {
             await activationHandler.HandleAsync(activationArgs);
-        }
 
         if (_defaultHandler.CanHandle(activationArgs))
-        {
             await _defaultHandler.HandleAsync(activationArgs);
-        }
     }
 
     private async Task InitializeAsync()
@@ -67,12 +68,10 @@ public class ActivationService : IActivationService
         await _themeSelectorService.InitializeAsync().ConfigureAwait(false);
         await _localeService.InitializeAsync().ConfigureAwait(false);
         await _architectureSelectorService.InitializeAsync().ConfigureAwait(false);
-        await Task.CompletedTask;
     }
 
     private async Task StartupAsync()
     {
         await _themeSelectorService.SetRequestedThemeAsync();
-        await Task.CompletedTask;
     }
 }

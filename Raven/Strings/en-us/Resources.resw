@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -808,5 +808,19 @@ Installed version: {0}</value>
   </data>
   <data name="Settings_ThirdPartyLicenseStoreListingsHeader.Text" xml:space="preserve">
     <value>StoreListings</value>
+  </data>
+  <data name="Sideloading_DisabledTitle" xml:space="preserve">
+    <value>Sideloading is disabled</value>
+  </data>
+  <data name="Sideloading_DisabledMessage" xml:space="preserve">
+    <value>Sideloading is currently disabled on this device. You won't be able to install app packages until it's enabled.
+
+You can enable it by turning on Developer Mode in Windows Settings.</value>
+  </data>
+  <data name="Sideloading_EnableButton" xml:space="preserve">
+    <value>Open Settings</value>
+  </data>
+  <data name="Sideloading_CancelButton" xml:space="preserve">
+    <value>Not now</value>
   </data>
 </root>
