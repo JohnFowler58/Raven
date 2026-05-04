@@ -111,21 +111,21 @@ jobs:
           Compress-Archive -Path (Join-Path $bundleDir "*") -DestinationPath "auto_install_cert.zip" -Force
 
       - name: Upload App Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Raven-${{ matrix.arch }}
           path: Raven-${{ needs.prepare.outputs.release_tag }}-win-${{ matrix.arch }}.zip
 
       - name: Upload Public Certificate Artifact
         if: matrix.arch == 'x64'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Public-Certificate
           path: RavenCert.cer
 
       - name: Upload Auto Install Certificate Artifact
         if: matrix.arch == 'x64'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Auto-Install-Cert
           path: auto_install_cert.zip
@@ -139,7 +139,7 @@ jobs:
 
     steps:
       - name: Download Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: ./artifacts
           merge-multiple: true
