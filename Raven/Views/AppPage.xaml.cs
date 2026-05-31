@@ -1182,6 +1182,7 @@ public sealed partial class AppPage : Page
             }
 
             FileEntry? urls;
+            DownloadUrlFailureReason? fetchFailure = null;
             try
             {
                 // Ensure the fetch respects cancellation too
@@ -1191,7 +1192,8 @@ public sealed partial class AppPage : Page
                     _downloadCts.Token,
                     market: _localeService.Market,
                     language: _localeService.Language,
-                    ignoreDependencyFilter: IgnoreDependencyFilterToggle.IsChecked
+                    ignoreDependencyFilter: IgnoreDependencyFilterToggle.IsChecked,
+                    onFailure: r => fetchFailure = r
                 );
             }
             catch (OperationCanceledException)
@@ -1230,10 +1232,8 @@ public sealed partial class AppPage : Page
                 downloadManager.UpdateDownloadStatus(productId, DownloadStatus.Failed);
                 UnbindFromDownloadItem();
                 SetInstallButtonState(content: "Retry", enabled: true, showProgress: false);
-                await ShowErrorDialogAsync(
-                    "AppPage_Error_NotSupportedTitle".GetLocalized(),
-                    "AppPage_Error_NotSupportedMsg".GetLocalized()
-                );
+                var (failureTitle, failureMessage) = GetDownloadFailureMessage(fetchFailure);
+                await ShowErrorDialogAsync(failureTitle, failureMessage);
                 return;
             }
 
@@ -1352,6 +1352,43 @@ public sealed partial class AppPage : Page
             await ShowErrorDialogAsync(title, msg);
         }
     }
+
+    // Maps a download-URL resolution failure to a specific, actionable dialog title/message.
+    // Falls back to the generic "not supported" copy when the reason is unknown.
+    private static (string Title, string Message) GetDownloadFailureMessage(
+        DownloadUrlFailureReason? reason
+    ) =>
+        reason switch
+        {
+            DownloadUrlFailureReason.StoreQueryFailed => (
+                "AppPage_Error_StoreQueryFailedTitle".GetLocalized(),
+                "AppPage_Error_StoreQueryFailedMsg".GetLocalized()
+            ),
+            DownloadUrlFailureReason.OsVersionIncompatible => (
+                "AppPage_Error_OsIncompatibleTitle".GetLocalized(),
+                "AppPage_Error_OsIncompatibleMsg".GetLocalized()
+            ),
+            DownloadUrlFailureReason.ArchitectureIncompatible => (
+                "AppPage_Error_ArchIncompatibleTitle".GetLocalized(),
+                "AppPage_Error_ArchIncompatibleMsg".GetLocalized()
+            ),
+            DownloadUrlFailureReason.NoInstallerAvailable => (
+                "AppPage_Error_NoInstallerTitle".GetLocalized(),
+                "AppPage_Error_NoInstallerMsg".GetLocalized()
+            ),
+            DownloadUrlFailureReason.DownloadInfoUnavailable => (
+                "AppPage_Error_DownloadInfoTitle".GetLocalized(),
+                "AppPage_Error_DownloadInfoMsg".GetLocalized()
+            ),
+            DownloadUrlFailureReason.UnsupportedInstallerType => (
+                "AppPage_Error_UnsupportedTypeTitle".GetLocalized(),
+                "AppPage_Error_UnsupportedTypeMsg".GetLocalized()
+            ),
+            _ => (
+                "AppPage_Error_NotSupportedTitle".GetLocalized(),
+                "AppPage_Error_NotSupportedMsg".GetLocalized()
+            ),
+        };
 
     private void HandleDownloadError(string productId, string status, DownloadStatus downloadStatus)
     {
