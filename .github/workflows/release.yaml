@@ -67,7 +67,7 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/packages.lock.json') }}
           restore-keys: nuget-${{ runner.os }}-
 
-      - name: Publish WinUI 3 App
+      - name: Publish WinUI 3 App (Framework-Dependent)
         shell: pwsh
         run: >
           dotnet publish Raven/Raven.csproj
@@ -75,6 +75,20 @@ jobs:
           -r win-${{ matrix.arch }}
           --self-contained false
           -o ./publish_output
+          -p:Version=${{ needs.prepare.outputs.release_version }}
+          -p:AssemblyVersion=${{ needs.prepare.outputs.release_version }}
+          -p:FileVersion=${{ needs.prepare.outputs.release_version }}
+          -p:InformationalVersion=${{ needs.prepare.outputs.release_tag }}
+
+      - name: Publish WinUI 3 App (Self-Contained)
+        shell: pwsh
+        run: >
+          dotnet publish Raven/Raven.csproj
+          -c Release
+          -r win-${{ matrix.arch }}
+          --self-contained true
+          -p:WindowsAppSDKSelfContained=true
+          -o ./publish_output_full
           -p:Version=${{ needs.prepare.outputs.release_version }}
           -p:AssemblyVersion=${{ needs.prepare.outputs.release_version }}
           -p:FileVersion=${{ needs.prepare.outputs.release_version }}
@@ -94,18 +108,19 @@ jobs:
             "${{ secrets.CERT_PASSWORD }}"
           )
 
-          Get-ChildItem -Path ./publish_output -Include *.exe,*.dll -Recurse | ForEach-Object {
+          Get-ChildItem -Path ./publish_output, ./publish_output_full -Include *.exe,*.dll -Recurse | ForEach-Object {
             Set-AuthenticodeSignature -FilePath $_.FullName -Certificate $cert -TimestampServer "http://timestamp.digicert.com" | Out-Null
           }
 
           $certBytes = $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
           [System.IO.File]::WriteAllBytes("RavenCert.cer", $certBytes)
 
-      - name: Create Zip Archive
+      - name: Create Zip Archives
         shell: pwsh
         run: |
-          Get-ChildItem -Path ./publish_output -Include *.cer,*.pfx -Recurse -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+          Get-ChildItem -Path ./publish_output, ./publish_output_full -Include *.cer,*.pfx -Recurse -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
           Compress-Archive -Path ./publish_output/* -DestinationPath Raven-${{ needs.prepare.outputs.release_tag }}-win-${{ matrix.arch }}.zip
+          Compress-Archive -Path ./publish_output_full/* -DestinationPath Raven-${{ needs.prepare.outputs.release_tag }}-win-${{ matrix.arch }}-self-contained.zip
 
       - name: Create Auto Install Certificate Zip
         if: matrix.arch == 'x64'
@@ -121,7 +136,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: Raven-${{ matrix.arch }}
-          path: Raven-${{ needs.prepare.outputs.release_tag }}-win-${{ matrix.arch }}.zip
+          path: |
+            Raven-${{ needs.prepare.outputs.release_tag }}-win-${{ matrix.arch }}.zip
+            Raven-${{ needs.prepare.outputs.release_tag }}-win-${{ matrix.arch }}-self-contained.zip
 
       - name: Upload Auto Install Certificate Artifact
         if: matrix.arch == 'x64'
