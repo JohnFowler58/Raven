@@ -65,7 +65,7 @@ Built with **WinUI 3** and **.NET 10**, Raven delivers a clean, fluent UI that f
 
 ## 🌐 How to Run
 
-- Statisfy all [system requirements](#-system-requirements)
+- Statisfy all [system requirements](#-system-requirements) (excluding runtimes if running self contained version)
 - Download the latest version of Raven from [releases](https://github.com/mjishnu/Raven/releases) according to your system architecture.
 - Extract the contents of the zip and run `raven.exe`.
 - If you encounter a false antivirus positive, download `raven_cert.zip` from [releases](https://github.com/mjishnu/Raven/releases), extract the contents and install `raven.cer` or run `install_raven_cert.bat`.
