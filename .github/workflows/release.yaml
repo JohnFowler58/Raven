@@ -21,8 +21,10 @@ jobs:
       - name: Normalize and Validate Version
         id: version
         shell: pwsh
+        env:
+          VERSION_INPUT: ${{ github.event.inputs.version }}
         run: |
-          $raw = "${{ github.event.inputs.version }}".Trim()
+          $raw = "$env:VERSION_INPUT".Trim()
           if ([string]::IsNullOrWhiteSpace($raw)) {
             throw "Version input cannot be empty."
           }
@@ -48,6 +50,10 @@ jobs:
     strategy:
       matrix:
         arch: [x64, x86, arm64]
+    env:
+      RELEASE_VERSION: ${{ needs.prepare.outputs.release_version }}
+      RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+      ARCH: ${{ matrix.arch }}
 
     steps:
       - name: Checkout Code
@@ -72,13 +78,13 @@ jobs:
         run: >
           dotnet publish Raven/Raven.csproj
           -c Release
-          -r win-${{ matrix.arch }}
+          -r win-$env:ARCH
           --self-contained false
           -o ./publish_output
-          -p:Version=${{ needs.prepare.outputs.release_version }}
-          -p:AssemblyVersion=${{ needs.prepare.outputs.release_version }}
-          -p:FileVersion=${{ needs.prepare.outputs.release_version }}
-          -p:InformationalVersion=${{ needs.prepare.outputs.release_tag }}
+          -p:Version=$env:RELEASE_VERSION
+          -p:AssemblyVersion=$env:RELEASE_VERSION
+          -p:FileVersion=$env:RELEASE_VERSION
+          -p:InformationalVersion=$env:RELEASE_TAG
 
       - name: Clean Intermediates Before Self-Contained Publish
         shell: pwsh
@@ -95,27 +101,31 @@ jobs:
         run: >
           dotnet publish Raven/Raven.csproj
           -c Release
-          -r win-${{ matrix.arch }}
+          -r win-$env:ARCH
           --self-contained true
           -p:WindowsAppSDKSelfContained=true
           -o ./publish_output_full
-          -p:Version=${{ needs.prepare.outputs.release_version }}
-          -p:AssemblyVersion=${{ needs.prepare.outputs.release_version }}
-          -p:FileVersion=${{ needs.prepare.outputs.release_version }}
-          -p:InformationalVersion=${{ needs.prepare.outputs.release_tag }}
+          -p:Version=$env:RELEASE_VERSION
+          -p:AssemblyVersion=$env:RELEASE_VERSION
+          -p:FileVersion=$env:RELEASE_VERSION
+          -p:InformationalVersion=$env:RELEASE_TAG
 
       - name: Decode Certificate
         shell: pwsh
+        env:
+          CERT_BASE64: ${{ secrets.CERT_BASE64 }}
         run: |
-          $pfxCertBytes = [System.Convert]::FromBase64String("${{ secrets.CERT_BASE64 }}")
+          $pfxCertBytes = [System.Convert]::FromBase64String($env:CERT_BASE64)
           [System.IO.File]::WriteAllBytes("RavenCert.pfx", $pfxCertBytes)
 
       - name: Sign App Files and Export Public Certificate
         shell: pwsh
+        env:
+          CERT_PASSWORD: ${{ secrets.CERT_PASSWORD }}
         run: |
           $cert = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new(
             "RavenCert.pfx",
-            "${{ secrets.CERT_PASSWORD }}"
+            $env:CERT_PASSWORD
           )
 
           Get-ChildItem -Path ./publish_output, ./publish_output_full -Include *.exe,*.dll -Recurse | ForEach-Object {
@@ -129,8 +139,8 @@ jobs:
         shell: pwsh
         run: |
           Get-ChildItem -Path ./publish_output, ./publish_output_full -Include *.cer,*.pfx -Recurse -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
-          Compress-Archive -Path ./publish_output/* -DestinationPath Raven-${{ needs.prepare.outputs.release_tag }}-win-${{ matrix.arch }}.zip
-          Compress-Archive -Path ./publish_output_full/* -DestinationPath Raven-${{ needs.prepare.outputs.release_tag }}-win-${{ matrix.arch }}-self-contained.zip
+          Compress-Archive -Path ./publish_output/* -DestinationPath "Raven-$($env:RELEASE_TAG)-win-$($env:ARCH).zip"
+          Compress-Archive -Path ./publish_output_full/* -DestinationPath "Raven-$($env:RELEASE_TAG)-win-$($env:ARCH)-self-contained.zip"
 
       - name: Create Auto Install Certificate Zip
         if: matrix.arch == 'x64'
