@@ -16,7 +16,8 @@ public static class VersionCheckService
         FE3Handler.Cookie NewCookie,
         FE3OSArch OsArch,
         StoreListings.Library.Version OsVersion,
-        string ArchRid
+        string ArchRid,
+        FE3Handler.SyncUpdatesResponse SyncResponse
     );
 
     internal sealed record UnpackagedSelectionContext(
@@ -131,7 +132,8 @@ public static class VersionCheckService
             fe3sync.Value.NewCookie,
             osArch,
             resolvedOsVersion,
-            resolvedArchRid
+            resolvedArchRid,
+            fe3sync.Value
         );
     }
 

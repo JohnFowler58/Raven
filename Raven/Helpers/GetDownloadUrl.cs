@@ -201,23 +201,7 @@ public static class GetDownloadUrl
                         return null;
                     }
 
-                    var updates = selectionContext.Updates;
                     var priorities = Utils.GetArchPriorities(selectionContext.ArchRid, isPackaged: true);
-
-                    var frameworkGroups = updates
-                        .Where(d =>
-                            d.IsFramework
-                            && d.TargetPlatforms.Any(tp =>
-                                tp.MinVersion <= selectionContext.OsVersion
-                                && (
-                                    tp.Family == DeviceFamily.Universal
-                                    || tp.Family == deviceFamily
-                                )
-                            )
-                        )
-                        .GroupBy(d => GetFrameworkFamilyKey(d.PackageIdentityName))
-                        .Select(g => g.ToList())
-                        .ToList();
 
                     // Helper func to fetch the download URL + blockmap for one update and package it into a FileEntry
                     async Task<FileEntry?> ResolveDownloadEntry(
@@ -260,10 +244,12 @@ public static class GetDownloadUrl
 
                     var anyArchMatch = false;
 
-                    // Iterate through the archs assume equal priority for main and dependencies
+                    // Iterate architectures in priority order; main and dependencies share the
+                    // same architecture preference.
                     foreach (var archPref in priorities)
                     {
-                        // check main exist for this arch
+                        // Main packages published for this architecture, newest version first
+                        // (Candidates is already ordered by descending version).
                         var archCandidates = selectionContext
                             .Candidates.Where(c =>
                                 Utils.ParseArchString(
@@ -279,45 +265,65 @@ public static class GetDownloadUrl
 
                         anyArchMatch = true;
 
+                        // Dependencies follow the main file's architecture; a neutral main falls
+                        // back to the device's configured architecture.
                         var depArch = archPref == "neutral" ? selectionContext.ArchRid : archPref;
 
-                        var requiredDepUpdates = frameworkGroups
-                            .SelectMany(group =>
-                                SelectFrameworkDependencies(
-                                    group,
-                                    depArch,
-                                    includeAllSupportedArchs: ignoreDependencyFilter
-                                )
-                            )
-                            .Distinct()
-                            .ToList();
-
-                        var depEntries = new List<FileEntry>();
-                        var depsResolved = true;
-
-                        //  Get url for all dependencies for this arch
-                        foreach (var depUpdate in requiredDepUpdates)
-                        {
-                            var depEntry = await ResolveDownloadEntry(
-                                depUpdate, 
-                                Array.Empty<FileEntry>()
-                            );
-
-                            if (depEntry is null)
-                            {
-                                depsResolved = false;
-                                break;
-                            }
-
-                            depEntries.Add(depEntry);
-                        }
-
-                        if (!depsResolved)
-                            continue; // A dependency URL failed; try the next architecture.
-
-                        // Get url for main file for this arch
+                        // Resolve each candidate against the exact framework dependencies FE3
+                        // bundled with that specific build, rather than the latest of each family.
                         foreach (var main in archCandidates)
                         {
+                            // Walk the FE3 bundle tree for this build's framework leaves (every
+                            // architecture variant Microsoft bundled with it).
+                            var bundledDeps = selectionContext.SyncResponse.ResolveDependencies(main);
+
+                            if (bundledDeps.Count == 0)
+                            {
+                                logger.LogWarning(
+                                    "FE3 bundle tree returned no dependencies | ProductId={ProductId} | Main={FileName} | Version={Version}",
+                                    productId,
+                                    main.FileName,
+                                    main.Version
+                                );
+                            }
+
+                            // Narrow to the main's architecture (normal) or every supported
+                            // architecture (bypass), one framework family at a time.
+                            var requiredDepUpdates = bundledDeps
+                                .GroupBy(d => GetFrameworkFamilyKey(d.PackageIdentityName))
+                                .SelectMany(group =>
+                                    SelectFrameworkDependencies(
+                                        group.ToList(),
+                                        depArch,
+                                        includeAllSupportedArchs: ignoreDependencyFilter
+                                    )
+                                )
+                                .Distinct()
+                                .ToList();
+
+                            // Get url for all dependencies of this build.
+                            var depEntries = new List<FileEntry>();
+                            var depsResolved = true;
+                            foreach (var depUpdate in requiredDepUpdates)
+                            {
+                                var depEntry = await ResolveDownloadEntry(
+                                    depUpdate,
+                                    Array.Empty<FileEntry>()
+                                );
+
+                                if (depEntry is null)
+                                {
+                                    depsResolved = false;
+                                    break;
+                                }
+
+                                depEntries.Add(depEntry);
+                            }
+
+                            if (!depsResolved)
+                                continue; // A dependency URL failed; try the next candidate.
+
+                            // Get url for the main file.
                             var mainEntry = await ResolveDownloadEntry(main, depEntries);
 
                             if (mainEntry is null)
