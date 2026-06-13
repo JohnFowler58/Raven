@@ -157,8 +157,8 @@ public static class UpdateCheckService
                         continue;
                     }
 
-                    // Soft check: read the version directly from the DCAT catalog data
-                    // that was already fetched above — no FE3 / Windows Update calls.
+                    // DCAT pre-filter then FE3 verification
+                    // only show the update if both agree it's newer than the installed version.
                     string? storeVersion = null;
                     if (dcatLookup.TryGetValue(product.ProductId, out var pkgs))
                     {
@@ -177,20 +177,33 @@ public static class UpdateCheckService
 
                     if (VersionComparison.IsStoreNewer(storeVersion, installedVersion))
                     {
-                        results.Add(
-                            new UpdateItem
-                            {
-                                PackageFamilyName = pfn ?? string.Empty,
-                                ProductId = product.ProductId,
-                                Title = product.Title,
-                                LogoUrl = product.Logo?.Url,
-                                PublisherName = product.PublisherName,
-                                InstalledVersion = installedVersion,
-                                StoreVersion = storeVersion!,
-                                RevisionId = product.RevisionId,
-                                IsBundle = product.IsBundle,
-                            }
+                        // Confirm the candidate against FE3 
+                        var verifiedVersion = await VersionCheckService.GetLatestVersionAsync(
+                            product.ProductId,
+                            InstallerType.Packaged,
+                            ct,
+                            prefetchedPackages: pkgs,
+                            market: market,
+                            language: language
                         );
+
+                        if (VersionComparison.IsStoreNewer(verifiedVersion, installedVersion))
+                        {
+                            results.Add(
+                                new UpdateItem
+                                {
+                                    PackageFamilyName = pfn ?? string.Empty,
+                                    ProductId = product.ProductId,
+                                    Title = product.Title,
+                                    LogoUrl = product.Logo?.Url,
+                                    PublisherName = product.PublisherName,
+                                    InstalledVersion = installedVersion,
+                                    StoreVersion = verifiedVersion!,
+                                    RevisionId = product.RevisionId,
+                                    IsBundle = product.IsBundle,
+                                }
+                            );
+                        }
                     }
 
                     completed++;

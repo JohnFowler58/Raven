@@ -338,8 +338,7 @@ public static class VersionCheckService
                     if (match != null)
                         return match.Version.ToString();
                 }
-
-                return selectionContext.Candidates.FirstOrDefault()?.Version.ToString();
+                return null;
             }
 
             case InstallerType.Unpackaged:

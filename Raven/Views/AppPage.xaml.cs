@@ -343,7 +343,10 @@ public sealed partial class AppPage : Page
         var storeVersion = downloadItem?.StoreVersion ?? AppData.Version;
         var localVersion = installedInfo.InstalledVersion;
 
-        if (string.IsNullOrWhiteSpace(storeVersion) || string.IsNullOrWhiteSpace(localVersion))
+        // An "N/A" store version means we couldn't determine it — can't check, so treat as no update
+        if (string.IsNullOrWhiteSpace(storeVersion)
+            || string.Equals(storeVersion, AppInfo.VersionUnavailable, StringComparison.OrdinalIgnoreCase)
+            || string.IsNullOrWhiteSpace(localVersion))
             return false;
 
         if (
@@ -363,6 +366,10 @@ public sealed partial class AppPage : Page
             return false;
 
         var storeVersion = downloadItem?.StoreVersion ?? AppData.Version;
+
+        if (string.Equals(storeVersion, AppInfo.VersionUnavailable, StringComparison.OrdinalIgnoreCase))
+            return false;
+
         var installedVersion = PackagedAppDiscovery.GetInstalledVersion(
             _currentProductInfo.PackageFamilyName
         );

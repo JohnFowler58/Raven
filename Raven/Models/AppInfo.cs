@@ -61,11 +61,12 @@ public partial class AppInfo : INotifyPropertyChanged
             }
         }
     }
+    public const string VersionUnavailable = "N/A";
 
     private string? _version;
     public string? Version
     {
-        get => string.IsNullOrWhiteSpace(_version) ? "N/A" : _version;
+        get => string.IsNullOrWhiteSpace(_version) ? VersionUnavailable : _version;
         set
         {
             if (_version != value)

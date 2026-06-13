@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Input;
 using StoreListings.Library;
 using Raven.Contracts.Services;
 using Raven.Models;
+using Raven.Services;
 using Raven.Views;
 
 namespace Raven.Helpers;
@@ -180,6 +181,14 @@ class Utils
             }
             else
             {
+                await ConfirmInstalledUpdateVersionAsync(
+                    productData,
+                    packages,
+                    market,
+                    language,
+                    cancellationToken
+                );
+
                 return new Product(productData, null);
             }
         }
@@ -199,6 +208,35 @@ class Utils
             var productData = ProductData.FromStoreEdgeFDPage(pageResult.Value);
             return new Product(productData, null);
         }
+    }
+
+    /// <summary>
+    /// For an installed packaged app whose catalog (DCAT) version looks newer than what's installed,
+    /// confirm the update against FE3 
+    /// </summary>
+    private static async Task ConfirmInstalledUpdateVersionAsync(
+        ProductData productData,
+        IReadOnlyList<DCATPackage> prefetchedPackages,
+        Market market,
+        Lang language,
+        CancellationToken cancellationToken
+    )
+    {
+        var installedVersion = PackagedAppDiscovery.GetInstalledVersion(productData.PackageFamilyName);
+
+        if (!VersionComparison.IsStoreNewer(productData.Version, installedVersion))
+            return;
+
+        var verifiedVersion = await VersionCheckService.GetLatestVersionAsync(
+            productData.ProductId,
+            InstallerType.Packaged,
+            cancellationToken,
+            prefetchedPackages: prefetchedPackages,
+            market: market,
+            language: language
+        );
+
+        productData.Version = verifiedVersion;
     }
 
     public static int GetComboBoxItemIndexByTag(ComboBox comboBox, object tag)
