@@ -383,7 +383,7 @@ public sealed partial class InstallationsPage : Page
         var count = ViewModel.DependencyPaths.Count;
         DependenciesCountText.Text = count == 0
             ? string.Empty
-            : string.Format("InstallationsPage_Dependencies_Count".GetLocalized(), count);
+            : "InstallationsPage_Dependencies_Count".GetLocalizedFormat(count);
         ClearDependenciesButton.Visibility = count == 0
             ? Visibility.Collapsed
             : Visibility.Visible;
@@ -469,12 +469,12 @@ public sealed partial class InstallationsPage : Page
             var message = cix.Reason switch
             {
                 CustomInstallError.FolderExists =>
-                    string.Format("Install_Error_FolderExists".GetLocalized(), cix.FolderName),
+                    "Install_Error_FolderExists".GetLocalizedFormat(cix.FolderName),
                 CustomInstallError.NoCompatibleArch =>
                     "Install_Error_NoInstallableArch".GetLocalized(),
                 CustomInstallError.ManifestMissing =>
                     "Install_Error_ManifestMissing".GetLocalized(),
-                _ => string.Format("Install_Error_Generic".GetLocalized(), cix.Message),
+                _ => "Install_Error_Generic".GetLocalizedFormat(cix.Message),
             };
             await InstallHelper.ShowDialogAsync(xamlRoot, title, message);
             return;

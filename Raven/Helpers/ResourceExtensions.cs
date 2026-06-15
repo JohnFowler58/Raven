@@ -5,6 +5,9 @@ namespace Raven.Helpers;
 
 public static class ResourceExtensions
 {
+    // The PRI's default language; used as the fallback when a translated template is malformed.
+    private const string FallbackLanguage = "en-US";
+
     private static readonly ResourceManager _resourceManager = new();
     private static readonly ResourceMap _resourceMap = _resourceManager.MainResourceMap.GetSubtree("Resources");
 
@@ -26,6 +29,40 @@ public static class ResourceExtensions
         {
             return string.Empty;
         }
+    }
+
+    /// <summary>
+    /// Localizes <paramref name="resourceKey"/> and applies <see cref="string.Format(string, object?[])"/>
+    /// with <paramref name="args"/>. If the localized template has malformed placeholders (a bad
+    /// translation, e.g. an unbalanced brace), this falls back to the English template so callers
+    /// never crash with a <see cref="FormatException"/> on a single bad string.
+    /// </summary>
+    public static string GetLocalizedFormat(this string resourceKey, params object[] args)
+    {
+        var template = resourceKey.GetLocalized();
+        try
+        {
+            return string.Format(template, args);
+        }
+        catch (FormatException)
+        {
+            try
+            {
+                return string.Format(GetForLanguage(resourceKey, FallbackLanguage), args);
+            }
+            catch
+            {
+                // Even the fallback template is unusable — return it raw rather than throw.
+                return template;
+            }
+        }
+    }
+
+    private static string GetForLanguage(string resourceKey, string language)
+    {
+        var context = _resourceManager.CreateResourceContext();
+        context.QualifierValues["Language"] = language;
+        return _resourceMap.GetValue(resourceKey, context)?.ValueAsString ?? string.Empty;
     }
 
     private static ResourceContext GetContext()

@@ -288,10 +288,7 @@ public sealed partial class CardViewControl : UserControl
         {
             LoadingOverlay.Visibility = Visibility.Collapsed;
             ErrorIcon.Visibility = Visibility.Visible;
-            ErrorTextBlock.Text = string.Format(
-                "CardView_Error_LoadFailed".GetLocalized(),
-                errorText
-            );
+            ErrorTextBlock.Text = "CardView_Error_LoadFailed".GetLocalizedFormat(errorText);
         }
         isLoadingMore = false;
     }
@@ -686,10 +683,7 @@ public sealed partial class CardViewControl : UserControl
         {
             LoadingOverlay.Visibility = Visibility.Collapsed;
             ErrorIcon.Visibility = Visibility.Visible;
-            ErrorTextBlock.Text = string.Format(
-                "CardView_Error_OpenFailed".GetLocalized(),
-                ex.Message
-            );
+            ErrorTextBlock.Text = "CardView_Error_OpenFailed".GetLocalizedFormat(ex.Message);
             Debug.WriteLine($"Failed to load product: {ex.Message}");
         }
         finally

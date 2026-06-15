@@ -52,7 +52,7 @@ public static class NativeFilePicker
                 var err = CommDlgExtendedError();
                 if (err != 0)
                     throw new InvalidOperationException(
-                        string.Format("InstallationsPage_FilePicker_CommDlgError".GetLocalized(), err));
+                        "InstallationsPage_FilePicker_CommDlgError".GetLocalizedFormat(err));
                 return Array.Empty<string>(); // user cancelled
             }
 
