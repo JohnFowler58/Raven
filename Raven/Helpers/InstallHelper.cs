@@ -31,7 +31,7 @@ public static class InstallHelper
                 "Install_Error_DeploymentFailure".GetLocalized(),
             ERROR_PACKAGED_SERVICE_REQUIRES_ADMIN =>
                 "Install_Error_AdminRequired".GetLocalized(),
-            _ => string.Format("Install_Error_GenericDeployment".GetLocalized(), hresult, message),
+            _ => "Install_Error_GenericDeployment".GetLocalizedFormat(hresult, message),
         };
     }
 
@@ -75,8 +75,8 @@ public static class InstallHelper
         {
             COMException comEx => GetFriendlyMsixError(comEx.HResult, comEx.Message),
             UnauthorizedAccessException ua =>
-                string.Format("Install_Error_AccessDenied".GetLocalized(), ua.Message),
-            _ => string.Format("Install_Error_Generic".GetLocalized(), exception.Message),
+                "Install_Error_AccessDenied".GetLocalizedFormat(ua.Message),
+            _ => "Install_Error_Generic".GetLocalizedFormat(exception.Message),
         };
 
         await ShowDialogAsync(xamlRoot, title, content);

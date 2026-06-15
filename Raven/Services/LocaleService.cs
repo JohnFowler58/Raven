@@ -70,36 +70,18 @@ public class LocaleService : ILocaleService
     }
 
     /// <summary>
-    /// Sets <see cref="Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride"/> to
-    /// the best-matching language tag derived from the current <paramref name="lang"/> and
-    /// <paramref name="market"/> values so that WinUI 3's <c>ResourceLoader</c> loads the
-    /// correct <c>Resources.resw</c> file.
-    ///
-    /// Resolution order (case-insensitive against <c>ManifestLanguages</c>):
-    ///   1. Full tag  – e.g. <c>en-US</c>
-    ///   2. First manifest entry whose language subtag matches  – e.g. <c>en-GB</c>
-    ///   3. Empty string – resets to system default
+    /// Overrides the app's preferred language so WinUI 3's <c>ResourceLoader</c> loads the
+    /// correct <c>Resources.resw</c> file. The override is set to the full <c>{lang}-{market}</c>
+    /// tag and MRT resolves it against the shipped resources: an exact variant wins (e.g.
+    /// <c>en-GB</c>), otherwise it falls back to the same language (<c>ko-IN</c> → <c>ko-KR</c>),
+    /// and finally to the PRI's default language (<c>en-US</c>) when nothing matches.
     /// </summary>
     private static void ApplyLanguageOverride(Lang lang, Market market)
     {
         try
         {
-            var fullTag = $"{lang.ToString().ToLowerInvariant()}-{market.ToString().ToUpperInvariant()}";
-            var langPrefix = lang.ToString().ToLowerInvariant() + "-";
-
-            var manifest = Windows.Globalization.ApplicationLanguages.ManifestLanguages;
-
-            // 1. Exact match: "en-US"
-            var resolved = manifest.FirstOrDefault(s =>
-                string.Equals(s, fullTag, StringComparison.OrdinalIgnoreCase));
-
-            // 2. First entry whose language subtag matches: "en-GB", "en-AU", …
-            resolved ??= manifest.FirstOrDefault(s =>
-                s.StartsWith(langPrefix, StringComparison.OrdinalIgnoreCase));
-
-            // 3. No usable match – fall back to system default
-            Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride =
-                resolved ?? string.Empty;
+            Microsoft.Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride =
+                $"{lang.ToString().ToLowerInvariant()}-{market.ToString().ToUpperInvariant()}";
         }
         catch { }
     }

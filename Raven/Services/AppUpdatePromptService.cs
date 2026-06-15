@@ -94,7 +94,7 @@ public sealed class AppUpdatePromptService
             var latestLabel = release.LatestVersion?.ToString() ?? release.TagName;
             dialog.Title = "Settings_UpdaterConfirmTitle".GetLocalized();
             statusAnimation.Stop(
-                string.Format("Settings_UpdaterConfirmContent".GetLocalized(), latestLabel)
+                "Settings_UpdaterConfirmContent".GetLocalizedFormat(latestLabel)
             );
 
             SetStartupPreferenceVisibility(checkOnStartup, isVisible: true);
@@ -172,7 +172,7 @@ public sealed class AppUpdatePromptService
 
                 dialog.Title = "Settings_UpdaterErrorTitle".GetLocalized();
                 statusAnimation.Stop(
-                    string.Format("Settings_UpdaterErrorContent".GetLocalized(), ex.Message)
+                    "Settings_UpdaterErrorContent".GetLocalizedFormat(ex.Message)
                 );
 
                 SetStartupPreferenceVisibility(checkOnStartup, isVisible: true);
@@ -259,7 +259,7 @@ public sealed class AppUpdatePromptService
 
                 dialog.Title = "Settings_UpdaterErrorTitle".GetLocalized();
                 statusAnimation.Stop(
-                    string.Format("Settings_UpdaterErrorContent".GetLocalized(), ex.Message)
+                    "Settings_UpdaterErrorContent".GetLocalizedFormat(ex.Message)
                 );
 
                 SetStartupPreferenceVisibility(checkOnStartup, isVisible: true);
@@ -426,10 +426,7 @@ public sealed class AppUpdatePromptService
     )
     {
         var latestLabel = release.LatestVersion?.ToString() ?? release.TagName;
-        var confirmMessage = string.Format(
-            "Settings_UpdaterConfirmContent".GetLocalized(),
-            latestLabel
-        );
+        var confirmMessage = "Settings_UpdaterConfirmContent".GetLocalizedFormat(latestLabel);
 
         var dialogContent = new UpdateDialogContent();
         var messageTextBlock = dialogContent.StatusMessageTextBlockControl;
@@ -525,7 +522,7 @@ public sealed class AppUpdatePromptService
 
                 dialog.Title = "Settings_UpdaterErrorTitle".GetLocalized();
                 statusAnimation.Stop(
-                    string.Format("Settings_UpdaterErrorContent".GetLocalized(), ex.Message)
+                    "Settings_UpdaterErrorContent".GetLocalizedFormat(ex.Message)
                 );
 
                 SetStartupPreferenceVisibility(checkOnStartup, isVisible: true);
@@ -638,12 +635,11 @@ public sealed class AppUpdatePromptService
         TextBlock progressText
     )
     {
-        var format = "Settings_UpdaterProgressPercent".GetLocalized();
         return new Progress<double>(value =>
         {
             var percent = (int)Math.Round(value * 100);
             progressBar.Value = percent;
-            progressText.Text = string.Format(format, percent);
+            progressText.Text = "Settings_UpdaterProgressPercent".GetLocalizedFormat(percent);
         });
     }
 

@@ -58,7 +58,7 @@ public partial class UpdatesViewModel : ObservableObject
 
     public string ButtonText =>
         IsChecking ? "Updates_ButtonChecking".GetLocalized()
-        : SelectedCount > 0 ? string.Format("Updates_ButtonUpdate".GetLocalized(), SelectedCount)
+        : SelectedCount > 0 ? "Updates_ButtonUpdate".GetLocalizedFormat(SelectedCount)
         : "Updates_ButtonCheck".GetLocalized();
 
     public bool ButtonEnabled => !IsChecking && (!IsUpdating || SelectedCount > 0);
@@ -161,7 +161,7 @@ public partial class UpdatesViewModel : ObservableObject
         var progress = new Progress<(int completed, int total)>(p =>
         {
             // Update base text immediately; animation keeps running with dots.
-            _checkingBaseText = string.Format("Updates_CheckingProgress".GetLocalized(), p.completed, p.total);
+            _checkingBaseText = "Updates_CheckingProgress".GetLocalizedFormat(p.completed, p.total);
             CheckingProgressBase = _checkingBaseText;
             CheckingProgress = p.total > 0 ? (double)p.completed / p.total * 100.0 : 0;
         });

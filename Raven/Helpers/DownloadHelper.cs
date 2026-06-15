@@ -199,7 +199,7 @@ public sealed class DownloadHelper
 
         var mainUrl = entry.Url;
 
-        var baseStatus = string.Format("Download_Status_DownloadingFiles".GetLocalized(), currentFileIndex, totalFiles, FilesLabel());
+        var baseStatus = "Download_Status_DownloadingFiles".GetLocalizedFormat(currentFileIndex, totalFiles, FilesLabel());
 
         // Single continuous animation for the page status (AppPage only)
         updateService.StartStatusAnimation(baseStatus);
@@ -220,7 +220,7 @@ public sealed class DownloadHelper
 
             currentFileIndex = i + 1;
 
-            baseStatus = string.Format("Download_Status_DownloadingFiles".GetLocalized(), currentFileIndex, totalFiles, FilesLabel());
+            baseStatus = "Download_Status_DownloadingFiles".GetLocalizedFormat(currentFileIndex, totalFiles, FilesLabel());
             updateService.UpdateAnimatedStatusBase(baseStatus);
             animator.UpdateBase(downloadItem, baseStatus);
 
@@ -326,7 +326,7 @@ public sealed class DownloadHelper
                 {
                     downloadManager.UpdateDownloadDetailsText(
                         productId,
-                        string.Format("Download_Status_Retry".GetLocalized(), attempt, MAX_RETRIES_PER_FILE)
+                        "Download_Status_Retry".GetLocalizedFormat(attempt, MAX_RETRIES_PER_FILE)
                     );
                 }
 
@@ -559,7 +559,7 @@ public sealed class DownloadHelper
                         var delayMs = GetRetryDelayMs(null, attempt, MAX_BACKOFF_MS);
                             downloadManager.UpdateDownloadDetailsText(
                                 productId,
-                                string.Format("Download_Status_RestartingIn".GetLocalized(), delayMs / 1000.0)
+                                "Download_Status_RestartingIn".GetLocalizedFormat(delayMs / 1000.0)
                             );
                             // A user cancel during the backoff delay must not escape the method:
                             // it would skip the animator/status-animation stops below, leaving a
@@ -593,7 +593,7 @@ public sealed class DownloadHelper
                     var delayMs = GetRetryDelayMs(ex, attempt, MAX_BACKOFF_MS);
                     downloadManager.UpdateDownloadDetailsText(
                         productId,
-                        string.Format("Download_Status_NetworkIssue".GetLocalized(), delayMs / 1000.0)
+                        "Download_Status_NetworkIssue".GetLocalizedFormat(delayMs / 1000.0)
                     );
                     try
                     {
@@ -610,7 +610,7 @@ public sealed class DownloadHelper
                     var delayMs = GetRetryDelayMs(null, attempt, MAX_BACKOFF_MS);
                     downloadManager.UpdateDownloadDetailsText(
                         productId,
-                        string.Format("Download_Status_RetryError".GetLocalized(), ex.Message, delayMs / 1000.0)
+                        "Download_Status_RetryError".GetLocalizedFormat(ex.Message, delayMs / 1000.0)
                     );
                     try
                     {
@@ -625,7 +625,7 @@ public sealed class DownloadHelper
                 catch (Exception ex)
                 {
                     hadError = true;
-                    downloadManager.UpdateDownloadStatusText(productId, string.Format("Download_Status_Error".GetLocalized(), ex.Message));
+                    downloadManager.UpdateDownloadStatusText(productId, "Download_Status_Error".GetLocalizedFormat(ex.Message));
                     downloadManager.UpdateDownloadDetailsText(
                         productId,
                         "Download_Status_NetworkError".GetLocalized()
@@ -848,7 +848,7 @@ public sealed class DownloadHelper
                 depPaths.Count
             );
             downloadItem.LastInstallError = ex;
-            downloadManager.UpdateDownloadStatusText(productId, string.Format("Download_Status_InstallFailed".GetLocalized(), ex.Message));
+            downloadManager.UpdateDownloadStatusText(productId, "Download_Status_InstallFailed".GetLocalizedFormat(ex.Message));
             downloadManager.UpdateDownloadStatus(productId, Raven.Models.DownloadStatus.Failed);
         }
     }

@@ -121,804 +121,804 @@
     <value>Raven</value>
   </data>
   <data name="AppDescription" xml:space="preserve">
-    <value>A Windows Store app browser and package manager.</value>
+    <value>Windows Store 앱 브라우저 및 패키지 관리자.</value>
   </data>
   <data name="Shell_Main.Content" xml:space="preserve">
-    <value>Home</value>
+    <value>홈</value>
   </data>
   <data name="Shell_Advanced_Search.Content" xml:space="preserve">
-    <value>Advanced Search</value>
+    <value>고급 검색</value>
   </data>
   <data name="Shell_Install.Content" xml:space="preserve">
-    <value>Install</value>
+    <value>설치</value>
   </data>
   <data name="Shell_Updates.Content" xml:space="preserve">
-    <value>Updates</value>
+    <value>업데이트</value>
   </data>
   <data name="Shell_Downloads.Content" xml:space="preserve">
-    <value>Downloads</value>
+    <value>다운로드</value>
   </data>
   <data name="Shell_App.Content" xml:space="preserve">
     <value>Apps</value>
   </data>
   <data name="Shell_Bundles.Content" xml:space="preserve">
-    <value>Bundles</value>
+    <value>번들</value>
   </data>
   <data name="Shell_SearchBox.PlaceholderText" xml:space="preserve">
-    <value>Search</value>
+    <value>검색</value>
   </data>
   <data name="Shell_AppTitleBarText.Text" xml:space="preserve">
     <value>Raven</value>
   </data>
   <data name="Settings_Title.Text" xml:space="preserve">
-    <value>Settings</value>
+    <value>설정</value>
   </data>
   <data name="Settings_Theme.Text" xml:space="preserve">
-    <value>Theme</value>
+    <value>테마</value>
   </data>
   <data name="Settings_Theme_Light.Content" xml:space="preserve">
-    <value>Light</value>
+    <value>밝은</value>
   </data>
   <data name="Settings_Theme_Dark.Content" xml:space="preserve">
-    <value>Dark</value>
+    <value>어두운</value>
   </data>
   <data name="Settings_Theme_Default.Content" xml:space="preserve">
-    <value>System Default</value>
+    <value>시스템 기본값</value>
   </data>
   <data name="Settings_LocaleAndRegion.Text" xml:space="preserve">
-    <value>Language &amp; Region</value>
+    <value>언어 및 지역</value>
   </data>
   <data name="Settings_Language.Text" xml:space="preserve">
-    <value>Language</value>
+    <value>언어</value>
   </data>
   <data name="Settings_Market.Text" xml:space="preserve">
-    <value>Market (Region)</value>
+    <value>마켓 (지역)</value>
   </data>
   <data name="Settings_RelaunchInfoBar.Title" xml:space="preserve">
-    <value>Restart required</value>
+    <value>재시작 필요</value>
   </data>
   <data name="Settings_RelaunchInfoBar.Message" xml:space="preserve">
-    <value>Relaunch Raven to apply your language and region changes.</value>
+    <value>Raven을 다시 실행하여 언어와 지역 변경 사항을 적용하세요.</value>
   </data>
   <data name="Settings_RelaunchButton.Content" xml:space="preserve">
-    <value>Relaunch</value>
-  </data>
+    <value>다시 실행</value>
+  </data>  
   <data name="Settings_Architecture.Text" xml:space="preserve">
-    <value>Architecture</value>
+    <value>아키텍처</value>
   </data>
   <data name="Settings_ArchitectureDescription.Text" xml:space="preserve">
-    <value>Select your system architecture</value>
+    <value>시스템 아키텍처 선택</value>
   </data>
   <data name="Settings_Reset.Text" xml:space="preserve">
-    <value>Reset</value>
+    <value>재설정</value>
   </data>
   <data name="Settings_ResetDescription.Text" xml:space="preserve">
-    <value>Reset Raven to default settings.</value>
+    <value>Raven을 기본 설정으로 재설정합니다.</value>
   </data>
   <data name="Settings_ResetButton.Content" xml:space="preserve">
-    <value>Reset app</value>
+    <value>앱 재설정</value>
   </data>
   <data name="Settings_ResetDialogTitle" xml:space="preserve">
-    <value>Reset app data?</value>
+    <value>앱 데이터를 재설정하시겠습니까?</value>
   </data>
   <data name="Settings_ResetDialogContent" xml:space="preserve">
-    <value>This will remove all downloaded files and cached download data, and restore language, region, and architecture to defaults. This action cannot be undone.</value>
+    <value>이렇게 하면 다운로드한 모든 파일과 캐시된 다운로드 데이터가 제거되고 언어, 지역 및 아키텍처가 기본값으로 복원됩니다. 이 작업은 되돌릴 수 없습니다.</value>
   </data>
   <data name="Settings_ResetDialogPrimary" xml:space="preserve">
-    <value>Reset</value>
+    <value>재설정</value>
   </data>
   <data name="Settings_ResetDialogCancel" xml:space="preserve">
-    <value>Cancel</value>
+    <value>취소</value>
   </data>
   <data name="Settings_About.Text" xml:space="preserve">
-    <value>About this application</value>
+    <value>이 응용 프로그램 정보 - 한국어 번역: 비너스걸</value>
   </data>
   <data name="Settings_AboutDescription.Text" xml:space="preserve">
-    <value>An open-source, privacy-oriented alternative client for the Microsoft Store to browse, download, install, and update Store apps.</value>
+    <value>Microsoft Store가 Store 앱을 탐색, 다운로드, 설치 및 업데이트할 수 있는 오픈 소스 개인정보 보호 지향 대체 클라이언트입니다.</value>
   </data>
   <data name="SettingsPage_GitHubRepoLink.Content" xml:space="preserve">
-    <value>GitHub repository</value>
+    <value>GitHub 저장소</value>
   </data>
   <data name="SettingsPage_DiscordLink.Content" xml:space="preserve">
-    <value>Discord community</value>
+    <value>Discord 커뮤니티</value>
   </data>
   <data name="SettingsPage_LicenseLink.Content" xml:space="preserve">
-    <value>License</value>
+    <value>라이선스</value>
   </data>
   <data name="Settings_DiagnosticsLogs.Text" xml:space="preserve">
-    <value>Diagnostics logs</value>
+    <value>진단 로그</value>
   </data>
   <data name="Settings_DiagnosticsLogsDescription.Text" xml:space="preserve">
-    <value>Open the logs folder for troubleshooting.</value>
+    <value>문제 해결을 위해 로그 폴더를 엽니다.</value>
   </data>
   <data name="Settings_DiagnosticsLogsButton.Content" xml:space="preserve">
-    <value>Open logs folder</value>
+    <value>로그 폴더 열기</value>
   </data>
   <data name="Settings_AppUpdates.Text" xml:space="preserve">
-    <value>Application updates</value>
+    <value>응용 프로그램 업데이트</value>
   </data>
   <data name="Settings_AppUpdatesDescription.Text" xml:space="preserve">
-    <value>Check GitHub for the latest release and update Raven automatically.</value>
+    <value>GitHub에서 최신 릴리스를 확인하고 Raven을 자동으로 업데이트합니다.</value>
   </data>
   <data name="Settings_AppUpdatesButton.Content" xml:space="preserve">
-    <value>Check for updates</value>
+    <value>업데이트 확인</value>
   </data>
   <data name="Settings_UpdaterConfirmTitle" xml:space="preserve">
-    <value>Update available</value>
+    <value>업데이트 가능</value>
   </data>
   <data name="Settings_UpdaterConfirmContent" xml:space="preserve">
-    <value>Version {0} is ready to install. The app will restart to apply the update.</value>
+    <value>버전 {0}을(를) 설치할 준비가 되었습니다. 업데이트를 적용하기 위해 앱이 다시 시작됩니다.</value>
   </data>
   <data name="Settings_UpdaterConfirmPrimary" xml:space="preserve">
-    <value>Install</value>
+    <value>설치</value>
   </data>
   <data name="Settings_UpdaterAlreadyLatestTitle" xml:space="preserve">
-    <value>You're up to date</value>
+    <value>최신 정보입니다.</value>
   </data>
   <data name="Settings_UpdaterAlreadyLatestContent" xml:space="preserve">
-    <value>latest version already installed.</value>
+    <value>최신 버전이 이미 설치되었습니다.</value>
   </data>
   <data name="Settings_UpdaterErrorTitle" xml:space="preserve">
-    <value>Something went wrong</value>
+    <value>뭔가 잘못되었습니다</value>
   </data>
   <data name="Settings_UpdaterErrorContent" xml:space="preserve">
-    <value>The update could not be completed. {0}</value>
+    <value>업데이트를 완료할 수 없습니다. {0}</value>
   </data>
   <data name="Settings_UpdaterDialogClose" xml:space="preserve">
-    <value>Close</value>
+    <value>닫기</value>
   </data>
   <data name="Settings_UpdaterDialogCancel" xml:space="preserve">
-    <value>Cancel</value>
+    <value>취소</value>
   </data>
   <data name="Settings_UpdaterCheckingTitle" xml:space="preserve">
-    <value>Checking for updates</value>
+    <value>업데이트 확인 중</value>
   </data>
   <data name="Settings_UpdaterCheckingContent" xml:space="preserve">
-    <value>Looking for the latest version.</value>
+    <value>최신 버전을 찾고 있습니다.</value>
   </data>
   <data name="Settings_UpdaterCheckCanceledContent" xml:space="preserve">
-    <value>Check canceled. Try again anytime.</value>
+    <value>확인결제가 취소되었습니다. 언제든지 다시 시도해 주세요.</value>
   </data>
   <data name="Settings_UpdaterStartupCheckbox" xml:space="preserve">
-    <value>Check for updates on startup</value>
+    <value>시작 시 업데이트 확인</value>
   </data>
   <data name="Settings_UpdaterProgressPercent" xml:space="preserve">
     <value>{0}%</value>
   </data>
   <data name="Settings_UpdaterInstallingTitle" xml:space="preserve">
-    <value>Installing update</value>
+    <value>업데이트 설치 중</value>
   </data>
   <data name="CardView_Loading.Text" xml:space="preserve">
-    <value>Loading</value>
+    <value>로드 중</value>
   </data>
   <data name="CardView_Filters.Text" xml:space="preserve">
-    <value>Filters</value>
+    <value>필터</value>
   </data>
   <data name="CardView_ApplyBtn.Content" xml:space="preserve">
-    <value>Apply</value>
+    <value>적용</value>
   </data>
   <data name="CardView_NoResults_Title.Text" xml:space="preserve">
-    <value>No results found</value>
+    <value>결과 없음</value>
   </data>
   <data name="CardView_NoResults_Subtitle.Text" xml:space="preserve">
-    <value>Try different keywords or remove search filters</value>
+    <value>다양한 키워드를 시도하거나 검색 필터를 제거합니다</value>
   </data>
   <data name="CardView_Error_LoadFailed" xml:space="preserve">
-    <value>Failed to load cards: {0}</value>
+    <value>카드를 로드하지 못했습니다: {0}</value>
   </data>
   <data name="CardView_Error_OpenFailed" xml:space="preserve">
-    <value>Failed to open item: {0}</value>
+    <value>항목을 열지 못했습니다: {0}</value>
   </data>
   <data name="Filter_Apps" xml:space="preserve">
-    <value>Apps</value>
+    <value>앱</value>
   </data>
   <data name="Filter_Games" xml:space="preserve">
-    <value>Games</value>
+    <value>게임</value>
   </data>
   <data name="Filter_TopFree" xml:space="preserve">
-    <value>Top Free</value>
+    <value>무료 인기</value>
   </data>
   <data name="Filter_TopPaid" xml:space="preserve">
-    <value>Top Paid</value>
+    <value>유료 인기</value>
   </data>
   <data name="Filter_TopTrending" xml:space="preserve">
-    <value>Top Trending</value>
+    <value>인기 급상승</value>
   </data>
   <data name="Filter_Specials" xml:space="preserve">
-    <value>Specials</value>
+    <value>특가</value>
   </data>
   <data name="Filter_BestSelling" xml:space="preserve">
-    <value>Best Selling</value>
+    <value>베스트셀러</value>
   </data>
   <data name="AdvancedSearch_Header.Text" xml:space="preserve">
-    <value>Advanced Search</value>
+    <value>고급 검색</value>
   </data>
   <data name="AdvancedSearch_SearchHint.Text" xml:space="preserve">
-    <value>Search by URL, product ID, or package family name</value>
+    <value>URL, 제품 ID 또는 패키지 제품군 이름으로 검색하세요.</value>
   </data>
   <data name="AdvancedSearch_TypeUrl.Content" xml:space="preserve">
     <value>URL</value>
   </data>
   <data name="AdvancedSearch_TypeProductId.Content" xml:space="preserve">
-    <value>Product ID</value>
+    <value>제품 ID</value>
   </data>
   <data name="AdvancedSearch_TypePfn.Content" xml:space="preserve">
-    <value>Package Family Name</value>
+    <value>패키지 제품군 이름</value>
   </data>
   <data name="AdvancedSearch_SearchBtn.Text" xml:space="preserve">
-    <value>Search</value>
+    <value>검색</value>
   </data>
   <data name="AdvancedSearch_LookingUp.Text" xml:space="preserve">
-    <value>Looking up product</value>
+    <value>제품 조회 중</value>
   </data>
   <data name="AdvancedSearch_UrlCard_Title.Text" xml:space="preserve">
     <value>URL</value>
   </data>
   <data name="AdvancedSearch_UrlCard_Desc.Text" xml:space="preserve">
-    <value>Paste a Microsoft Store product URL to automatically extract and look up the product.</value>
+    <value>Microsoft Store 제품 URL을 붙여넣으면 제품이 자동으로 추출되어 조회됩니다.</value>
   </data>
   <data name="AdvancedSearch_UrlCard_Example.Text" xml:space="preserve">
-    <value>e.g. https://apps.microsoft.com/detail/9WZDNCRFHVJL</value>
+    <value>예시: https://apps.microsoft.com/detail/9WZDNCRFHVJL</value>
   </data>
   <data name="AdvancedSearch_ProductIdCard_Title.Text" xml:space="preserve">
-    <value>Product ID</value>
+    <value>제품 ID</value>
   </data>
   <data name="AdvancedSearch_ProductIdCard_Desc.Text" xml:space="preserve">
-    <value>Enter the product's alphanumeric store ID to navigate directly to its page.</value>
+    <value>제품의 영숫자 스토어 ID를 입력하면 해당 제품 페이지로 바로 이동합니다.</value>
   </data>
   <data name="AdvancedSearch_ProductIdCard_Example.Text" xml:space="preserve">
-    <value>e.g. 9WZDNCRFHVJL</value>
+    <value>예시: 9WZDNCRFHVJL</value>
   </data>
   <data name="AdvancedSearch_PfnCard_Title.Text" xml:space="preserve">
-    <value>Package Family Name</value>
+    <value>패키지 제품군 이름</value>
   </data>
   <data name="AdvancedSearch_PfnCard_Desc.Text" xml:space="preserve">
-    <value>Enter the app's package family name to look up its store page.</value>
+    <value>앱의 패키지 패밀리 이름을 입력하여 해당 앱 스토어 페이지를 찾아보세요.</value>
   </data>
   <data name="AdvancedSearch_PfnCard_Example.Text" xml:space="preserve">
-    <value>e.g. Microsoft.WindowsTerminal_8wekyb3d8bbwe</value>
+    <value>예시: Microsoft.WindowsTerminal_8wekyb3d8bbwe</value>
   </data>
   <data name="AdvancedSearch_Placeholder_Url" xml:space="preserve">
     <value>https://apps.microsoft.com/detail/...</value>
   </data>
   <data name="AdvancedSearch_Placeholder_ProductId" xml:space="preserve">
-    <value>e.g. 9WZDNCRFHVJL</value>
+    <value>예시: 9WZDNCRFHVJL</value>
   </data>
   <data name="AdvancedSearch_Placeholder_Pfn" xml:space="preserve">
-    <value>e.g. Microsoft.WindowsTerminal_8wekyb3d8bbwe</value>
+    <value>예시: Microsoft.WindowsTerminal_8wekyb3d8bbwe</value>
   </data>
   <data name="AdvancedSearch_Placeholder_Default" xml:space="preserve">
-    <value>Enter a value to search</value>
+    <value>검색할 값 입력</value>
   </data>
   <data name="AdvancedSearch_Error_EmptyQuery" xml:space="preserve">
-    <value>Please enter a value to search.</value>
+    <value>검색할 값을 입력해 주세요.</value>
   </data>
   <data name="AdvancedSearch_Error_InvalidUrl" xml:space="preserve">
-    <value>Could not extract a product ID from this URL. Make sure it is a valid Microsoft Store URL.</value>
+    <value>이 URL에서 제품 ID를 추출할 수 없습니다. 올바른 Microsoft Store URL인지 확인하세요.</value>
   </data>
   <data name="AdvancedSearch_Error_NoPfnResult" xml:space="preserve">
-    <value>No product found for this Package Family Name.</value>
+    <value>이 패키지 패밀리 이름에 대한 제품을 찾을 수 없습니다.</value>
   </data>
   <data name="AdvancedSearch_Error_FailedLookup" xml:space="preserve">
-    <value>Failed to find product: {0}</value>
+    <value>제품을 찾지 못했습니다: {0}</value>
   </data>
   <data name="AppPage_Loading.Text" xml:space="preserve">
-    <value>Loading</value>
+    <value>로드 중</value>
   </data>
   <data name="AppPage_BypassFilters.Text" xml:space="preserve">
-    <value>Bypass Filters</value>
+    <value>바이패스 필터</value>
   </data>
   <data name="AppPage_CheckUpdates.Text" xml:space="preserve">
-    <value>Check Updates</value>
+    <value>업데이트 확인</value>
   </data>
   <data name="AppPage_Screenshots.Text" xml:space="preserve">
-    <value>Screenshots</value>
+    <value>스크린샷</value>
   </data>
   <data name="AppPage_Description.Text" xml:space="preserve">
-    <value>Description</value>
+    <value>설명</value>
   </data>
   <data name="AppPage_MoreDetails.Text" xml:space="preserve">
-    <value>More Details</value>
+    <value>자세한 내용</value>
   </data>
   <data name="AppPage_AppSize.Text" xml:space="preserve">
-    <value>App Size:</value>
+    <value>앱 크기:</value>
   </data>
   <data name="AppPage_Version.Text" xml:space="preserve">
-    <value>Version:</value>
+    <value>버전:</value>
   </data>
   <data name="AppPage_LastUpdated.Text" xml:space="preserve">
-    <value>Last Updated:</value>
+    <value>마지막 업데이트:</value>
   </data>
   <data name="AppPage_Error_LoadTitle" xml:space="preserve">
-    <value>Error loading app</value>
+    <value>앱 로드 중 오류 발생</value>
   </data>
   <data name="AppPage_Error_LoadMessage" xml:space="preserve">
-    <value>Could not load app details: {0}</value>
+    <value>앱 세부 정보를 로드할 수 없습니다: {0}</value>
   </data>
   <data name="AppPage_Error_CheckUpdatesTitle" xml:space="preserve">
-    <value>Check Updates</value>
+    <value>업데이트 확인</value>
   </data>
   <data name="AppPage_Error_VersionCheckMsg" xml:space="preserve">
-    <value>Could not retrieve the latest version. The app may not be available or the check failed.</value>
+    <value>최신 버전을 검색할 수 없습니다. 앱을 사용할 수 없거나 확인에 실패했을 수 있습니다.</value>
   </data>
   <data name="AppPage_Error_UpdateCheckFailed" xml:space="preserve">
-    <value>Failed to check for updates: {0}</value>
+    <value>업데이트를 확인하지 못했습니다: {0}</value>
   </data>
   <data name="AppPage_Error_OperationCanceled" xml:space="preserve">
-    <value>Operation canceled.</value>
+    <value>작업이 취소되었습니다.</value>
   </data>
   <data name="AppPage_Error_NotSupportedTitle" xml:space="preserve">
-    <value>App not supported</value>
+    <value>앱이 지원되지 않음</value>
   </data>
   <data name="AppPage_Error_NotSupportedMsg" xml:space="preserve">
-    <value>This app isn't supported. Try a different app or check again later.</value>
+    <value>이 앱은 지원되지 않습니다. 다른 앱을 사용해 보거나 나중에 다시 확인하세요.</value>
   </data>
   <data name="AppPage_Error_StoreQueryFailedTitle" xml:space="preserve">
-    <value>Couldn't reach the Store</value>
+    <value>스토어에 연결할 수 없습니다</value>
   </data>
   <data name="AppPage_Error_StoreQueryFailedMsg" xml:space="preserve">
-    <value>We couldn't retrieve this app's download details right now. Check your internet connection and try again.</value>
+    <value>지금 이 앱의 다운로드 세부 정보를 검색할 수 없습니다. 인터넷 연결을 확인한 후 다시 시도해 보세요.</value>
   </data>
   <data name="AppPage_Error_OsIncompatibleTitle" xml:space="preserve">
-    <value>App not supported</value>
+    <value>앱이 지원되지 않음</value>
   </data>
   <data name="AppPage_Error_OsIncompatibleMsg" xml:space="preserve">
-    <value>This app requires a newer version of Windows than this device is running.</value>
+    <value>이 앱은 이 장치가 실행 중인 것보다 더 최신 버전의 Windows가 필요합니다.</value>
   </data>
   <data name="AppPage_Error_ArchIncompatibleTitle" xml:space="preserve">
-    <value>App not supported</value>
+    <value>앱이 지원되지 않음</value>
   </data>
   <data name="AppPage_Error_ArchIncompatibleMsg" xml:space="preserve">
-    <value>This app doesn't offer a build compatible with your device's processor (CPU architecture).</value>
+    <value>이 앱은 기기의 프로세서 (CPU 아키텍처)와 호환되는 빌드를 제공하지 않습니다.</value>
   </data>
   <data name="AppPage_Error_NoInstallerTitle" xml:space="preserve">
-    <value>App not available</value>
+    <value>앱을 사용할 수 없습니다</value>
   </data>
   <data name="AppPage_Error_NoInstallerMsg" xml:space="preserve">
-    <value>No installable package is published for this app right now. Check again later.</value>
+    <value>현재 이 앱에는 설치 가능한 패키지가 게시되어 있지 않습니다. 나중에 다시 확인해 보세요.</value>
   </data>
   <data name="AppPage_Error_DownloadInfoTitle" xml:space="preserve">
-    <value>Download unavailable</value>
+    <value>다운로드할 수 없음</value>
   </data>
   <data name="AppPage_Error_DownloadInfoMsg" xml:space="preserve">
-    <value>We couldn't get a download link for this app right now. Try again later.</value>
+    <value>지금 이 앱의 다운로드 링크를 찾을 수 없습니다. 나중에 다시 시도해 보세요.</value>
   </data>
   <data name="AppPage_Error_UnsupportedTypeTitle" xml:space="preserve">
-    <value>App not supported</value>
+    <value>앱이 지원되지 않음</value>
   </data>
   <data name="AppPage_Error_UnsupportedTypeMsg" xml:space="preserve">
-    <value>This app uses an installer type that Raven doesn't support yet.</value>
+    <value>이 앱은 Raven이 아직 지원하지 않는 설치 프로그램 유형을 사용합니다.</value>
   </data>
   <data name="AppPage_Error_FailedToInstall" xml:space="preserve">
-    <value>Failed to install.</value>
+    <value>설치에 실패했습니다.</value>
   </data>
   <data name="AppPage_Error_UnableToOpenTitle" xml:space="preserve">
-    <value>Unable to open app</value>
+    <value>앱을 열 수 없습니다</value>
   </data>
   <data name="AppPage_Error_NotInstalledPackaged" xml:space="preserve">
-    <value>This app package was not found in the Windows package manager. It may not be installed.</value>
+    <value>이 앱 패키지는 Windows 패키지 관리자에서 찾을 수 없습니다. 설치되지 않았을 수도 있습니다.</value>
   </data>
   <data name="AppPage_Error_NoAppEntries" xml:space="preserve">
-    <value>The app package is installed, but no launchable app entries were found.</value>
+    <value>앱 패키지가 설치되었지만 실행 가능한 앱 항목을 찾을 수 없습니다.</value>
   </data>
   <data name="AppPage_Error_CantOpen" xml:space="preserve">
-    <value>The app couldn't be opened. Try reinstalling the app.</value>
+    <value>앱을 열 수 없습니다. 앱을 다시 설치해 보세요.</value>
   </data>
   <data name="AppPage_Error_NotInstalledWin32" xml:space="preserve">
-    <value>This app was not found in the Windows uninstall registry. It may not be installed.</value>
+    <value>이 앱은 Windows 제거 레지스트리에서 찾을 수 없습니다. 설치되지 않았을 수도 있습니다.</value>
   </data>
   <data name="AppPage_Error_MissingLaunchTarget" xml:space="preserve">
-    <value>The app appears to be installed, but a launch target couldn't be found (Start Menu/DisplayIcon). The app may have been installed incorrectly.</value>
+    <value>앱이 설치된 것처럼 보이지만 실행 대상을 찾을 수 없습니다 (시작 메뉴/디스플레이 아이콘). 앱이 잘못 설치되었을 수 있습니다.</value>
   </data>
   <data name="AppPage_Error_MissingLaunchFile" xml:space="preserve">
-    <value>The app appears to be installed, but its launch file couldn't be found on disk. The app may have been moved or installed incorrectly.</value>
+    <value>앱이 설치된 것처럼 보이지만 디스크에서 실행 파일을 찾을 수 없습니다. 앱이 잘못 이동되었거나 설치되었을 수 있습니다.</value>
   </data>
   <data name="AppPage_Error_InstalledVersion" xml:space="preserve">
     <value>
 
-Installed version: {0}</value>
+설치된 버전: {0}</value>
   </data>
   <data name="AppPage_Error_InstallerMissingTitle" xml:space="preserve">
-    <value>Installer missing</value>
+    <value>설치 프로그램 누락</value>
   </data>
   <data name="AppPage_Error_InstallerMissingMsg" xml:space="preserve">
-    <value>The unpackaged installer could not be found on disk.</value>
+    <value>압축 해제된 설치 프로그램을 디스크에서 찾을 수 없습니다.</value>
   </data>
   <data name="AppPage_Manual_Install_Title" xml:space="preserve">
-    <value>Manual installation required</value>
+    <value>수동 설치 필요</value>
   </data>
   <data name="AppPage_Manual_Install_Msg" xml:space="preserve">
-    <value>This app uses an unpackaged installer (EXE/MSI). It will open now and may require additional steps to finish installing.</value>
+    <value>이 앱은 압축 해제된 설치 프로그램 (EXE/MSI)을 사용합니다. 지금 실행되지만 설치를 완료하려면 추가 단계가 필요할 수 있습니다.</value>
   </data>
   <data name="AppPage_Btn_OpenInstaller" xml:space="preserve">
-    <value>Open installer</value>
+    <value>설치 프로그램 열기</value>
   </data>
   <data name="AppPage_Error_UnableToOpenInstallerTitle" xml:space="preserve">
-    <value>Unable to open installer</value>
+    <value>설치 프로그램을 열 수 없습니다</value>
   </data>
   <data name="Common_Cancel" xml:space="preserve">
-    <value>Cancel</value>
+    <value>취소</value>
   </data>
   <data name="Status_Pending" xml:space="preserve">
-    <value>Pending</value>
+    <value>보류 중</value>
   </data>
   <data name="Status_Downloading" xml:space="preserve">
-    <value>Downloading</value>
+    <value>다운로드 중</value>
   </data>
   <data name="Status_Installing" xml:space="preserve">
-    <value>Installing</value>
+    <value>설치 중</value>
   </data>
   <data name="Status_Cancelling" xml:space="preserve">
-    <value>Cancelling</value>
+    <value>취소 중</value>
   </data>
   <data name="Status_Failed" xml:space="preserve">
-    <value>Failed</value>
+    <value>실패</value>
   </data>
   <data name="Status_Cancelled" xml:space="preserve">
-    <value>Cancelled</value>
+    <value>취소됨</value>
   </data>
   <data name="Status_Completed" xml:space="preserve">
-    <value>Completed</value>
+    <value>완료됨</value>
   </data>
   <data name="Status_Unknown" xml:space="preserve">
-    <value>Unknown</value>
+    <value>알 수 없음</value>
   </data>
   <data name="Status_Updated" xml:space="preserve">
-    <value>Updated</value>
+    <value>업데이트됨</value>
   </data>
   <data name="Download_File" xml:space="preserve">
-    <value>file</value>
+    <value>파일</value>
   </data>
   <data name="Download_Files" xml:space="preserve">
-    <value>files</value>
+    <value>파일</value>
   </data>
   <data name="Download_Status_DownloadingFiles" xml:space="preserve">
-    <value>Downloading ({0}/{1}) {2}</value>
+    <value>({0}/{1}) {2} 다운로드 중</value>
   </data>
   <data name="Download_Status_Retry" xml:space="preserve">
-    <value>Retry {0}/{1}</value>
+    <value>{0}/{1} 재시도</value>
   </data>
   <data name="Download_Status_NoProgress" xml:space="preserve">
-    <value>No progress detected. Restarting...</value>
+    <value>진행 상황이 감지되지 않았습니다. 재시작 중...</value>
   </data>
   <data name="Download_Status_RestartingIn" xml:space="preserve">
-    <value>Restarting... retrying in {0:F1}s...</value>
+    <value>재시작 중... {0:F1}s에서 재시도 중...</value>
   </data>
   <data name="Download_Status_Stalled" xml:space="preserve">
-    <value>Error: Download stalled and exhausted retries.</value>
+    <value>오류: 다운로드가 중단되었으며 재시도 횟수가 모두 소진되었습니다.</value>
   </data>
   <data name="Download_Status_NetworkIssue" xml:space="preserve">
-    <value>Temporary network/server issue. Retrying in {0:F1}s...</value>
+    <value>일시적인 네트워크/서버 문제. {0:F1}s에서 재시도 중...</value>
   </data>
   <data name="Download_Status_RetryError" xml:space="preserve">
-    <value>Error: {0}. Retrying in {1:F1}s...</value>
+    <value>오류: {0}. {1:F1}에서 다시 시도 중...</value>
   </data>
   <data name="Download_Status_Error" xml:space="preserve">
-    <value>Error: {0}</value>
+    <value>오류: {0}</value>
   </data>
   <data name="Download_Status_NetworkError" xml:space="preserve">
-    <value>Check network or disk space.</value>
+    <value>네트워크 또는 디스크 공간을 확인합니다.</value>
   </data>
   <data name="Download_Status_FailedRetries" xml:space="preserve">
-    <value>Error: Download failed after retries.</value>
+    <value>오류: 재시도 후 다운로드에 실패했습니다.</value>
   </data>
   <data name="Download_Status_Canceled" xml:space="preserve">
-    <value>Download canceled.</value>
+    <value>다운로드가 취소되었습니다.</value>
   </data>
   <data name="Download_Status_Completed" xml:space="preserve">
-    <value>Download completed.</value>
+    <value>다운로드 완료되었습니다.</value>
   </data>
   <data name="Download_Status_MissingPackage" xml:space="preserve">
-    <value>Install failed: main package missing.</value>
+    <value>설치 실패: 메인 패키지가 누락되었습니다.</value>
   </data>
   <data name="Download_Status_InstallFailed" xml:space="preserve">
-    <value>Install failed: {0}</value>
+    <value>설치 실패: {0}</value>
   </data>
   <data name="Install_Error_ConflictingVersion" xml:space="preserve">
-    <value>A newer or the same version is already installed.</value>
+    <value>최신 버전이나 동일한 버전이 이미 설치되어 있습니다.</value>
   </data>
   <data name="Install_Error_DeploymentInProgress" xml:space="preserve">
-    <value>Another installation is in progress. Wait for it to finish and try again.</value>
+    <value>다른 설치가 진행 중입니다. 완료될 때까지 기다렸다가 다시 시도하세요.</value>
   </data>
   <data name="Install_Error_InvalidPackage" xml:space="preserve">
-    <value>Invalid or unsupported package. Ensure the package and dependencies are supported for your system.</value>
+    <value>패키지가 잘못되었거나 지원되지 않습니다. 패키지와 종속성이 시스템에서 지원되는지 확인합니다.</value>
   </data>
   <data name="Install_Error_PackageNotFound" xml:space="preserve">
-    <value>Package not found. Check the selected/downloaded file path.</value>
+    <value>패키지를 찾을 수 없습니다. 선택/다운로드된 파일 경로를 확인하세요.</value>
   </data>
   <data name="Install_Error_DeploymentFailure" xml:space="preserve">
-    <value>Windows deployment failed. Check system policies or try again.</value>
+    <value>Windows 배포에 실패했습니다. 시스템 정책을 확인하거나 다시 시도하세요.</value>
   </data>
   <data name="Install_Error_AdminRequired" xml:space="preserve">
-    <value>This package includes a packaged service and must be installed with administrator privileges. Relaunch the app as administrator and try again.</value>
+    <value>이 패키지에는 패키지형 서비스가 포함되어 있으며 관리자 권한으로 설치해야 합니다. 앱을 관리자로 다시 실행한 후 다시 시도하세요.</value>
   </data>
   <data name="Install_Error_GenericDeployment" xml:space="preserve">
-    <value>Windows deployment error (0x{0:X8}). {1}</value>
+    <value>Windows 배포 오류 (0x{0:X8}). {1}</value>
   </data>
   <data name="Install_Error_AccessDenied" xml:space="preserve">
-    <value>Failed: Access denied. Try running as administrator or ensure sideloading policy allows app packages. {0}</value>
+    <value>실패: 접근이 거부되었습니다. 관리자로 실행하거나 사이드로딩 정책으로 앱 패키지를 허용하도록 시도해 보세요. {0}</value>
   </data>
   <data name="Install_Error_Generic" xml:space="preserve">
-    <value>Failed: {0}</value>
+    <value>실패: {0}</value>
   </data>
   <data name="Install_Btn_ForceInstall" xml:space="preserve">
-    <value>Force install</value>
+    <value>강제 설치</value>
   </data>
   <data name="Install_Btn_RunAsAdmin" xml:space="preserve">
-    <value>Run as administrator</value>
+    <value>관리자로 실행</value>
   </data>
   <data name="Common_OK" xml:space="preserve">
-    <value>OK</value>
+    <value>롹인</value>
   </data>
   <data name="DownloadsPage_Header.Text" xml:space="preserve">
-    <value>Downloads</value>
+    <value>다운로드</value>
   </data>
   <data name="DownloadsPage_OpenFolder.Content" xml:space="preserve">
-    <value>Open folder</value>
+    <value>폴더 열기</value>
   </data>
   <data name="DownloadsPage_Delete.Text" xml:space="preserve">
-    <value>Delete</value>
+    <value>삭제</value>
   </data>
   <data name="DownloadsPage_CancelBtn.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Cancel download</value>
+    <value>다운로드 취소</value>
   </data>
   <data name="Download_Status_Fetching" xml:space="preserve">
-    <value>Fetching download URLs</value>
+    <value>다운로드 URL 가져오기</value>
   </data>
   <data name="Download_Status_Downloading" xml:space="preserve">
-    <value>Downloading</value>
+    <value>다운로드 중</value>
   </data>
   <data name="Download_Status_Installing" xml:space="preserve">
-    <value>Installing</value>
+    <value>설치 중</value>
   </data>
   <data name="Download_Status_Cancelling" xml:space="preserve">
-    <value>Cancelling</value>
+    <value>취소 중</value>
   </data>
   <data name="InstallationsPage_Header.Text" xml:space="preserve">
-    <value>Install package</value>
+    <value>패키지 설치</value>
   </data>
   <data name="InstallationsPage_Installing.Text" xml:space="preserve">
-    <value>Installing...</value>
+    <value>설치 중...</value>
   </data>
   <data name="InstallationsPage_FileText.PlaceholderText" xml:space="preserve">
-    <value>No file selected</value>
+    <value>파일이 선택되지 않았습니다</value>
   </data>
   <data name="InstallationsPage_InstallBtn.Content" xml:space="preserve">
-    <value>Install</value>
+    <value>설치</value>
   </data>
   <data name="InstallationsPage_InstallLabel" xml:space="preserve">
-    <value>Install</value>
+    <value>설치</value>
   </data>
   <data name="InstallationsPage_DropZone.Text" xml:space="preserve">
-    <value>Select a package or drag it here</value>
+    <value>패키지를 선택하거나 여기로 드래그하세요</value>
   </data>
   <data name="InstallationsPage_FilePicker_Title" xml:space="preserve">
-    <value>Select an app package</value>
+    <value>앱 패키지 선택</value>
   </data>
   <data name="InstallationsPage_DragCaption" xml:space="preserve">
-    <value>Drop to select package</value>
+    <value>드롭하여 패키지 선택</value>
   </data>
   <data name="Install_Status_Installing" xml:space="preserve">
-    <value>Installing</value>
+    <value>설치 중</value>
   </data>
   <data name="Install_Status_Installed" xml:space="preserve">
-    <value>Installed.</value>
+    <value>설치되었습니다.</value>
   </data>
   <data name="Install_Status_Error" xml:space="preserve">
-    <value>Error</value>
+    <value>오류</value>
   </data>
   <data name="Install_Dialog_Title" xml:space="preserve">
-    <value>Installation failed</value>
+    <value>설치 실패</value>
   </data>
   <data name="InstallationsPage_FilePicker_Error" xml:space="preserve">
-    <value>File picker error</value>
+    <value>파일 선택 오류</value>
   </data>
   <data name="InstallationsPage_FilePicker_CommDlgError" xml:space="preserve">
-    <value>GetOpenFileName failed. CommDlgExtendedError=0x{0:X}</value>
+    <value>GetOpenFileName에 실패했습니다. CommDlgExtendedError=0x{0:X}</value>
   </data>
   <data name="InstallationsPage_Filter_AppPackages" xml:space="preserve">
-    <value>App packages (*.msix;*.appx;*.msixbundle;*.appxbundle)</value>
+    <value>앱 패키지 (*.msix;*.appx;*.msixbundle;*.appxbundle)</value>
   </data>
   <data name="InstallationsPage_Filter_AllFiles" xml:space="preserve">
-    <value>All files (*.*)</value>
+    <value>모든 파일 (*.*)</value>
   </data>
   <data name="UpdatesPage_Header.Text" xml:space="preserve">
-    <value>Updates</value>
+    <value>업데이트</value>
   </data>
   <data name="UpdatesPage_Stop.Text" xml:space="preserve">
-    <value>Stop</value>
+    <value>중지</value>
   </data>
   <data name="UpdatesPage_SelectAll.Content" xml:space="preserve">
-    <value>Select all</value>
+    <value>모두 선택</value>
   </data>
   <data name="UpdatesPage_NoUpdates.Text" xml:space="preserve">
-    <value>No new updates</value>
+    <value>새 업데이트 없음</value>
   </data>
   <data name="UpdatesPage_Completed.Text" xml:space="preserve">
-    <value>Completed</value>
+    <value>완료</value>
   </data>
   <data name="UpdatesPage_VersionSeparator.Text" xml:space="preserve">
     <value>→</value>
   </data>
   <data name="UpdatesPage_CancelBtn.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Cancel update</value>
+    <value>업데이트 취소</value>
   </data>
   <data name="Updates_ButtonCheck" xml:space="preserve">
-    <value>Check for updates</value>
+    <value>업데이트 확인</value>
   </data>
   <data name="Updates_ButtonChecking" xml:space="preserve">
-    <value>Checking...</value>
+    <value>확인 중...</value>
   </data>
   <data name="Updates_ButtonUpdate" xml:space="preserve">
-    <value>Update selected ({0})</value>
+    <value>선택한 업데이트({0})</value>
   </data>
   <data name="Updates_CheckingBase" xml:space="preserve">
-    <value>Checking</value>
+    <value>확인 중</value>
   </data>
   <data name="Updates_CheckingProgress" xml:space="preserve">
-    <value>Checking ({0}/{1})</value>
+    <value>확인 중 ({0}/{1})</value>
   </data>
   <data name="Search_Filter_AllDepartments" xml:space="preserve">
-    <value>All departments</value>
+    <value>모든 부문</value>
   </data>
   <data name="Search_Filter_Fonts" xml:space="preserve">
-    <value>Fonts</value>
+    <value>글꼴</value>
   </data>
   <data name="Search_Filter_Themes" xml:space="preserve">
-    <value>Themes</value>
+    <value>테마</value>
   </data>
   <data name="Search_Filter_AllTypes" xml:space="preserve">
-    <value>All Types</value>
+    <value>모든 유형</value>
   </data>
   <data name="Search_Filter_Free" xml:space="preserve">
-    <value>Free</value>
+    <value>무료</value>
   </data>
   <data name="Search_Filter_Paid" xml:space="preserve">
-    <value>Paid</value>
+    <value>유료</value>
   </data>
   <data name="BundlesPage_Loading.Text" xml:space="preserve">
-    <value>Loading...</value>
+    <value>로드 중...</value>
   </data>
   <data name="BundlesPage_Error.Text" xml:space="preserve">
-    <value>An Unexpected Error Occured!</value>
+    <value>예기치 않은 오류가 발생했습니다!</value>
   </data>
   <data name="BundlesPage_InBundle.Text" xml:space="preserve">
-    <value>In this bundle</value>
+    <value>이 번들에서</value>
   </data>
   <data name="AppPage_StopBtn.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Stop</value>
+    <value>중지</value>
   </data>
   <data name="AppPage_MoreOptionsBtn.ToolTipService.ToolTip" xml:space="preserve">
-    <value>More options</value>
+    <value>더 많은 옵션</value>
   </data>
   <data name="AppPage_ShareBtn.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Share</value>
+    <value>공유</value>
   </data>
   <data name="AppPage_Share_CopyLink.Text" xml:space="preserve">
-    <value>Copy link</value>
+    <value>링크 복사</value>
   </data>
   <data name="AppPage_Share_CopyProductId.Text" xml:space="preserve">
-    <value>Copy product ID</value>
+    <value>제품 ID 복사</value>
   </data>
   <data name="AppPage_Share_CopyPackageFamilyName.Text" xml:space="preserve">
-    <value>Copy PFN</value>
+    <value>PFN 복사</value>
   </data>
   <data name="AppPage_LightboxClose.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Close</value>
+    <value>닫기</value>
   </data>
   <data name="AppPage_LightboxPrev.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Previous</value>
+    <value>이전</value>
   </data>
   <data name="AppPage_LightboxNext.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Next</value>
+    <value>다음</value>
   </data>
   <data name="AppPage_ScreenshotsPrev.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Previous screenshot</value>
+    <value>이전 스크린샷</value>
   </data>
   <data name="AppPage_ScreenshotsNext.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Next screenshot</value>
+    <value>다음 스크린샷</value>
   </data>
   <data name="AppPage_LightboxCounter_Format" xml:space="preserve">
     <value>{0} / {1}</value>
   </data>
   <data name="DownloadsPage_MoreOptionsBtn.ToolTipService.ToolTip" xml:space="preserve">
-    <value>More options</value>
+    <value>더 많은 옵션</value>
   </data>
   <data name="AppPage_Btn_Install" xml:space="preserve">
-    <value>Install</value>
+    <value>설치</value>
   </data>
   <data name="AppPage_Btn_Update" xml:space="preserve">
-    <value>Update</value>
+    <value>업데이트</value>
   </data>
   <data name="AppPage_Btn_Open" xml:space="preserve">
-    <value>Open</value>
+    <value>열기</value>
   </data>
   <data name="AppPage_Btn_Retry" xml:space="preserve">
-    <value>Retry</value>
+    <value>재시도</value>
   </data>
   <data name="AppPage_Btn_Download" xml:space="preserve">
-    <value>Download</value>
+    <value>다운로드</value>
   </data>
   <data name="InstallationsPage_ClearBtn.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Clear</value>
+    <value>지우기</value>
   </data>
   <data name="Settings_LicenseDialogTitle.Text" xml:space="preserve">
-    <value>License</value>
+    <value>라이선스</value>
   </data>
   <data name="Settings_LicenseDialogClose.Content" xml:space="preserve">
-    <value>Close</value>
+    <value>닫기</value>
   </data>
   <data name="Sideloading_DisabledTitle" xml:space="preserve">
-    <value>Sideloading is disabled</value>
+    <value>사이드 로딩이 비활성화되었습니다</value>
   </data>
   <data name="Sideloading_DisabledMessage" xml:space="preserve">
-    <value>Sideloading is currently disabled on this device. You won't be able to install app packages until it's enabled.
+    <value>현재 이 장치에서는 사이드 로딩이 비활성화되어 있습니다. 활성화되기 전까지는 앱 패키지를 설치할 수 없습니다.
 
-You can enable it by turning on Developer Mode in Windows Settings.</value>
+Windows 설정에서 개발자 모드를 켜서 활성화할 수 있습니다.</value>
   </data>
   <data name="Sideloading_EnableButton" xml:space="preserve">
-    <value>Open Settings</value>
+    <value>설정 열기</value>
   </data>
   <data name="Sideloading_CancelButton" xml:space="preserve">
-    <value>Not now</value>
+    <value>지금은 안 함</value>
   </data>
   <data name="InstallationsPage_MoreOptionsBtn.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Advanced options</value>
+    <value>고급 옵션</value>
   </data>
   <data name="InstallationsPage_AdvancedInstall.Text" xml:space="preserve">
-    <value>Unpackaged Mode</value>
+    <value>압축 해제 모드</value>
   </data>
   <data name="InstallationsPage_CustomFolder.PlaceholderText" xml:space="preserve">
-    <value>Choose install folder…</value>
+    <value>폴더 설치 선택...</value>
   </data>
   <data name="InstallationsPage_BrowseFolderBtn.Content" xml:space="preserve">
-    <value>Browse</value>
+    <value>찾아보기</value>
   </data>
   <data name="InstallationsPage_RemoveSignature.Content" xml:space="preserve">
-    <value>Remove signature verification</value>
+    <value>서명 검증 제거</value>
   </data>
   <data name="InstallationsPage_SelectDependenciesBtn.Content" xml:space="preserve">
-    <value>Select dependencies</value>
+    <value>종속성 선택</value>
   </data>
   <data name="InstallationsPage_FolderPicker_Title" xml:space="preserve">
-    <value>Choose the install location</value>
+    <value>설치 위치 선택</value>
   </data>
   <data name="InstallationsPage_DependencyPicker_Title" xml:space="preserve">
-    <value>Select dependency packages</value>
+    <value>종속성 패키지 선택</value>
   </data>
   <data name="InstallationsPage_Dependencies_Count" xml:space="preserve">
-    <value>{0} selected</value>
+    <value>{0} 선택</value>
   </data>
   <data name="Install_Error_NoFolderSelected" xml:space="preserve">
-    <value>Choose an install folder before installing.</value>
+    <value>설치하기 전에 설치 폴더를 선택하세요.</value>
   </data>
   <data name="Install_Error_FolderExists" xml:space="preserve">
-    <value>A folder named "{0}" already exists in the chosen location. Choose another location or remove the existing folder.</value>
+    <value>선택한 위치에 이미 "{0}"이라는 폴더가 있습니다. 다른 위치를 선택하거나 기존 폴더를 제거합니다.</value>
   </data>
   <data name="Install_Error_NoInstallableArch" xml:space="preserve">
-    <value>This bundle has no package compatible with your selected architecture.</value>
+    <value>이 번들에는 선택한 아키텍처와 호환되는 패키지가 없습니다.</value>
   </data>
   <data name="Install_Error_ManifestMissing" xml:space="preserve">
-    <value>Could not find AppxManifest.xml in the package.</value>
+    <value>패키지에서 AppxManifest.xml을 찾을 수 없습니다.</value>
   </data>
   <data name="DeveloperMode_DisabledTitle" xml:space="preserve">
-    <value>Developer Mode is required</value>
+    <value>개발자 모드가 필요합니다</value>
   </data>
   <data name="DeveloperMode_DisabledMessage" xml:space="preserve">
-    <value>Custom (loose) install registers an app from unpackaged files, which requires Developer Mode.
+    <value>사용자 지정 (느슨한) 설치는 패키지가 없는 파일에서 앱을 등록하므로 개발자 모드가 필요합니다.
 
-You can enable it by turning on Developer Mode in Windows Settings.</value>
+Windows 설정에서 개발자 모드를 켜서 활성화할 수 있습니다.</value>
   </data>
   <data name="DeveloperMode_EnableButton" xml:space="preserve">
-    <value>Open Settings</value>
+    <value>설정 열기</value>
   </data>
   <data name="DeveloperMode_CancelButton" xml:space="preserve">
-    <value>Not now</value>
+    <value>지금은 안 함</value>
   </data>
   <data name="InstallationsPage_ClearFolderBtn.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Clear install location</value>
+    <value>설치 위치 지우기</value>
   </data>
   <data name="InstallationsPage_ClearDepsBtn.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Clear selected dependencies</value>
+    <value>선택한 종속성 지우기</value>
   </data>
 </root>

@@ -193,7 +193,7 @@ public sealed partial class Advanced_SearchPage : Page
                     ViewModel.HasError = true;
                     ViewModel.ErrorMessage = result.IsSuccess
                         ? "AdvancedSearch_Error_NoPfnResult".GetLocalized()
-                        : string.Format("AdvancedSearch_Error_FailedLookup".GetLocalized(), result.Exception.Message);
+                        : "AdvancedSearch_Error_FailedLookup".GetLocalizedFormat(result.Exception.Message);
                     return null;
                 }
 

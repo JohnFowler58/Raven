@@ -219,7 +219,7 @@ public sealed partial class AppPage : Page
             SetLoading(false);
             await ShowErrorDialogAsync(
                 "AppPage_Error_LoadTitle".GetLocalized(),
-                string.Format("AppPage_Error_LoadMessage".GetLocalized(), ex.Message)
+                "AppPage_Error_LoadMessage".GetLocalizedFormat(ex.Message)
             );
         }
     }
@@ -656,7 +656,7 @@ public sealed partial class AppPage : Page
         catch (Exception ex)
         {
             UpdateService.StopStatusAnimation();
-            downloadManager.UpdateDownloadStatusText(productId, string.Format("Download_Status_InstallFailed".GetLocalized(), ex.Message));
+            downloadManager.UpdateDownloadStatusText(productId, "Download_Status_InstallFailed".GetLocalizedFormat(ex.Message));
             downloadManager.UpdateDownloadStatus(productId, DownloadStatus.Failed);
             _logger.LogError(
                 ex,
@@ -1089,7 +1089,7 @@ public sealed partial class AppPage : Page
         catch (Exception ex)
         {
             if (!cts.IsCancellationRequested)
-                await ShowErrorDialogAsync("AppPage_Error_CheckUpdatesTitle".GetLocalized(), string.Format("AppPage_Error_UpdateCheckFailed".GetLocalized(), ex.Message));
+                await ShowErrorDialogAsync("AppPage_Error_CheckUpdatesTitle".GetLocalized(), "AppPage_Error_UpdateCheckFailed".GetLocalizedFormat(ex.Message));
         }
         finally
         {
@@ -1405,7 +1405,7 @@ public sealed partial class AppPage : Page
 
                 if (!string.IsNullOrWhiteSpace(win32Launch.InstalledVersion))
                 {
-                    msg += string.Format("AppPage_Error_InstalledVersion".GetLocalized(), win32Launch.InstalledVersion);
+                    msg += "AppPage_Error_InstalledVersion".GetLocalizedFormat(win32Launch.InstalledVersion);
                 }
 
             await ShowErrorDialogAsync(title, msg);
@@ -1586,8 +1586,7 @@ public sealed partial class AppPage : Page
             LightboxImage.Source = bmp;
         }
 
-        LightboxCounter.Text = string.Format(
-            "AppPage_LightboxCounter_Format".GetLocalized(),
+        LightboxCounter.Text = "AppPage_LightboxCounter_Format".GetLocalizedFormat(
             _lightboxIndex + 1,
             screenshots.Count
         );
