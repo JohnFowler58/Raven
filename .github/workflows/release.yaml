@@ -66,6 +66,50 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
+      - name: Ensure VC++ ARM64 Tools
+        if: matrix.arch == 'arm64'
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vsPath = & $vswhere -latest -property installationPath
+          function Test-Arm64Tools {
+            $msvcRoot = Join-Path $vsPath 'VC\Tools\MSVC'
+            if (-not (Test-Path $msvcRoot)) { return $false }
+            return [bool](Get-ChildItem $msvcRoot -Directory |
+              Where-Object { Test-Path (Join-Path $_.FullName 'bin\Hostx64\arm64\link.exe') } |
+              Select-Object -First 1)
+          }
+
+          if (Test-Arm64Tools) {
+            Write-Host "VC++ ARM64 tools already present."
+          } else {
+            Write-Host "Installing VC++ ARM64 tools into '$vsPath'..."
+            $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
+            $proc = Start-Process -FilePath $installer -Wait -PassThru -ArgumentList @(
+              'modify', '--installPath', "`"$vsPath`"",
+              '--add', 'Microsoft.VisualStudio.Component.VC.Tools.ARM64',
+              '--quiet', '--norestart', '--force', '--nocache'
+            )
+            Write-Host "vs_installer exit code: $($proc.ExitCode)"
+            # 0 = success, 3010 = success/reboot-required.
+            if ($proc.ExitCode -notin 0, 3010) {
+              throw "VS installer failed with exit code $($proc.ExitCode)."
+            }
+            if (-not (Test-Arm64Tools)) {
+              throw "VC++ ARM64 tools still missing after install."
+            }
+            Write-Host "VC++ ARM64 tools installed."
+          }
+
+      - name: Setup MSVC Toolchain (for NativeAOT)
+        # NativeAOT links a native binary, so it needs the MSVC linker and the
+        # target-architecture libraries on PATH/LIB. The runner is x64, so x86 and
+        # arm64 are cross-compiled (amd64_x86 / amd64_arm64). The AOT publish below
+        # consumes this environment via -p:IlcUseEnvironmentalTools=true.
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch == 'arm64' && 'amd64_arm64' || matrix.arch == 'x86' && 'amd64_x86' || 'amd64' }}
+
       - name: Cache NuGet Packages
         uses: actions/cache@v5
         with:
@@ -109,6 +153,33 @@ jobs:
           -p:AssemblyVersion=$env:RELEASE_VERSION
           -p:FileVersion=$env:RELEASE_VERSION
           -p:InformationalVersion=$env:RELEASE_TAG
+
+      - name: Publish Updater (NativeAOT)
+        shell: pwsh
+        run: >
+          dotnet publish Raven.Updater/Raven.Updater.csproj
+          -c Release
+          -r win-$env:ARCH
+          -p:PublishAot=true
+          -p:IlcUseEnvironmentalTools=true
+          -o ./updater_aot
+          -p:Version=$env:RELEASE_VERSION
+          -p:AssemblyVersion=$env:RELEASE_VERSION
+          -p:FileVersion=$env:RELEASE_VERSION
+
+      - name: Replace Updater With NativeAOT Build
+        shell: pwsh
+        run: |
+          $aotUpdater = "./updater_aot/Raven.Updater.exe"
+          if (-not (Test-Path $aotUpdater)) {
+            throw "NativeAOT updater was not produced at $aotUpdater."
+          }
+          foreach ($dir in @('./publish_output', './publish_output_full')) {
+            # Drop the framework-dependent updater payload copied in via ProjectReference
+            # (.exe/.dll/.deps.json/.runtimeconfig.json/.pdb), then drop in the self-sufficient AOT exe.
+            Get-ChildItem -Path $dir -Filter 'Raven.Updater.*' -File | Remove-Item -Force
+            Copy-Item -Path $aotUpdater -Destination (Join-Path $dir 'Raven.Updater.exe') -Force
+          }
 
       - name: Decode Certificate
         shell: pwsh

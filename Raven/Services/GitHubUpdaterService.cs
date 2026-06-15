@@ -85,6 +85,7 @@ public sealed class GitHubUpdaterService
         {
             var destination = Path.Combine(runnerRoot, Path.GetFileName(updaterFile));
             File.Copy(updaterFile, destination, overwrite: true);
+            TryRemoveMarkOfTheWeb(destination);
         }
 
         var updaterExecutablePath = Path.Combine(runnerRoot, "Raven.Updater.exe");
@@ -110,6 +111,15 @@ public sealed class GitHubUpdaterService
         startInfo.ArgumentList.Add(updateRoot);
 
         Process.Start(startInfo);
+    }
+    
+    private static void TryRemoveMarkOfTheWeb(string filePath)
+    {
+        try
+        {
+            File.Delete(filePath + ":Zone.Identifier");
+        }
+        catch {}
     }
 
     private static async Task DownloadAssetAsync(
