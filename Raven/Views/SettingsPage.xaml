@@ -85,6 +85,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <TextBlock
                             x:Uid="Settings_LocaleAndRegion"
@@ -109,6 +110,17 @@
                             HorizontalAlignment="Left"
                             ItemsSource="{x:Bind ViewModel.AllMarketNames}"
                             SelectedIndex="{x:Bind ViewModel.SelectedMarketIndex, Mode=TwoWay}" />
+                        <InfoBar
+                            x:Uid="Settings_RelaunchInfoBar"
+                            Grid.Row="5"
+                            Margin="0,4,0,0"
+                            IsClosable="False"
+                            IsOpen="{x:Bind ViewModel.ShowRelaunchPrompt, Mode=OneWay}"
+                            Severity="Informational">
+                            <InfoBar.ActionButton>
+                                <Button x:Uid="Settings_RelaunchButton" Command="{x:Bind ViewModel.RelaunchCommand}" />
+                            </InfoBar.ActionButton>
+                        </InfoBar>
                     </Grid>
                     <Grid
                         Padding="20"

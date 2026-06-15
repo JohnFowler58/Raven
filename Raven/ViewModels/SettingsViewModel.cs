@@ -33,6 +33,14 @@ public partial class SettingsViewModel : ObservableRecipient
     [ObservableProperty]
     private int _selectedArchitectureIndex;
 
+    [ObservableProperty]
+    private bool _showRelaunchPrompt;
+
+    // Language/Market that were active when the app started. A relaunch is needed only when the
+    // current selection differs from these, because already-loaded XAML strings don't re-localize.
+    private readonly Lang _initialLanguage;
+    private readonly Market _initialMarket;
+
     private readonly List<(string DisplayName, Market Value)> _marketItems;
     private readonly List<(string DisplayName, Lang Value)> _languageItems;
     private readonly List<(string DisplayName, StoreEdgeFDArch Value)> _architectureItems;
@@ -42,6 +50,8 @@ public partial class SettingsViewModel : ObservableRecipient
     public IReadOnlyList<string> AllArchitectureNames { get; }
 
     public ICommand SwitchThemeCommand { get; }
+
+    public ICommand RelaunchCommand { get; }
 
     public SettingsViewModel(
         IThemeSelectorService themeSelectorService,
@@ -54,6 +64,9 @@ public partial class SettingsViewModel : ObservableRecipient
         _architectureSelectorService = architectureSelectorService;
         _elementTheme = _themeSelectorService.Theme;
         _versionDescription = GetVersionDescription();
+
+        _initialLanguage = _localeService.Language;
+        _initialMarket = _localeService.Market;
 
         _marketItems = Enum.GetValues<Market>()
             .Select(m => (GetMarketDisplayName(m), m))
@@ -95,8 +108,18 @@ public partial class SettingsViewModel : ObservableRecipient
             }
         );
 
+        RelaunchCommand = new RelayCommand(() =>
+            Microsoft.Windows.AppLifecycle.AppInstance.Restart(string.Empty)
+        );
+
         _isInitialized = true;
     }
+
+    // Show the relaunch prompt whenever the live language/market differs from what was active at
+    // startup; hide it again if the user reverts to the original values.
+    private void UpdateRelaunchPrompt() =>
+        ShowRelaunchPrompt =
+            _localeService.Language != _initialLanguage || _localeService.Market != _initialMarket;
 
     partial void OnSelectedMarketIndexChanged(int value)
     {
@@ -105,6 +128,7 @@ public partial class SettingsViewModel : ObservableRecipient
         var market = _marketItems[value].Value;
         if (market != _localeService.Market)
             _ = _localeService.SetMarketAsync(market);
+        UpdateRelaunchPrompt();
     }
 
     partial void OnSelectedLanguageIndexChanged(int value)
@@ -114,6 +138,7 @@ public partial class SettingsViewModel : ObservableRecipient
         var lang = _languageItems[value].Value;
         if (lang != _localeService.Language)
             _ = _localeService.SetLanguageAsync(lang);
+        UpdateRelaunchPrompt();
     }
 
     partial void OnSelectedArchitectureIndexChanged(int value)
@@ -172,6 +197,8 @@ public partial class SettingsViewModel : ObservableRecipient
             0,
             _architectureItems.FindIndex(x => x.Value == _architectureSelectorService.SelectedStoreEdgeArchitecture)
         );
+
+        UpdateRelaunchPrompt();
     }
 
     private static string GetVersionDescription()
