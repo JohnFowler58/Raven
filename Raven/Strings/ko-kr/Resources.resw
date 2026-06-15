@@ -174,6 +174,15 @@
   <data name="Settings_Market.Text" xml:space="preserve">
     <value>마켓 (지역)</value>
   </data>
+  <data name="Settings_RelaunchInfoBar.Title" xml:space="preserve">
+    <value>재시작 필요</value>
+  </data>
+  <data name="Settings_RelaunchInfoBar.Message" xml:space="preserve">
+    <value>Raven을 다시 실행하여 언어와 지역 변경 사항을 적용하세요.</value>
+  </data>
+  <data name="Settings_RelaunchButton.Content" xml:space="preserve">
+    <value>다시 실행</value>
+  </data>  
   <data name="Settings_Architecture.Text" xml:space="preserve">
     <value>아키텍처</value>
   </data>
@@ -184,7 +193,7 @@
     <value>재설정</value>
   </data>
   <data name="Settings_ResetDescription.Text" xml:space="preserve">
-    <value>Reset을 기본 설정으로 재설정합니다.</value>
+    <value>Raven을 기본 설정으로 재설정합니다.</value>
   </data>
   <data name="Settings_ResetButton.Content" xml:space="preserve">
     <value>앱 재설정</value>
