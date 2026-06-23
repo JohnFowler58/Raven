@@ -21,6 +21,8 @@
 		<WebView2UseWpf>false</WebView2UseWpf>
 		<WebView2UseWinForms>false</WebView2UseWinForms>
 		<WebView2DispatchAdapterNamespace>Raven</WebView2DispatchAdapterNamespace>
+    <!-- Disabled due to .NET 9 runtime regression on older Windows 10 (https://github.com/dotnet/docs/issues/42600) -->
+		<CETCompat>false</CETCompat>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />

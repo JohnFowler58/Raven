@@ -9,5 +9,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <IsAotCompatible>true</IsAotCompatible>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Disabled due to .NET 9 runtime regression on older Windows 10 (https://github.com/dotnet/docs/issues/42600) -->
+    <CETCompat>false</CETCompat>
   </PropertyGroup>
 </Project>
