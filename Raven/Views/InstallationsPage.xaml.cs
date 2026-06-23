@@ -576,19 +576,18 @@ public sealed partial class InstallationsPage : Page
         if (xamlRoot is null)
             return;
 
-        if (
-            !ignoreVersion
-            && installException is COMException comEx
-            && InstallHelper.IsNewerOrSameVersionInstalled(comEx.HResult)
-        )
+        if (!ignoreVersion)
         {
             var forceRetry = await InstallHelper.ShowInstallationErrorOrForceInstallDialogAsync(
                 xamlRoot,
                 "Install_Dialog_Title".GetLocalized(),
                 installException
             );
+            
             if (forceRetry)
+            {
                 await PerformInstallAsync(path, ignoreVersion: true);
+            }
         }
         else
         {

@@ -11,6 +11,63 @@ public static class InstallHelper
     private const int ERROR_PACKAGED_SERVICE_REQUIRES_ADMIN = unchecked((int)0x80073D28);
     private const int ERROR_INSTALL_CONFLICTING_PACKAGE = unchecked((int)0x80073D06);
 
+    // ──────────────────────────────────────────────────────
+    //  COMException extraction
+    // ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Extracts the underlying deployment <see cref="COMException"/> from an exception.
+    /// The deployment engine may throw a raw COMException or
+    /// <see cref="AppPackageInstaller"/> may wrap it in an <see cref="InvalidOperationException"/>.
+    /// </summary>
+    public static COMException? TryGetDeploymentCOMException(Exception? exception) =>
+        exception switch
+        {
+            COMException direct => direct,
+            InvalidOperationException { InnerException: COMException inner } => inner,
+            _ => null,
+        };
+
+    // ──────────────────────────────────────────────────────
+    //  HRESULT classification
+    // ──────────────────────────────────────────────────────
+
+    public static bool IsPackagedServiceAdminRequired(int hresult) =>
+        hresult == ERROR_PACKAGED_SERVICE_REQUIRES_ADMIN;
+
+    public static bool IsNewerOrSameVersionInstalled(int hresult) =>
+        hresult == ERROR_INSTALL_CONFLICTING_PACKAGE;
+
+    public static bool IsAdminRequired(Exception? exception)
+    {
+        var comEx = TryGetDeploymentCOMException(exception);
+        return comEx != null && IsPackagedServiceAdminRequired(comEx.HResult);
+    }
+
+    public static bool IsForceInstallable(Exception? exception)
+    {
+        var comEx = TryGetDeploymentCOMException(exception);
+        return comEx != null && IsNewerOrSameVersionInstalled(comEx.HResult);
+    }
+
+    public static bool IsRunningAsAdministrator()
+    {
+        try
+        {
+            using var identity = WindowsIdentity.GetCurrent();
+            var principal = new WindowsPrincipal(identity);
+            return principal.IsInRole(WindowsBuiltInRole.Administrator);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    // ──────────────────────────────────────────────────────
+    //  Friendly error messages
+    // ──────────────────────────────────────────────────────
+
     public static string GetFriendlyMsixError(int hresult, string message)
     {
         const int ERROR_DEPLOYMENT_IN_PROGRESS = unchecked((int)0x80073D01);
@@ -36,83 +93,70 @@ public static class InstallHelper
         };
     }
 
-    public static bool IsRunningAsAdministrator()
+    public static string GetFriendlyErrorMessage(Exception exception)
     {
-        try
-        {
-            using var identity = WindowsIdentity.GetCurrent();
-            var principal = new WindowsPrincipal(identity);
-            return principal.IsInRole(WindowsBuiltInRole.Administrator);
-        }
-        catch
-        {
-            return false;
-        }
+        var comEx = TryGetDeploymentCOMException(exception);
+        if (comEx != null)
+            return GetFriendlyMsixError(comEx.HResult, exception.Message);
+
+        return exception.Message;
     }
 
-    public static bool IsPackagedServiceAdminRequired(int hresult) =>
-        hresult == ERROR_PACKAGED_SERVICE_REQUIRES_ADMIN;
+    // ──────────────────────────────────────────────────────
+    //  Error dialog flow
+    //
+    //  Priority order (highest → lowest):
+    //    1. Admin required  → "Run as Admin" prompt
+    //    2. Version conflict → "Force Install" prompt
+    //    3. Everything else  → plain error dialog
+    // ──────────────────────────────────────────────────────
 
-    public static bool IsNewerOrSameVersionInstalled(int hresult) =>
-        hresult == ERROR_INSTALL_CONFLICTING_PACKAGE;
-
+    /// <summary>
+    /// Shows the appropriate error dialog for an install failure.
+    /// Handles admin elevation, version conflicts, access denied, and generic errors.
+    /// </summary>
     public static async Task ShowInstallationErrorDialogAsync(
         XamlRoot xamlRoot,
         string title,
         Exception exception
     )
     {
-        if (
-            exception is COMException cex
-            && IsPackagedServiceAdminRequired(cex.HResult)
-            && !IsRunningAsAdministrator()
-        )
+        // 1. Admin required → offer elevation
+        if (IsAdminRequired(exception) && !IsRunningAsAdministrator())
         {
-            await ShowAdminRequiredDialogAsync(xamlRoot, title, cex);
+            await ShowAdminRequiredDialogAsync(xamlRoot, title, TryGetDeploymentCOMException(exception)!);
             return;
         }
 
+        // 2. Everything else → plain error
         var content = exception switch
         {
-            COMException => GetFriendlyErrorMessage(exception),
-            InvalidOperationException { InnerException: COMException } => GetFriendlyErrorMessage(exception),
             UnauthorizedAccessException ua =>
                 "Install_Error_AccessDenied".GetLocalizedFormat(ua.Message),
-            _ => "Install_Error_Generic".GetLocalizedFormat(exception.Message),
+            _ => GetFriendlyErrorMessage(exception),
         };
 
         await ShowDialogAsync(xamlRoot, title, content);
     }
 
+    /// <summary>
+    /// Shows an error dialog that offers "Force Install" when the error is a version conflict.
+    /// Returns <c>true</c> if the user chose to force-install.
+    /// Falls back to <see cref="ShowInstallationErrorDialogAsync"/> for all other errors.
+    /// </summary>
     public static async Task<bool> ShowInstallationErrorOrForceInstallDialogAsync(
         XamlRoot xamlRoot,
         string title,
         Exception exception
     )
     {
-        bool isForceInstallable = false;
-        int hresult = 0;
-        string message = string.Empty;
-
-        if (exception is COMException comEx && IsNewerOrSameVersionInstalled(comEx.HResult))
+        if (IsForceInstallable(exception))
         {
-            isForceInstallable = true;
-            hresult = comEx.HResult;
-            message = comEx.Message;
-        }
-        else if (exception is InvalidOperationException { InnerException: COMException inner } && IsNewerOrSameVersionInstalled(inner.HResult))
-        {
-            isForceInstallable = true;
-            hresult = inner.HResult;
-            message = exception.Message;
-        }
-
-        if (isForceInstallable)
-        {
+            var comEx = TryGetDeploymentCOMException(exception)!;
             var dialog = new ContentDialog
             {
                 Title = title,
-                Content = GetFriendlyMsixError(hresult, message),
+                Content = GetFriendlyMsixError(comEx.HResult, exception.Message),
                 PrimaryButtonText = "Install_Btn_ForceInstall".GetLocalized(),
                 CloseButtonText = "Common_OK".GetLocalized(),
                 DefaultButton = ContentDialogButton.Primary,
@@ -122,45 +166,30 @@ public static class InstallHelper
             var result = await dialog.ShowAsync();
             return result == ContentDialogResult.Primary;
         }
-        
+
         await ShowInstallationErrorDialogAsync(xamlRoot, title, exception);
         return false;
     }
 
-    public static string GetFriendlyErrorMessage(Exception exception)
-    {
-        if (exception is COMException comEx)
-            return GetFriendlyMsixError(comEx.HResult, comEx.Message);
-        
-        if (exception is InvalidOperationException { InnerException: COMException inner })
-            return GetFriendlyMsixError(inner.HResult, exception.Message);
-
-        return exception.Message;
-    }
+    // ──────────────────────────────────────────────────────
+    //  Retry / "app in use" dialog
+    // ──────────────────────────────────────────────────────
 
     public static List<string> ParseBlockingProcesses(Exception exception)
     {
-        var processes = new List<string>();
         var message = exception.Message;
-        
         if (string.IsNullOrWhiteSpace(message))
-            return processes;
+            return [];
 
         // Match patterns like "The following processes need to be closed: spotify.exe (PID: 1234)"
-        // or just extracted process names. This regex looks for `.exe` followed optionally by `(PID:`
         var match = Regex.Match(message, @"processes need to be closed:?\s*(.*?)(?:\r|\n|$)", RegexOptions.IgnoreCase);
-        if (match.Success)
-        {
-            var procListStr = match.Groups[1].Value;
-            var procMatches = Regex.Matches(procListStr, @"([a-zA-Z0-9_\-\.]+?\.exe)", RegexOptions.IgnoreCase);
-            foreach (Match procMatch in procMatches)
-            {
-                if (procMatch.Success)
-                    processes.Add(procMatch.Groups[1].Value);
-            }
-        }
-        
-        return processes.Distinct().ToList();
+        if (!match.Success)
+            return [];
+
+        return Regex.Matches(match.Groups[1].Value, @"([a-zA-Z0-9_\-\.]+?\.exe)", RegexOptions.IgnoreCase)
+            .Select(m => m.Groups[1].Value)
+            .Distinct()
+            .ToList();
     }
 
     public static async Task<bool> ShowUpdateFailedRetryDialogAsync(
@@ -171,14 +200,12 @@ public static class InstallHelper
     {
         var content = new StackPanel { Spacing = 8 };
         var blockingProcs = ParseBlockingProcesses(exception);
-        
+
         bool isAppInUseError = blockingProcs.Count > 0;
         if (!isAppInUseError)
         {
-            if (exception is COMException comEx && comEx.HResult == unchecked((int)0x80073D02))
-                isAppInUseError = true;
-            else if (exception is InvalidOperationException { InnerException: COMException inner } && inner.HResult == unchecked((int)0x80073D02))
-                isAppInUseError = true;
+            var comEx = TryGetDeploymentCOMException(exception);
+            isAppInUseError = comEx != null && comEx.HResult == unchecked((int)0x80073D02);
         }
 
         if (isAppInUseError)
@@ -210,8 +237,8 @@ public static class InstallHelper
                 content.Children.Add(procList);
             }
         }
-        
-        // Always show the actual error message, either as the main text (if not app-in-use) 
+
+        // Always show the actual error message, either as the main text (if not app-in-use)
         // or as secondary text (if it is app-in-use) just in case it contains more context.
         content.Children.Add(new TextBlock
         {
@@ -234,6 +261,10 @@ public static class InstallHelper
         var result = await dialog.ShowAsync();
         return result == ContentDialogResult.Primary;
     }
+
+    // ──────────────────────────────────────────────────────
+    //  Private helpers
+    // ──────────────────────────────────────────────────────
 
     private static async Task ShowAdminRequiredDialogAsync(
         XamlRoot xamlRoot,

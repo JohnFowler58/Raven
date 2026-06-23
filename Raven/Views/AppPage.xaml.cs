@@ -572,13 +572,19 @@ public sealed partial class AppPage : Page
 
             if (IsCurrentProduct(item))
             {
-                bool isForceInstallable = false;
-                if (item.LastInstallError is System.Runtime.InteropServices.COMException comEx && InstallHelper.IsNewerOrSameVersionInstalled(comEx.HResult))
-                    isForceInstallable = true;
-                else if (item.LastInstallError is InvalidOperationException { InnerException: System.Runtime.InteropServices.COMException inner } && InstallHelper.IsNewerOrSameVersionInstalled(inner.HResult))
-                    isForceInstallable = true;
+                // Admin-required errors must be handled first — before the force-install
+                // or retry branches — so the elevation dialog is always shown.
+                if (InstallHelper.IsAdminRequired(item.LastInstallError) && !InstallHelper.IsRunningAsAdministrator())
+                {
+                    await InstallHelper.ShowInstallationErrorDialogAsync(
+                        App.MainWindow.Content.XamlRoot,
+                        "Install_Dialog_Title".GetLocalized(),
+                        item.LastInstallError
+                    );
+                    return;
+                }
 
-                if (isForceInstallable)
+                if (InstallHelper.IsForceInstallable(item.LastInstallError))
                 {
                     var force = await InstallHelper.ShowInstallationErrorOrForceInstallDialogAsync(
                         App.MainWindow.Content.XamlRoot,
@@ -592,26 +598,24 @@ public sealed partial class AppPage : Page
                             await RetryForceInstallAsync(item, mainPackagePath);
                         else
                             InstallButton_Click(null!, null!);
-                        return;
                     }
+                    return;
                 }
-                else
+
+                var retry = await InstallHelper.ShowUpdateFailedRetryDialogAsync(
+                    App.MainWindow.Content.XamlRoot,
+                    "Install_Dialog_Title".GetLocalized(),
+                    item.LastInstallError
+                );
+                
+                if (retry)
                 {
-                    var retry = await InstallHelper.ShowUpdateFailedRetryDialogAsync(
-                        App.MainWindow.Content.XamlRoot,
-                        "Install_Dialog_Title".GetLocalized(),
-                        item.LastInstallError
-                    );
-                    
-                    if (retry)
-                    {
-                        if (!string.IsNullOrWhiteSpace(mainPackagePath))
-                            await RetryInstallAsync(item, mainPackagePath);
-                        else
-                            InstallButton_Click(null!, null!);
-                        return;
-                    }
+                    if (!string.IsNullOrWhiteSpace(mainPackagePath))
+                        await RetryInstallAsync(item, mainPackagePath);
+                    else
+                        InstallButton_Click(null!, null!);
                 }
+                return;
             }
         }
         finally
