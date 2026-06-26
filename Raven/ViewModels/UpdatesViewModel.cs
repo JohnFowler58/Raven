@@ -465,6 +465,7 @@ public partial class UpdatesViewModel : ObservableObject
         catch { }
     }
 
+
     private void PersistCompletedUpdates()
     {
         try

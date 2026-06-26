@@ -178,7 +178,7 @@
     <value>Restart required</value>
   </data>
   <data name="Settings_RelaunchInfoBar.Message" xml:space="preserve">
-    <value>Relaunch Raven to apply your language and region changes.</value>
+    <value>Relaunch Raven to apply your language changes.</value>
   </data>
   <data name="Settings_RelaunchButton.Content" xml:space="preserve">
     <value>Relaunch</value>
@@ -202,7 +202,7 @@
     <value>Reset app data?</value>
   </data>
   <data name="Settings_ResetDialogContent" xml:space="preserve">
-    <value>This will remove all downloaded files and cached download data, and restore language, region, and architecture to defaults. This action cannot be undone.</value>
+    <value>This will remove all downloaded files and cached download data, and restore language, region, and architecture to defaults. The app will restart automatically. This action cannot be undone.</value>
   </data>
   <data name="Settings_ResetDialogPrimary" xml:space="preserve">
     <value>Reset</value>

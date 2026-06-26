@@ -130,11 +130,10 @@ public partial class SettingsViewModel : ObservableRecipient
         _isInitialized = true;
     }
 
-    // Show the relaunch prompt whenever the live language/market differs from what was active at
+    // Show the relaunch prompt whenever the live language differs from what was active at
     // startup; hide it again if the user reverts to the original values.
     private void UpdateRelaunchPrompt() =>
-        ShowRelaunchPrompt =
-            _localeService.Language != _initialLanguage || _localeService.Market != _initialMarket;
+        ShowRelaunchPrompt = _localeService.Language != _initialLanguage;
 
     partial void OnSelectedMarketIndexChanged(int value)
     {
@@ -213,7 +212,7 @@ public partial class SettingsViewModel : ObservableRecipient
             _architectureItems.FindIndex(x => x.Value == _architectureSelectorService.SelectedStoreEdgeArchitecture)
         );
 
-        UpdateRelaunchPrompt();
+        Microsoft.Windows.AppLifecycle.AppInstance.Restart(string.Empty);
     }
 
     private static string GetVersionDescription()

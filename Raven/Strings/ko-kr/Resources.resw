@@ -178,7 +178,7 @@
     <value>재시작 필요</value>
   </data>
   <data name="Settings_RelaunchInfoBar.Message" xml:space="preserve">
-    <value>Raven을 다시 실행하여 언어와 지역 변경 사항을 적용하세요.</value>
+    <value>: Raven을 다시 실행하여 언어 변경 사항을 적용하세요.</value>
   </data>
   <data name="Settings_RelaunchButton.Content" xml:space="preserve">
     <value>다시 실행</value>
@@ -202,7 +202,7 @@
     <value>앱 데이터를 재설정하시겠습니까?</value>
   </data>
   <data name="Settings_ResetDialogContent" xml:space="preserve">
-    <value>이렇게 하면 다운로드한 모든 파일과 캐시된 다운로드 데이터가 제거되고 언어, 지역 및 아키텍처가 기본값으로 복원됩니다. 이 작업은 되돌릴 수 없습니다.</value>
+    <value>이렇게 하면 다운로드한 모든 파일과 캐시된 다운로드 데이터가 제거되고 언어, 지역 및 아키텍처가 기본값으로 복원됩니다. 앱이 자동으로 다시 시작됩니다. 이 작업은 되돌릴 수 없습니다.</value>
   </data>
   <data name="Settings_ResetDialogPrimary" xml:space="preserve">
     <value>재설정</value>
