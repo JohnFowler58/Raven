@@ -10,7 +10,7 @@ public sealed class GitHubUpdaterService
 {
     private static readonly HttpClient HttpClient = CreateHttpClient();
 
-    public async Task<GitHubReleaseInfo> GetLatestReleaseAsync(CancellationToken cancellationToken = default)
+    public static async Task<GitHubReleaseInfo> GetLatestReleaseAsync(CancellationToken cancellationToken = default)
     {
         using var response = await HttpClient.GetAsync(
             $"https://api.github.com/repos/mjishnu/raven/releases/latest",
@@ -25,6 +25,9 @@ public sealed class GitHubUpdaterService
         var root = document.RootElement;
         var tagName = root.GetProperty("tag_name").GetString() ?? string.Empty;
         var latestVersion = TryParseVersion(tagName);
+        var isPreRelease = root.TryGetProperty("prerelease", out var preReleaseProp)
+            ? preReleaseProp.GetBoolean()
+            : IsPreRelease(tagName);
 
         var assets = root.GetProperty("assets").EnumerateArray();
         var releaseAsset = SelectZipAsset(assets);
@@ -33,12 +36,21 @@ public sealed class GitHubUpdaterService
 
         var currentVersion = Assembly.GetExecutingAssembly().GetName().Version;
 
+        // InformationalVersion carries the full tag (e.g. "v1.0.0.1-beta"),
+        // letting us detect whether the *running* build is a pre-release.
+        var informationalVersion = Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion ?? string.Empty;
+        var isCurrentPreRelease = IsPreRelease(informationalVersion);
+
         return new GitHubReleaseInfo(
             tagName,
             latestVersion,
             currentVersion,
             releaseAsset.Value.name,
-            releaseAsset.Value.downloadUrl
+            releaseAsset.Value.downloadUrl,
+            isPreRelease,
+            isCurrentPreRelease
         );
     }
 
@@ -112,14 +124,14 @@ public sealed class GitHubUpdaterService
 
         Process.Start(startInfo);
     }
-    
+
     private static void TryRemoveMarkOfTheWeb(string filePath)
     {
         try
         {
             File.Delete(filePath + ":Zone.Identifier");
         }
-        catch {}
+        catch { }
     }
 
     private static async Task DownloadAssetAsync(
@@ -187,7 +199,7 @@ public sealed class GitHubUpdaterService
         };
 
         var isSelfContained = IsSelfContainedDeployment();
-        
+
         (string name, string downloadUrl)? archAndVariantMatch = null;
         (string name, string downloadUrl)? archMatch = null;
         (string name, string downloadUrl)? anyZip = null;
@@ -229,17 +241,37 @@ public sealed class GitHubUpdaterService
     private static bool IsSelfContainedDeployment() =>
         File.Exists(Path.Combine(AppContext.BaseDirectory, "coreclr.dll"));
 
+    /// <summary>
+    /// Strips the optional 'v'/'V' prefix from a version tag.
+    /// </summary>
+    private static string StripTagPrefix(string tag)
+    {
+        var trimmed = tag.Trim();
+        return trimmed.StartsWith('v') || trimmed.StartsWith('V')
+            ? trimmed[1..]
+            : trimmed;
+    }
+
     private static Version? TryParseVersion(string tag)
     {
         if (string.IsNullOrWhiteSpace(tag))
             return null;
 
-        var trimmed = tag.Trim();
-        if (trimmed.StartsWith('v') || trimmed.StartsWith('V'))
-            trimmed = trimmed[1..];
+        var versionString = StripTagPrefix(tag);
 
-        return Version.TryParse(trimmed, out var parsed) ? parsed : null;
+        // Strip pre-release suffix (e.g. "1.0.0.1-beta" → "1.0.0.1")
+        var dashIndex = versionString.IndexOf('-');
+        if (dashIndex > 0)
+            versionString = versionString[..dashIndex];
+
+        return Version.TryParse(versionString, out var parsed) ? parsed : null;
     }
+
+    /// <summary>
+    /// Returns <c>true</c> if the tag contains a pre-release suffix (e.g. "-beta", "-rc1").
+    /// </summary>
+    private static bool IsPreRelease(string tag) =>
+        !string.IsNullOrWhiteSpace(tag) && StripTagPrefix(tag).Contains('-');
 
     private static HttpClient CreateHttpClient()
     {
@@ -255,11 +287,31 @@ public sealed record GitHubReleaseInfo(
     Version? LatestVersion,
     Version? CurrentVersion,
     string AssetName,
-    string DownloadUrl
+    string DownloadUrl,
+    bool IsPreRelease = false,
+    bool IsCurrentPreRelease = false
 )
 {
-    public bool IsUpToDate =>
-        LatestVersion is not null
-        && CurrentVersion is not null
-        && LatestVersion <= CurrentVersion;
+    /// <summary>
+    /// Whether the user is already on the latest stable version.
+    /// </summary>
+    public bool IsUpToDate
+    {
+        get
+        {
+            // Never offer a pre-release as an update to anyone.
+            if (IsPreRelease)
+                return true;
+
+            if (LatestVersion is null || CurrentVersion is null)
+                return false;
+
+            // Current build is a pre-release (e.g. 1.0.0.1-beta) with the same
+            // numeric version as the latest stable → should upgrade.
+            if (IsCurrentPreRelease && LatestVersion == CurrentVersion)
+                return false;
+
+            return LatestVersion <= CurrentVersion;
+        }
+    }
 }

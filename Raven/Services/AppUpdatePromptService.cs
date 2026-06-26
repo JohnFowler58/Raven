@@ -129,7 +129,7 @@ public sealed class AppUpdatePromptService
 
             try
             {
-                var release = await _gitHubUpdaterService.GetLatestReleaseAsync(checkCts.Token);
+                var release = await GitHubUpdaterService.GetLatestReleaseAsync(checkCts.Token);
                 isChecking = false;
 
                 if (release.IsUpToDate)
@@ -379,7 +379,7 @@ public sealed class AppUpdatePromptService
 
         try
         {
-            var release = await _gitHubUpdaterService.GetLatestReleaseAsync(cancellationToken);
+            var release = await GitHubUpdaterService.GetLatestReleaseAsync(cancellationToken);
 
             // Persist only after a SUCCESSFUL check so offline/failed launches retry
             // (silently) on the next launch instead of going dark for 24h.

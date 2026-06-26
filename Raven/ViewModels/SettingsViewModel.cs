@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Reflection;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -45,13 +45,28 @@ public partial class SettingsViewModel : ObservableRecipient
     private readonly List<(string DisplayName, Lang Value)> _languageItems;
     private readonly List<(string DisplayName, StoreEdgeFDArch Value)> _architectureItems;
 
-    public IReadOnlyList<string> AllMarketNames { get; }
-    public IReadOnlyList<string> AllLanguageNames { get; }
-    public IReadOnlyList<string> AllArchitectureNames { get; }
+    public IReadOnlyList<string> AllMarketNames
+    {
+        get;
+    }
+    public IReadOnlyList<string> AllLanguageNames
+    {
+        get;
+    }
+    public IReadOnlyList<string> AllArchitectureNames
+    {
+        get;
+    }
 
-    public ICommand SwitchThemeCommand { get; }
+    public ICommand SwitchThemeCommand
+    {
+        get;
+    }
 
-    public ICommand RelaunchCommand { get; }
+    public ICommand RelaunchCommand
+    {
+        get;
+    }
 
     public SettingsViewModel(
         IThemeSelectorService themeSelectorService,
@@ -203,8 +218,20 @@ public partial class SettingsViewModel : ObservableRecipient
 
     private static string GetVersionDescription()
     {
-        System.Version version = Assembly.GetExecutingAssembly().GetName().Version!;
+        var informationalVersion = Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()!
+            .InformationalVersion;
 
-        return $"{"AppDisplayName".GetLocalized()} - {version.Major}.{version.Minor}.{version.Build}.{version.Revision}";
+        // Strip the leading 'v' prefix if present (e.g. "v1.0.0.1-beta" → "1.0.0.1-beta")
+        // Also strip build metadata appended by the .NET SDK (e.g. "+ebd1faf..." → drop it)
+        var versionText = informationalVersion.StartsWith('v')
+            ? informationalVersion[1..]
+            : informationalVersion;
+
+        var plusIndex = versionText.IndexOf('+');
+        if (plusIndex > 0)
+            versionText = versionText[..plusIndex];
+
+        return $"{"AppDisplayName".GetLocalized()} - {versionText}";
     }
 }

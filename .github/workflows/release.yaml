@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version (for example: 1.2.3.4 or v1.2.3.4)"
+        description: "Release version (e.g. 1.2.3.4, v1.2.3.4, 1.0.0.1-beta, v2.0.0.0-rc1)"
         required: true
         default: "1.0.0.0"
         type: string
@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_version: ${{ steps.version.outputs.release_version }}
+      numeric_version: ${{ steps.version.outputs.numeric_version }}
       release_tag: ${{ steps.version.outputs.release_tag }}
 
     steps:
@@ -29,18 +30,30 @@ jobs:
             throw "Version input cannot be empty."
           }
 
+          # Strip optional 'v' prefix
           $normalized = if ($raw.StartsWith('v', [System.StringComparison]::OrdinalIgnoreCase)) {
             $raw.Substring(1)
           } else {
             $raw
           }
 
-          $parsed = $null
-          if (-not [System.Version]::TryParse($normalized, [ref]$parsed)) {
-            throw "Invalid version '$raw'. Use numeric version format like 1.2.3.4 (optional v prefix)."
+          # Split into numeric part and optional pre-release suffix (e.g. "1.0.0.1-beta" -> "1.0.0.1" + "-beta")
+          if ($normalized -match '^([\d\.]+)(-[A-Za-z0-9\.\-]+)?$') {
+            $numericPart = $Matches[1]
+            # $Matches[2] is the suffix including the dash, or $null
+          } else {
+            throw "Invalid version '$raw'. Expected format: Major.Minor.Build.Revision[-suffix] (e.g. 1.0.0.1, 1.0.0.1-beta, 1.0.0.1-rc1)."
           }
 
+          $parsed = $null
+          if (-not [System.Version]::TryParse($numericPart, [ref]$parsed)) {
+            throw "Invalid numeric version '$numericPart' from input '$raw'. The numeric portion must be a valid version like 1.2.3.4."
+          }
+
+          # release_version = full version with suffix (e.g. "1.0.0.1-beta")
+          # numeric_version = just the numeric part (e.g. "1.0.0.1") for AssemblyVersion/FileVersion
           "release_version=$normalized" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "numeric_version=$numericPart" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "release_tag=v$normalized" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
   build:
@@ -52,12 +65,13 @@ jobs:
         arch: [x64, x86, arm64]
     env:
       RELEASE_VERSION: ${{ needs.prepare.outputs.release_version }}
+      NUMERIC_VERSION: ${{ needs.prepare.outputs.numeric_version }}
       RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
       ARCH: ${{ matrix.arch }}
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -111,7 +125,7 @@ jobs:
           arch: ${{ matrix.arch == 'arm64' && 'amd64_arm64' || matrix.arch == 'x86' && 'amd64_x86' || 'amd64' }}
 
       - name: Cache NuGet Packages
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/packages.lock.json') }}
@@ -125,9 +139,9 @@ jobs:
           -r win-$env:ARCH
           --self-contained false
           -o ./publish_output
-          -p:Version=$env:RELEASE_VERSION
-          -p:AssemblyVersion=$env:RELEASE_VERSION
-          -p:FileVersion=$env:RELEASE_VERSION
+          -p:Version=$env:NUMERIC_VERSION
+          -p:AssemblyVersion=$env:NUMERIC_VERSION
+          -p:FileVersion=$env:NUMERIC_VERSION
           -p:InformationalVersion=$env:RELEASE_TAG
 
       - name: Clean Intermediates Before Self-Contained Publish
@@ -149,9 +163,9 @@ jobs:
           --self-contained true
           -p:WindowsAppSDKSelfContained=true
           -o ./publish_output_full
-          -p:Version=$env:RELEASE_VERSION
-          -p:AssemblyVersion=$env:RELEASE_VERSION
-          -p:FileVersion=$env:RELEASE_VERSION
+          -p:Version=$env:NUMERIC_VERSION
+          -p:AssemblyVersion=$env:NUMERIC_VERSION
+          -p:FileVersion=$env:NUMERIC_VERSION
           -p:InformationalVersion=$env:RELEASE_TAG
 
       - name: Publish Updater (NativeAOT)
@@ -163,9 +177,9 @@ jobs:
           -p:PublishAot=true
           -p:IlcUseEnvironmentalTools=true
           -o ./updater_aot
-          -p:Version=$env:RELEASE_VERSION
-          -p:AssemblyVersion=$env:RELEASE_VERSION
-          -p:FileVersion=$env:RELEASE_VERSION
+          -p:Version=$env:NUMERIC_VERSION
+          -p:AssemblyVersion=$env:NUMERIC_VERSION
+          -p:FileVersion=$env:NUMERIC_VERSION
 
       - name: Replace Updater With NativeAOT Build
         shell: pwsh
@@ -258,6 +272,7 @@ jobs:
           tag_name: ${{ needs.prepare.outputs.release_tag }}
           name: Raven ${{ needs.prepare.outputs.release_tag }}
           draft: true
+          prerelease: ${{ needs.prepare.outputs.release_version != needs.prepare.outputs.numeric_version }}
           generate_release_notes: true
           files: |
             ./artifacts/Raven-*-win-x64.zip
